@@ -1,0 +1,10 @@
+bin
+test
+*.mp4
+*.webp
+*.db-shm
+*.db-wal
+ap_attach
+ap_config
+ap_plugin
+fnd*.tar

@@ -1,0 +1,51 @@
+<div hx-get="/htmx/uebersicht.html" hx-trigger="every 2s" hx-swap="outerHTML">
+
+
+    <div class="columns">
+        <div class="column is-narrow">
+            <h3 class="title is-3">Status</h3>
+
+
+            <table class="table is-bordered">
+                <tbody>
+
+                    {{ range .NotificationStatus}}
+                    <tr>
+                        <th>{{ .Name }}</th>
+                        <td class="{{if .Good}}is-success{{else}}is-danger{{end}}">{{ .Message }}</td>
+                    </tr>
+                    {{ end }}
+
+                </tbody>
+            </table>
+
+
+
+
+        </div>
+        <div class="column box">
+            <h3 class="title is-3">{{index .TranslatedText 5}}</h3>
+
+
+            <table class="table is-bordered">
+                <tbody>
+
+                    {{ range .WebNotifications}}
+                    <tr>
+                        <th>
+                            {{ .N.Caption }}
+                            <p>{{ .N.Date }}</p>
+                        </th>
+                        <td> <img alt="" src="data:image/png;base64,{{ .Jepg_encoded}}" /></td>
+                    </tr>
+                    {{ end }}
+
+                </tbody>
+            </table>
+
+
+        </div>
+    </div>
+
+
+</div>

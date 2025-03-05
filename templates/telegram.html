@@ -1,0 +1,52 @@
+<div id="telegram-einstellungen">
+    <div class="columns">
+
+
+        <div class="column is-narrow">
+            <h3 class="title is-3">Telegram</h3>
+            <form hx-post="/htmx/telegram.html" hx-target="#telegram-einstellungen" hx-swap="outerHTML">
+
+                <label class="label">{{index .TranslatedText 0}}</label>
+                <div class="field">
+                    <div class="control">
+                        <label class="checkbox">
+                            <input type="checkbox" name="aktiv" {{if .Active}}checked{{end}}>
+                            {{index .TranslatedText 0}}
+                        </label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Bot Token</label>
+                    <div class="control">
+                        <input class="input" type="text" name="token0815" placeholder="{{ .Token }}">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Chat ID</label>
+                    <div class="control">
+                        <input class="input" type="text" name="chatid" placeholder="{{ .ChatID }}">
+                    </div>
+                </div>
+
+                <div class="control">
+                    <button class="button is-link">{{index .TranslatedText 1}}</button>
+                </div>
+
+                <br>
+                {{ if .ShowStatus }}<span class="tag {{.Color}} is-normal">{{.StatusMessage}}</span>{{end}}
+
+
+            </form>
+
+        </div>
+
+        <div class="column is-narrow">
+            {{index .TranslatedText 2}}
+        </div>
+
+
+
+    </div>
+</div>

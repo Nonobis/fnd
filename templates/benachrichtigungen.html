@@ -1,0 +1,41 @@
+<div id="benachrichtigungen-einstellungen">
+    <div class="columns">
+
+
+        <div class="column is-narrow">
+            <h3 class="title is-3">{{index .TranslatedText 0}}</h3>
+            <form hx-post="/htmx/benachrichtigungen.html" hx-target="#benachrichtigungen-einstellungen"
+                hx-swap="outerHTML">
+
+                <div class="field">
+                    <label class="label">{{index .TranslatedText 1}}</label>
+                    <div class="control">
+                        <input class="input" type="text" name="cooldown0815" placeholder="{{ .Conf.Cooldown }}">
+                    </div>
+                </div>
+
+                <label class="label">{{index .TranslatedText 2}}</label>
+                {{ range .Conf.Cameras}}
+                <div class="field">
+                    <div class="control">
+                        <label class="checkbox">
+                            <input type="checkbox" name="{{.Name}}" {{if .Active}}checked{{end}}>
+                            {{ .Name }}
+                        </label>
+                    </div>
+                </div>
+                {{ end }}
+
+
+                <div class="control">
+                    <button class="button is-link">{{index .TranslatedText 3}}</button>
+                </div>
+                <br>
+                {{ if .ShowStatus }}<span class="tag {{.Color}} is-normal">{{.StatusMessage}}</span>{{end}}
+
+
+            </form>
+
+        </div>
+    </div>
+</div>

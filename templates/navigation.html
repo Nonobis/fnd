@@ -1,0 +1,18 @@
+<aside class="menu">
+    <p class="menu-label">{{index .TranslatedText 2}}</p>
+    <ul class="menu-list">
+        <li><a hx-get="/htmx/uebersicht.html" hx-target="#main">{{index .TranslatedText 1}}</a></li>
+
+    </ul>
+    <p class="menu-label">{{index .TranslatedText 3}}</p>
+    <ul class="menu-list">
+        <li>
+            <ul>
+                <li><a hx-get="/htmx/frigate.html" hx-target="#main">Frigate</a></li>
+                <li><a hx-get="/htmx/benachrichtigungen.html" hx-target="#main">{{index .TranslatedText 4}}</a></li>
+                <li><a hx-get="/htmx/telegram.html" hx-target="#main">Telegram</a></li>
+                <li><a hx-get="/htmx/apprise.html" hx-target="#main">Apprise</a></li>
+            </ul>
+        </li>
+    </ul>
+</aside>

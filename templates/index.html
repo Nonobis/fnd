@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Frigate Nachrichten Dienst</title>
+    <link rel="stylesheet" href="/static/bulma.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/htmx.min.js"></script>
+</head>
+
+<body>
+    <div class="columns is-centered" style="padding-left: 50px; padding-right: 50px;">
+        <div class="column">
+
+            <div class="Banner" style="padding: 30px;">
+                <h1 class="title is-1">{{index .TranslatedText 0}}</h1>
+                <span class="tag is-link is-info">{{.Version}}</span>
+                <br>
+                <br>
+                <!-- TODO: make tihs dynamic  -->
+                <button class="button is-light {{if eq .ActiveLanguage 0}}is-link{{end}}"
+                    hx-post="/htmx/language.html?lang=de" hx-target="#lang-info">de</button>
+                <button class="button is-light {{if eq .ActiveLanguage 1}}is-link{{end}}"
+                    hx-post="/htmx/language.html?lang=en" hx-target="#lang-info">en</button>
+                <div id="lang-info"></div>
+            </div>
+
+
+            <div class="columns">
+                <div class="column is-narrow">
+                    {{ template "navigation.html" .}}
+
+                </div>
+
+                <div class="column">
+                    <div id="main">
+                        {{ template "uebersicht.html" .}}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
