@@ -4,7 +4,6 @@
   <img src=./screenshots/telegram.png width="200" />
   <img src="./screenshots/ntfy.png" width="200" />
 </p>
-![image info](./screenshots/telegram.png) ![image info](./screenshots/ntfy.png)
 
 This tool is designed to run alongside Frigate, Mqtt and Apprise in one docker-compose setup.
 It will forward Frigate Notifications to Apprise, which in turn allows us to receive notifications for a ton of popular services, including Discord, Telegram, MS Teams, Signal, Threema, ntfy.sh, ...
