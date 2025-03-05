@@ -4,7 +4,7 @@ all:
 	go build -o bin/fnd -ldflags "-X main.version=$(VERSION)"
 
 docker:
-	docker build -t fnd:$(VERSION) -f docker/Dockerfile .
+	docker build -t biberino/fnd:$(VERSION) -f docker/Dockerfile .
 
 tarball:
 	docker save -o fnd-$(VERSION).tar fnd:$(VERSION)
