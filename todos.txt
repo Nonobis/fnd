@@ -1,6 +1,9 @@
 - Hide Telegram Token in web menu
 - Cooldown in overview
 - Snapshot support for Telegram Bot (/snapshot or /live sends a live picture)
-- Code Review
-- Repo clean
-- Docker Package Repo
+- Implement Frigate+Apprise settings
+- Per Camera settings:
+    - Notification Message
+    - Object filter
+    - Time scheduling
+- add restart: unless-stopped to apprise

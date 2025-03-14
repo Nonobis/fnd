@@ -62,6 +62,7 @@ func setupTranslation() *Translation {
 	}
 	trans.TokenMap["camera"] = []string{"Kamera", "camera"}
 	trans.TokenMap["object"] = []string{"Objekt", "object"}
+	trans.TokenMap["test_notification"] = []string{"Benachrichtigung testen", "Test notification"}
 
 	return &trans
 }

@@ -23,6 +23,7 @@ type FNDWebServer struct {
 	notifyIndex     int
 	frigateConf     *FNDFrigateConfiguration
 	translation     *Translation
+	frigateEvent    *FNDFrigateEventManager
 }
 
 type FNDWebNotification struct {
@@ -86,6 +87,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 			web.translation.lookupToken("settings"),
 			web.translation.lookupToken("notifications"),
 			web.translation.lookupToken("last_notify"),
+			web.translation.lookupToken("test_notification"),
 		}
 
 		t := template.Must(template.ParseFS(templateFS,
@@ -111,6 +113,13 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 	})
 	r.GET("/htmx/frigate.html", func(c *gin.Context) {
 		t := template.Must(template.ParseFS(templateFS, "templates/frigate.html"))
+		t.Execute(c.Writer, nil)
+	})
+	r.GET("/htmx/testnotification", func(c *gin.Context) {
+
+		web.sendTestNotification()
+
+		t := template.Must(template.ParseFS(templateFS, "templates/generic_ok.html"))
 		t.Execute(c.Writer, nil)
 	})
 	r.GET("/htmx/benachrichtigungen.html", func(c *gin.Context) {
@@ -188,7 +197,8 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 	return &web
 }
 
-func (web *FNDWebServer) run() {
+func (web *FNDWebServer) run(frigateEvent *FNDFrigateEventManager) {
+	web.frigateEvent = frigateEvent
 	if err := web.srv.ListenAndServe(); err != nil {
 		fmt.Println(err.Error())
 	}
@@ -217,4 +227,23 @@ func (web *FNDWebServer) addNotification(n FNDNotification) {
 
 func (web *FNDWebServer) addNotificationSinkStatus(n FNDNotificationSinkStatus) {
 	web.OverviewPayload.NotificationStatus[n.Name] = n
+}
+
+func (web *FNDWebServer) sendTestNotification() {
+	if web.frigateEvent == nil {
+		fmt.Println("ASSERTION failed: FrigateEventManager is nil")
+		return
+	}
+
+	data, err := staticFS.ReadFile("static/test_notification.jpg")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	web.frigateEvent.sendNotification(FNDNotification{
+		JpegData: data,
+		Date:     time.Now().Format("15:04:05 02.01.2006"),
+		Caption:  "Test",
+	})
 }

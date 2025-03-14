@@ -48,7 +48,7 @@ func main() {
 	notify := NewFNDNotificationManager(conf.Notify)
 	notify.setupNotificationSinks(connection.eventManager.notificationChannel, web, connection)
 
-	go web.run()
+	go web.run(&connection.eventManager)
 	bg := RunBackgroundTask(&connection.api, conf, notify, configuration_path)
 
 	// ###################################

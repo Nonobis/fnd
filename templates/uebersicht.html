@@ -19,6 +19,12 @@
                 </tbody>
             </table>
 
+            <div class="control">
+                <button class="button is-link" hx-get="/htmx/testnotification" hx-target="#testnotification_ok"
+                    hx-swap="innerHTML">{{index
+                    .TranslatedText 6}}</button>
+                <div id="testnotification_ok"></div>
+            </div>
 
 
 

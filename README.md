@@ -38,7 +38,7 @@ services:
       - frigate
       - apprise
     restart: unless-stopped
-    image: docker.io/biberino/fnd:0.1.4
+    image: docker.io/biberino/fnd:0.1.5
     volumes:
       - ./fnd_conf:/fnd_conf
     ports:
@@ -48,6 +48,7 @@ services:
 
   apprise:
       image: caronc/apprise:latest
+      restart: unless-stopped
       environment:
           - APPRISE_STATEFUL_MODE=simple
           - APPRISE_WORKER_COUNT=1
