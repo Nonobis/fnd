@@ -54,21 +54,31 @@ jobs:
       uses: docker/setup-buildx-action@v3
 
     - name: Log in to Container Registry
-      if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata
-      id: meta
+    - name: Generate alpha version for PR
+      id: alpha_version
+      if: github.event_name == 'pull_request'
+      run: |
+        VERSION=${{ steps.version.outputs.version }}
+        PR_NUMBER=${{ github.event.number }}
+        COMMIT_SHA=${GITHUB_SHA:0:7}
+        ALPHA_VERSION="${VERSION}-alpha.pr${PR_NUMBER}.${COMMIT_SHA}"
+        echo "alpha_version=$ALPHA_VERSION" >> $GITHUB_OUTPUT
+        echo "Generated alpha version: $ALPHA_VERSION"
+
+    - name: Extract metadata for main/tags
+      id: meta-main
+      if: github.event_name != 'pull_request'
       uses: docker/metadata-action@v5
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
           type=ref,event=branch
-          type=ref,event=pr
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
@@ -80,16 +90,52 @@ jobs:
           org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           org.opencontainers.image.revision=${{ github.sha }}
           org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
-          org.opencontainers.image.version=${{ github.ref_name }}
+          org.opencontainers.image.version=${{ steps.version.outputs.version }}
 
-    - name: Build and push Docker image
+    - name: Extract metadata for PRs (Alpha)
+      id: meta-alpha
+      if: github.event_name == 'pull_request'
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=raw,value=${{ steps.alpha_version.outputs.alpha_version }}
+          type=raw,value=latest-dev
+          type=raw,value=pr-${{ github.event.number }}
+        labels: |
+          org.opencontainers.image.title=FND
+          org.opencontainers.image.description=Frigate Notification Daemon (Alpha Build)
+          org.opencontainers.image.vendor=${{ github.repository_owner }}
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+          org.opencontainers.image.version=${{ steps.alpha_version.outputs.alpha_version }}
+          org.opencontainers.image.documentation=Alpha build from PR #${{ github.event.number }}
+
+    - name: Display build information
+      run: |
+        echo "=== Build Information ==="
+        echo "Event: ${{ github.event_name }}"
+        echo "Base Version: ${{ steps.version.outputs.version }}"
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          echo "Alpha Version: ${{ steps.alpha_version.outputs.alpha_version }}"
+          echo "PR Number: ${{ github.event.number }}"
+          echo "Target Tags: ${{ steps.meta-alpha.outputs.tags }}"
+        else
+          echo "Target Tags: ${{ steps.meta-main.outputs.tags }}"
+        fi
+        echo "Commit SHA: ${{ github.sha }}"
+        echo "========================"
+
+    - name: Build and push Docker image (Main/Tags)
+      if: github.event_name != 'pull_request'
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ./docker/Dockerfile
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        push: true
+        tags: ${{ steps.meta-main.outputs.tags }}
+        labels: ${{ steps.meta-main.outputs.labels }}
         build-args: |
           BUILD_VERSION=${{ steps.version.outputs.version }}
           BUILD_DATE=${{ env.BUILD_DATE }}
@@ -97,3 +143,36 @@ jobs:
           VCS_URL=${{ github.server_url }}/${{ github.repository }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+    - name: Build and push Docker image (Alpha)
+      if: github.event_name == 'pull_request'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/Dockerfile
+        push: true
+        tags: ${{ steps.meta-alpha.outputs.tags }}
+        labels: ${{ steps.meta-alpha.outputs.labels }}
+        build-args: |
+          BUILD_VERSION=${{ steps.alpha_version.outputs.alpha_version }}
+          BUILD_DATE=${{ env.BUILD_DATE }}
+          VCS_REF=${{ github.sha }}
+          VCS_URL=${{ github.server_url }}/${{ github.repository }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Display pushed images
+      run: |
+        echo "=== Successfully pushed images ==="
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          echo "🔧 Alpha images for PR #${{ github.event.number }}:"
+          echo "${{ steps.meta-alpha.outputs.tags }}" | tr ',' '\n' | sed 's/^/  - /'
+          echo ""
+          echo "💡 To use this alpha version:"
+          echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-dev"
+          echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.alpha_version.outputs.alpha_version }}"
+        else
+          echo "📦 Production images:"
+          echo "${{ steps.meta-main.outputs.tags }}" | tr ',' '\n' | sed 's/^/  - /'
+        fi
+        echo "================================="
