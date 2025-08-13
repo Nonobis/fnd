@@ -2,16 +2,21 @@ name: Docker Build and Publish
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
     tags: [ 'v*' ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
+    types: [ opened, synchronize, reopened ]
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   BUILD_VERSION: ${{ github.ref_name }}
   BUILD_DATE: ${{ github.event.head_commit.timestamp }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
