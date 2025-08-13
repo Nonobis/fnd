@@ -1,0 +1,21 @@
+{
+  "Frigate": {
+    "Host": "frigate",
+    "Port": "5000",
+    "MqttServer": "mqtt-server",
+    "MqttPort": "1883",
+    "Cooldown": 60,
+    "Cameras": {},
+    "Language": "en"
+  },
+  "Notify": {
+    "Conf": {},
+    "apprise": {
+      "enabled": false,
+      "configID": "",
+      "serverURL": "http://apprise:8000",
+      "timeout": 30,
+      "format": "text"
+    }
+  }
+}
