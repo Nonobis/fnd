@@ -1,0 +1,220 @@
+name: Release
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Get current version from Makefile
+      id: current_version
+      run: |
+        if [ -f Makefile ]; then
+          VERSION=$(grep '^VERSION=' Makefile | cut -d'=' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+        else
+          echo "version=0.1.0" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Generate new version
+      id: new_version
+      run: |
+        CURRENT_VERSION="${{ steps.current_version.outputs.version }}"
+        # Split version into parts
+        IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+        MAJOR=${VERSION_PARTS[0]}
+        MINOR=${VERSION_PARTS[1]}
+        PATCH=${VERSION_PARTS[2]}
+        
+        # Increment patch version for main/master pushes
+        if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" -o "${{ github.ref }}" = "refs/heads/master" ]; then
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "should_release=true" >> $GITHUB_OUTPUT
+          echo "New version will be: $NEW_VERSION"
+        else
+          echo "new_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "should_release=false" >> $GITHUB_OUTPUT
+          echo "No version increment for PR or non-main branch"
+        fi
+
+    - name: Update Makefile version
+      if: steps.new_version.outputs.should_release == 'true'
+      run: |
+        NEW_VERSION="${{ steps.new_version.outputs.new_version }}"
+        sed -i "s/^VERSION=.*/VERSION=$NEW_VERSION/" Makefile
+        echo "Updated Makefile with version $NEW_VERSION"
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23'
+
+    - name: Build Go application
+      run: |
+        mkdir -p bin
+        VERSION="${{ steps.new_version.outputs.new_version }}"
+        go build -o bin/fnd -ldflags "-X main.version=$VERSION"
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=raw,value=${{ steps.new_version.outputs.new_version }},enable=${{ steps.new_version.outputs.should_release == 'true' }}
+          type=raw,value=latest,enable=${{ steps.new_version.outputs.should_release == 'true' }}
+        labels: |
+          org.opencontainers.image.title=FND
+          org.opencontainers.image.description=Frigate Notification Daemon
+          org.opencontainers.image.vendor=${{ github.repository_owner }}
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+          org.opencontainers.image.version=${{ steps.new_version.outputs.new_version }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/Dockerfile
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        build-args: |
+          BUILD_VERSION=${{ steps.new_version.outputs.new_version }}
+          BUILD_DATE=${{ github.event.head_commit.timestamp }}
+          VCS_REF=${{ github.sha }}
+          VCS_URL=${{ github.server_url }}/${{ github.repository }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Generate changelog
+      if: steps.new_version.outputs.should_release == 'true'
+      id: changelog
+      run: |
+        # Get the previous tag
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        if [ -z "$PREV_TAG" ]; then
+          # First release
+          echo "## Version ${{ steps.new_version.outputs.new_version }} - $(date +'%d.%m.%Y')" > RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "🎉 **Première release de FND (Frigate Notification Daemon)**" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "### Fonctionnalités principales" >> RELEASE_NOTES.md
+          echo "- Daemon de notification pour Frigate" >> RELEASE_NOTES.md
+          echo "- Support des notifications Telegram" >> RELEASE_NOTES.md
+          echo "- Support des notifications Apprise" >> RELEASE_NOTES.md
+          echo "- Interface web de configuration" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+        else
+          # Generate changelog from commits
+          echo "## Version ${{ steps.new_version.outputs.new_version }} - $(date +'%d.%m.%Y')" > RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "### Changements depuis $PREV_TAG" >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          
+          # Get commits since last tag
+          git log --pretty=format:"- %s" $PREV_TAG..HEAD >> RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+        fi
+        
+        # Add Docker image info
+        echo "" >> RELEASE_NOTES.md
+        echo "### 🐳 Image Docker" >> RELEASE_NOTES.md
+        echo "" >> RELEASE_NOTES.md
+        echo "Cette release est disponible sous forme d'image Docker :" >> RELEASE_NOTES.md
+        echo "" >> RELEASE_NOTES.md
+        echo "**Image principale :**" >> RELEASE_NOTES.md
+        echo '```bash' >> RELEASE_NOTES.md
+        echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.new_version.outputs.new_version }}" >> RELEASE_NOTES.md
+        echo '```' >> RELEASE_NOTES.md
+        echo "" >> RELEASE_NOTES.md
+        echo "**Image latest :**" >> RELEASE_NOTES.md
+        echo '```bash' >> RELEASE_NOTES.md
+        echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> RELEASE_NOTES.md
+        echo '```' >> RELEASE_NOTES.md
+        echo "" >> RELEASE_NOTES.md
+        echo "**Liens directs :**" >> RELEASE_NOTES.md
+        echo "- 📦 [Package GitHub](${{ github.server_url }}/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }})" >> RELEASE_NOTES.md
+        echo "- 🏷️ [Tag ${{ steps.new_version.outputs.new_version }}](${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.new_version.outputs.new_version }})" >> RELEASE_NOTES.md
+        
+        # Also update the main CHANGELOG
+        if [ -f Changelog.md ]; then
+          # Backup and prepend new entry
+          cp Changelog.md Changelog.md.bak
+          cat RELEASE_NOTES.md > Changelog.md
+          echo "" >> Changelog.md
+          cat Changelog.md.bak >> Changelog.md
+          rm Changelog.md.bak
+        else
+          cp RELEASE_NOTES.md Changelog.md
+        fi
+
+    - name: Commit version and changelog updates
+      if: steps.new_version.outputs.should_release == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add Makefile Changelog.md
+        git commit -m "chore: bump version to ${{ steps.new_version.outputs.new_version }} and update changelog" || exit 0
+        git tag "v${{ steps.new_version.outputs.new_version }}"
+        git push origin HEAD:${{ github.ref_name }}
+        git push origin "v${{ steps.new_version.outputs.new_version }}"
+
+    - name: Create GitHub Release
+      if: steps.new_version.outputs.should_release == 'true'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.new_version.outputs.new_version }}
+        release_name: Release v${{ steps.new_version.outputs.new_version }}
+        body_path: RELEASE_NOTES.md
+        draft: false
+        prerelease: false
+
+    - name: Upload binary to release
+      if: steps.new_version.outputs.should_release == 'true'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./bin/fnd
+        asset_name: fnd-${{ steps.new_version.outputs.new_version }}-linux-amd64
+        asset_content_type: application/octet-stream
