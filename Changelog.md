@@ -26,3 +26,7 @@ docker pull ghcr.io/Nonobis/fnd:latest
 **Liens directs :**
 - 📦 [Package GitHub](https://github.com/Nonobis/fnd/pkgs/container/fnd)
 - 🏷️ [Tag 0.1.6](ghcr.io/Nonobis/fnd:0.1.6)
+
+## 0.1.14 -> 0.1.15 14.03.2025
+
+- Added test notifications from overview to test the setup
