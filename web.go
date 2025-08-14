@@ -43,9 +43,19 @@ type OverviewPayload struct {
 	Version            string
 	TranslatedText     []string
 	ActiveLanguage     int
+	SupportedLanguages []Language
+	CurrentLanguage    Language
 }
 
 type BenachrichtigungPayload struct {
+	ShowStatus     bool
+	Color          string
+	StatusMessage  string
+	Conf           *FNDFrigateConfiguration
+	TranslatedText []string
+}
+
+type FrigateTemplatePayload struct {
 	ShowStatus     bool
 	Color          string
 	StatusMessage  string
@@ -79,6 +89,8 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 	r.GET("/", func(c *gin.Context) {
 
 		web.OverviewPayload.ActiveLanguage = web.translation.currentIndex
+		web.OverviewPayload.SupportedLanguages = web.translation.getLanguages()
+		web.OverviewPayload.CurrentLanguage = web.translation.getCurrentLanguage()
 
 		web.OverviewPayload.TranslatedText = []string{
 			web.translation.lookupToken("header"),
@@ -112,8 +124,20 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 		t.Execute(c.Writer, web.OverviewPayload)
 	})
 	r.GET("/htmx/frigate.html", func(c *gin.Context) {
+		text := []string{
+			web.translation.lookupToken("frigate_host"),
+			web.translation.lookupToken("frigate_port"),
+			web.translation.lookupToken("mqtt_server"),
+			web.translation.lookupToken("mqtt_port"),
+			web.translation.lookupToken("apply"),
+		}
+
 		t := template.Must(template.ParseFS(templateFS, "templates/frigate.html"))
-		t.Execute(c.Writer, nil)
+		t.Execute(c.Writer, FrigateTemplatePayload{
+			ShowStatus:     false,
+			Conf:           conf,
+			TranslatedText: text,
+		})
 	})
 	r.GET("/htmx/testnotification", func(c *gin.Context) {
 
@@ -155,6 +179,54 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 		t := template.Must(template.ParseFS(templateFS, "templates/language.html"))
 		t.Execute(c.Writer, payload)
 	})
+
+	r.POST("/htmx/frigate.html", func(c *gin.Context) {
+		text := []string{
+			web.translation.lookupToken("frigate_host"),
+			web.translation.lookupToken("frigate_port"),
+			web.translation.lookupToken("mqtt_server"),
+			web.translation.lookupToken("mqtt_port"),
+			web.translation.lookupToken("apply"),
+		}
+
+		c.MultipartForm()
+		for key, value := range c.Request.PostForm {
+			if key == "host" {
+				if value[0] != "" {
+					conf.Host = value[0]
+				}
+				continue
+			}
+			if key == "port" {
+				if value[0] != "" {
+					conf.Port = value[0]
+				}
+				continue
+			}
+			if key == "mqttserver" {
+				if value[0] != "" {
+					conf.MqttServer = value[0]
+				}
+				continue
+			}
+			if key == "mqttport" {
+				if value[0] != "" {
+					conf.MqttPort = value[0]
+				}
+				continue
+			}
+		}
+
+		t := template.Must(template.ParseFS(templateFS, "templates/frigate.html"))
+		t.Execute(c.Writer, FrigateTemplatePayload{
+			ShowStatus:     true,
+			Color:          "is-primary",
+			StatusMessage:  "OK",
+			Conf:           conf,
+			TranslatedText: text,
+		})
+	})
+
 	r.POST("/htmx/benachrichtigungen.html", func(c *gin.Context) {
 
 		text := []string{

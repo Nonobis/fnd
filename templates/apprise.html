@@ -22,6 +22,33 @@
                     </div>
                 </div>
 
+                <div class="field">
+                    <label class="label">{{index .TranslatedText 4}}</label>
+                    <div class="control">
+                        <input class="input" type="text" name="serverURL" placeholder="{{ .ServerURL }}">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">{{index .TranslatedText 5}}</label>
+                    <div class="control">
+                        <input class="input" type="number" name="timeout" placeholder="{{ .Timeout }}" min="1" max="300">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">{{index .TranslatedText 6}}</label>
+                    <div class="control">
+                        <div class="select">
+                            <select name="format">
+                                <option value="text" {{if eq .Format "text"}}selected{{end}}>Text</option>
+                                <option value="markdown" {{if eq .Format "markdown"}}selected{{end}}>Markdown</option>
+                                <option value="html" {{if eq .Format "html"}}selected{{end}}>HTML</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="control">
                     <button class="button is-link">{{index .TranslatedText 3}}</button>
                 </div>

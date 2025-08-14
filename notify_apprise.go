@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"strconv"
 	"text/template"
 	"time"
 
@@ -22,6 +23,9 @@ type FNDAppriseNotificationSink struct {
 type AppriseTemplatePayload struct {
 	Active          bool
 	AppriseConfigID string
+	ServerURL       string
+	Timeout         int
+	Format          string
 	ShowStatus      bool
 	Color           string
 	StatusMessage   string
@@ -79,6 +83,31 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 				apprise.appriseConfig.ConfigID = value[0]
 				continue
 			}
+			if key == "serverURL" {
+				if value[0] == "" {
+					continue
+				}
+				apprise.appriseConfig.ServerURL = value[0]
+				continue
+			}
+			if key == "timeout" {
+				if value[0] == "" {
+					continue
+				}
+				if timeout, err := strconv.Atoi(value[0]); err == nil && timeout > 0 && timeout <= 300 {
+					apprise.appriseConfig.Timeout = timeout
+				}
+				continue
+			}
+			if key == "format" {
+				if value[0] == "" {
+					continue
+				}
+				if value[0] == "text" || value[0] == "markdown" || value[0] == "html" {
+					apprise.appriseConfig.Format = value[0]
+				}
+				continue
+			}
 			if key == "aktiv" {
 				if value[0] == "" {
 					continue
@@ -101,11 +130,17 @@ func (apprise *FNDAppriseNotificationSink) generatePayload(postReq bool) Apprise
 	pay := AppriseTemplatePayload{
 		Active:          apprise.appriseConfig.Enabled,
 		AppriseConfigID: apprise.appriseConfig.ConfigID,
+		ServerURL:       apprise.appriseConfig.ServerURL,
+		Timeout:         apprise.appriseConfig.Timeout,
+		Format:          apprise.appriseConfig.Format,
 		TranslatedText: []string{
 			apprise.webServer.translation.lookupToken("active"),
 			apprise.webServer.translation.lookupToken("confID"),
 			apprise.webServer.translation.lookupToken("apprise_doc"),
 			apprise.webServer.translation.lookupToken("apply"),
+			apprise.webServer.translation.lookupToken("server_url"),
+			apprise.webServer.translation.lookupToken("timeout"),
+			apprise.webServer.translation.lookupToken("format"),
 		},
 	}
 

@@ -1,10 +1,58 @@
-<div>
-    <p>TODO</p>
-    <p>These settings are currently hardcoded, most things can be changed in the conf.json:</p>
-    <p>Host: frigate</p>
-    <p>Port (API): 5000</p>
-    <p>MqttServer: mqtt-server</p>
-    <p>MqttPort: 1883</p>
-    <p>Apprise host: apprise</p>
-    <p>Apprise port: 8000</p>
+<div id="frigate-einstellungen">
+    <div class="columns">
+        
+        <div class="column is-narrow">
+            <h3 class="title is-3">Frigate Configuration</h3>
+            <form hx-post="/htmx/frigate.html" hx-target="#frigate-einstellungen" hx-swap="outerHTML">
+
+                <div class="field">
+                    <label class="label">{{index .TranslatedText 0}}</label>
+                    <div class="control">
+                        <input class="input" type="text" name="host" placeholder="{{ .Conf.Host }}">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">{{index .TranslatedText 1}}</label>
+                    <div class="control">
+                        <input class="input" type="text" name="port" placeholder="{{ .Conf.Port }}">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">{{index .TranslatedText 2}}</label>
+                    <div class="control">
+                        <input class="input" type="text" name="mqttserver" placeholder="{{ .Conf.MqttServer }}">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">{{index .TranslatedText 3}}</label>
+                    <div class="control">
+                        <input class="input" type="text" name="mqttport" placeholder="{{ .Conf.MqttPort }}">
+                    </div>
+                </div>
+
+                <div class="control">
+                    <button class="button is-link">{{index .TranslatedText 4}}</button>
+                </div>
+
+                <br>
+                {{ if .ShowStatus }}<span class="tag {{.Color}} is-normal">{{.StatusMessage}}</span>{{end}}
+
+            </form>
+
+        </div>
+
+        <div class="column is-narrow">
+            <div class="content">
+                <h4>Configuration Help</h4>
+                <p><strong>Host:</strong> Frigate server hostname or IP address</p>
+                <p><strong>Port:</strong> Frigate API port (default: 5000)</p>
+                <p><strong>MQTT Server:</strong> MQTT broker hostname or IP</p>
+                <p><strong>MQTT Port:</strong> MQTT broker port (default: 1883)</p>
+            </div>
+        </div>
+
+    </div>
 </div>
