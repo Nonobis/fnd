@@ -108,7 +108,7 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 				}
 				continue
 			}
-			if key == "aktiv" {
+			if key == "active" {
 				if value[0] == "" {
 					continue
 				}
@@ -209,7 +209,7 @@ func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) e
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		apprise.lastStatusMessage = "Rückgabewert falsch"
+		apprise.lastStatusMessage = "Invalid return value"
 		return nil
 	}
 	apprise.lastStatusMessage = "Online"

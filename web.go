@@ -47,7 +47,7 @@ type OverviewPayload struct {
 	CurrentLanguage    Language
 }
 
-type BenachrichtigungPayload struct {
+type NotificationPayload struct {
 	ShowStatus     bool
 	Color          string
 	StatusMessage  string
@@ -104,7 +104,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 
 		t := template.Must(template.ParseFS(templateFS,
 			"templates/index.html",
-			"templates/uebersicht.html",
+			"templates/overview.html",
 			"templates/navigation.html"))
 		t.Execute(c.Writer, web.OverviewPayload)
 	})
@@ -119,8 +119,8 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 		c.FileFromFS("static/style.css", http.FS(staticFS))
 	})
 
-	r.GET("/htmx/uebersicht.html", func(c *gin.Context) {
-		t := template.Must(template.ParseFS(templateFS, "templates/uebersicht.html"))
+	r.GET("/htmx/overview.html", func(c *gin.Context) {
+		t := template.Must(template.ParseFS(templateFS, "templates/overview.html"))
 		t.Execute(c.Writer, web.OverviewPayload)
 	})
 	r.GET("/htmx/frigate.html", func(c *gin.Context) {
@@ -146,7 +146,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 		t := template.Must(template.ParseFS(templateFS, "templates/generic_ok.html"))
 		t.Execute(c.Writer, nil)
 	})
-	r.GET("/htmx/benachrichtigungen.html", func(c *gin.Context) {
+	r.GET("/htmx/notifications.html", func(c *gin.Context) {
 
 		text := []string{
 			web.translation.lookupToken("notifications"),
@@ -155,8 +155,8 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 			web.translation.lookupToken("apply"),
 		}
 
-		t := template.Must(template.ParseFS(templateFS, "templates/benachrichtigungen.html"))
-		t.Execute(c.Writer, BenachrichtigungPayload{
+		t := template.Must(template.ParseFS(templateFS, "templates/notifications.html"))
+		t.Execute(c.Writer, NotificationPayload{
 			ShowStatus:     false,
 			Conf:           conf,
 			TranslatedText: text,
@@ -166,17 +166,142 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 	r.POST("/htmx/language.html", func(c *gin.Context) {
 
 		lang := c.Query("lang")
-		var payload string
 
 		err := web.translation.setLanguage(lang)
 		if err != nil {
-			payload = err.Error()
-		} else {
-			payload = web.translation.lookupToken("reload")
-			web.frigateConf.Language = lang
+			errorTemplate := `<div class="notification is-danger is-light">{{.}}</div>`
+			t := template.Must(template.New("error").Parse(errorTemplate))
+			t.Execute(c.Writer, err.Error())
+			return
 		}
 
-		t := template.Must(template.ParseFS(templateFS, "templates/language.html"))
+		web.frigateConf.Language = lang
+		// Update the payload with new language data
+		web.OverviewPayload.ActiveLanguage = web.translation.currentIndex
+		web.OverviewPayload.CurrentLanguage = web.translation.getCurrentLanguage()
+		web.OverviewPayload.SupportedLanguages = web.translation.getLanguages()
+
+		// Update the main overview payload translations
+		web.OverviewPayload.TranslatedText = []string{
+			web.translation.lookupToken("header"),
+			web.translation.lookupToken("overview"),
+			web.translation.lookupToken("menu"),
+			web.translation.lookupToken("settings"),
+			web.translation.lookupToken("notifications"),
+			web.translation.lookupToken("last_notify"),
+			web.translation.lookupToken("test_notification"),
+		}
+
+		successMsg := web.translation.lookupToken("language_changed")
+		languageName := web.translation.getCurrentLanguage().Name
+
+		// Use HTMX response headers to trigger multiple updates
+		c.Header("HX-Trigger-After-Swap", "languageChanged")
+
+		// Create a proper template structure for the notification
+		notificationTemplate := `<div class="notification is-success is-light">
+			<span class="icon">{{.Flag}}</span>
+			{{.Message}}: {{.LanguageName}}
+		</div>`
+
+		t := template.Must(template.New("notification").Parse(notificationTemplate))
+		t.Execute(c.Writer, struct {
+			Flag         string
+			Message      string
+			LanguageName string
+		}{
+			Flag:         web.translation.getCurrentLanguage().Flag,
+			Message:      successMsg,
+			LanguageName: languageName,
+		})
+	})
+
+	r.GET("/htmx/language_settings.html", func(c *gin.Context) {
+		payload := struct {
+			SupportedLanguages []Language
+			CurrentLanguage    Language
+		}{
+			SupportedLanguages: web.translation.getLanguages(),
+			CurrentLanguage:    web.translation.getCurrentLanguage(),
+		}
+
+		t := template.Must(template.ParseFS(templateFS, "templates/language_settings.html"))
+		t.Execute(c.Writer, payload)
+	})
+
+	// New routes for dynamic updates after language change
+	r.GET("/htmx/navigation.html", func(c *gin.Context) {
+		translatedText := []string{
+			web.translation.lookupToken("header"),
+			web.translation.lookupToken("overview"),
+			web.translation.lookupToken("menu"),
+			web.translation.lookupToken("settings"),
+			web.translation.lookupToken("notifications"),
+		}
+
+		t := template.Must(template.ParseFS(templateFS, "templates/navigation.html"))
+		t.Execute(c.Writer, struct {
+			TranslatedText []string
+		}{
+			TranslatedText: translatedText,
+		})
+	})
+
+	r.GET("/htmx/header.html", func(c *gin.Context) {
+		// Return updated language dropdown
+		payload := struct {
+			SupportedLanguages []Language
+			CurrentLanguage    Language
+			TranslatedText     []string
+		}{
+			SupportedLanguages: web.translation.getLanguages(),
+			CurrentLanguage:    web.translation.getCurrentLanguage(),
+			TranslatedText: []string{
+				web.translation.lookupToken("header"),
+			},
+		}
+
+		headerTemplate := `
+		<h1 class="title is-1">{{index .TranslatedText 0}}</h1>
+		<span class="tag is-link is-info">` + web.OverviewPayload.Version + `</span>
+		<br>
+		<br>
+		<div class="field">
+			<div class="control">
+				<div class="dropdown is-hoverable language-dropdown">
+					<div class="dropdown-trigger">
+						<button class="button is-light" aria-haspopup="true" aria-controls="dropdown-menu" title="Select Language">
+							<span class="icon">
+								<span>{{ .CurrentLanguage.Flag }}</span>
+							</span>
+							<span>{{ .CurrentLanguage.Name }}</span>
+							<span class="icon is-small">
+								<span>▼</span>
+							</span>
+						</button>
+					</div>
+					<div class="dropdown-menu" id="dropdown-menu" role="menu">
+						<div class="dropdown-content">
+							{{ range .SupportedLanguages }}
+							<a class="dropdown-item {{if eq .Code $.CurrentLanguage.Code}}is-active{{end}}" 
+							   hx-post="/htmx/language.html?lang={{ .Code }}" 
+							   hx-target="#lang-info"
+							   hx-trigger="click"
+							   title="Switch to {{ .Name }}">
+								<span class="icon">
+									<span>{{ .Flag }}</span>
+								</span>
+								<span>{{ .Name }}</span>
+							</a>
+							{{ end }}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="lang-info"></div>`
+
+		t := template.Must(template.New("header").Parse(headerTemplate))
 		t.Execute(c.Writer, payload)
 	})
 
@@ -227,7 +352,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 		})
 	})
 
-	r.POST("/htmx/benachrichtigungen.html", func(c *gin.Context) {
+	r.POST("/htmx/notifications.html", func(c *gin.Context) {
 
 		text := []string{
 			web.translation.lookupToken("notifications"),
@@ -256,8 +381,8 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 
 		conf.activateCameras(onList)
 
-		t := template.Must(template.ParseFS(templateFS, "templates/benachrichtigungen.html"))
-		t.Execute(c.Writer, BenachrichtigungPayload{
+		t := template.Must(template.ParseFS(templateFS, "templates/notifications.html"))
+		t.Execute(c.Writer, NotificationPayload{
 			ShowStatus:     true,
 			Color:          "is-primary",
 			StatusMessage:  "OK",

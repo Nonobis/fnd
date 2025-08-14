@@ -1,15 +1,15 @@
-<div id="gotify-einstellungen">
+<div id="gotify-settings">
     <div class="columns">
         
         <div class="column is-narrow">
             <h3 class="title is-3">Gotify</h3>
-            <form hx-post="/htmx/gotify.html" hx-target="#gotify-einstellungen" hx-swap="outerHTML">
+            <form hx-post="/htmx/gotify.html" hx-target="#gotify-settings" hx-swap="outerHTML">
 
                 <label class="label">{{index .TranslatedText 0}}</label>
                 <div class="field">
                     <div class="control">
                         <label class="checkbox">
-                            <input type="checkbox" name="aktiv" {{if .Active}}checked{{end}}>
+                            <input type="checkbox" name="active" {{if .Active}}checked{{end}}>
                             {{index .TranslatedText 0}}
                         </label>
                     </div>

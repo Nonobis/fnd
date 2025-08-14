@@ -1,42 +1,95 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Frigate Nachrichten Dienst</title>
+    <title>Frigate Notification Service</title>
     <link rel="stylesheet" href="/static/bulma.min.css">
     <link rel="stylesheet" href="/static/style.css">
     <script src="/static/htmx.min.js"></script>
+    <script>
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Listen for language change event and update UI sections
+            document.body.addEventListener('languageChanged', function(evt) {
+                // Update header section
+                htmx.ajax('GET', '/htmx/header.html', {
+                    target: '#header-section',
+                    swap: 'innerHTML'
+                });
+                
+                // Update navigation section
+                htmx.ajax('GET', '/htmx/navigation.html', {
+                    target: '#navigation-section',
+                    swap: 'innerHTML'
+                });
+                
+                // Update overview section
+                htmx.ajax('GET', '/htmx/overview.html', {
+                    target: '#main',
+                    swap: 'innerHTML'
+                });
+            });
+        });
+    </script>
 </head>
 
 <body>
     <div class="columns is-centered" style="padding-left: 50px; padding-right: 50px;">
         <div class="column">
 
-            <div class="Banner" style="padding: 30px;">
+            <div class="Banner" style="padding: 30px;" id="header-section">
                 <h1 class="title is-1">{{index .TranslatedText 0}}</h1>
                 <span class="tag is-link is-info">{{.Version}}</span>
                 <br>
                 <br>
-                <!-- TODO: make tihs dynamic  -->
-                <button class="button is-light {{if eq .ActiveLanguage 0}}is-link{{end}}"
-                    hx-post="/htmx/language.html?lang=de" hx-target="#lang-info">de</button>
-                <button class="button is-light {{if eq .ActiveLanguage 1}}is-link{{end}}"
-                    hx-post="/htmx/language.html?lang=en" hx-target="#lang-info">en</button>
+                <div class="field">
+                    <div class="control">
+                        <div class="dropdown is-hoverable language-dropdown">
+                            <div class="dropdown-trigger">
+                                <button class="button is-light" aria-haspopup="true" aria-controls="dropdown-menu" title="Select Language">
+                                    <span class="icon">
+                                        <span>{{ .CurrentLanguage.Flag }}</span>
+                                    </span>
+                                    <span>{{ .CurrentLanguage.Name }}</span>
+                                    <span class="icon is-small">
+                                        <span>▼</span>
+                                    </span>
+                                </button>
+                            </div>
+                            <div class="dropdown-menu" id="dropdown-menu" role="menu">
+                                <div class="dropdown-content">
+                                    {{ range .SupportedLanguages }}
+                                    <a class="dropdown-item {{if eq .Code $.CurrentLanguage.Code}}is-active{{end}}" 
+                                       hx-post="/htmx/language.html?lang={{ .Code }}" 
+                                       hx-target="#lang-info"
+                                       hx-trigger="click"
+                                       title="Switch to {{ .Name }}">
+                                        <span class="icon">
+                                            <span>{{ .Flag }}</span>
+                                        </span>
+                                        <span>{{ .Name }}</span>
+                                    </a>
+                                    {{ end }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div id="lang-info"></div>
             </div>
 
 
             <div class="columns">
-                <div class="column is-narrow">
+                <div class="column is-narrow" id="navigation-section">
                     {{ template "navigation.html" .}}
 
                 </div>
 
                 <div class="column">
                     <div id="main">
-                        {{ template "uebersicht.html" .}}
+                        {{ template "overview.html" .}}
                     </div>
                 </div>
 

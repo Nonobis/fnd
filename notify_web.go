@@ -65,7 +65,7 @@ func (web *FNDWebNotificationSink) registerWebServer(webServer *FNDWebServer) {
 		web.config.Map["enabled"] = "false"
 		c.MultipartForm()
 		for key, value := range c.Request.PostForm {
-			if key == "aktiv" {
+			if key == "active" {
 				if value[0] == "" {
 					continue
 				}

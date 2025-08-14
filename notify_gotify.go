@@ -94,7 +94,7 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 				}
 				continue
 			}
-			if key == "aktiv" {
+			if key == "active" {
 				if value[0] == "" {
 					continue
 				}

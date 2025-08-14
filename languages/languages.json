@@ -1,0 +1,23 @@
+{
+  "supported_languages": [
+    {
+      "code": "de",
+      "name": "Deutsch",
+      "flag": "🇩🇪",
+      "file": "de.json"
+    },
+    {
+      "code": "en",
+      "name": "English",
+      "flag": "🇬🇧",
+      "file": "en.json"
+    },
+    {
+      "code": "fr",
+      "name": "Français",
+      "flag": "🇫🇷",
+      "file": "fr.json"
+    }
+  ],
+  "default_language": "en"
+}

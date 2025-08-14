@@ -100,7 +100,7 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 				tel.chatid = data
 				continue
 			}
-			if key == "aktiv" {
+			if key == "active" {
 				if value[0] == "" {
 					continue
 				}
@@ -171,7 +171,7 @@ func (tel *FNDTelegramNotificationSink) generatePayload(postReq bool) TelegramTe
 
 func (tel *FNDTelegramNotificationSink) sendNotification(n FNDNotification) error {
 	if tel.config.Map["enabled"] != "true" {
-		tel.lastStatusMessage = "disabeled"
+		tel.lastStatusMessage = "disabled"
 		return nil
 	}
 	if tel.config.Map["token"] == "" {
@@ -209,7 +209,7 @@ func (tel *FNDTelegramNotificationSink) remove() (FNDNotificationConfigurationMa
 
 func (tel *FNDTelegramNotificationSink) botStart() error {
 	if tel.config.Map["enabled"] != "true" {
-		return errors.New("Bot is disabeled!")
+		return errors.New("Bot is disabled!")
 	}
 	if tel.config.Map["token"] == "" {
 		return errors.New("Bot Token is empty!")

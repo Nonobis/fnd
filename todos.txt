@@ -1,9 +1,13 @@
-- Hide Telegram Token in web menu
+- Hide Telegram/Gotify Token in web menu
+- Add test button for each notification system
 - Cooldown in overview
-- Snapshot support for Telegram Bot (/snapshot or /live sends a live picture)
-- Implement Frigate+Apprise settings
+- Snapshot support for all notification system (/snapshot or /live sends a live picture)
+- video support for all notification system (/snapshot or /live sends a live picture) if possible or at least a direct link to video.
+- Implement LLM (OpenAI/Gemini/Ollama) configuration for LLM-Vision interpretation of image
+- Add Machine learning system for facial recognizion
+- Add LLM request for determining action done on event for better message
+- Add UI for managing Image/Face
 - Per Camera settings:
     - Notification Message
     - Object filter
     - Time scheduling
-- add restart: unless-stopped to apprise
