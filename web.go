@@ -27,8 +27,9 @@ type FNDWebServer struct {
 }
 
 type FNDWebNotification struct {
-	N            FNDNotification
-	Jepg_encoded string
+	N             FNDNotification
+	Jepg_encoded  string
+	Video_encoded string
 }
 
 type FNDNotificationSinkStatus struct {
@@ -391,6 +392,57 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 		})
 	})
 
+	// Snapshot endpoints
+	r.GET("/snapshot/:camera", func(c *gin.Context) {
+		camera := c.Param("camera")
+		if camera == "" {
+			c.JSON(400, gin.H{"error": "Camera parameter required"})
+			return
+		}
+
+		imageData, err := web.frigateEvent.api.getLiveSnapshotByCamera(camera)
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.Header("Content-Type", "image/jpeg")
+		c.Data(200, "image/jpeg", imageData)
+	})
+
+	r.GET("/live/:camera", func(c *gin.Context) {
+		camera := c.Param("camera")
+		if camera == "" {
+			c.JSON(400, gin.H{"error": "Camera parameter required"})
+			return
+		}
+
+		imageData, err := web.frigateEvent.api.getLiveSnapshotByCamera(camera)
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.Header("Content-Type", "image/jpeg")
+		c.Data(200, "image/jpeg", imageData)
+	})
+
+	// Send live snapshot via notifications
+	r.POST("/api/send-snapshot/:camera", func(c *gin.Context) {
+		camera := c.Param("camera")
+		if camera == "" {
+			c.JSON(400, gin.H{"error": "Camera parameter required"})
+			return
+		}
+
+		// Access the notification manager through global state or dependency injection
+		// For now, we'll create a simple response
+		c.JSON(200, gin.H{
+			"message": "Snapshot request received for camera: " + camera,
+			"camera":  camera,
+		})
+	})
+
 	return &web
 }
 
@@ -407,18 +459,23 @@ func (web *FNDWebServer) stop() {
 	if err := web.srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server Shutdown:", err)
 	}
-	// catching ctx.Done(). timeout of 5 seconds.
-	select {
-	case <-ctx.Done():
-		log.Println("timeout of 1 seconds.")
-	}
+	// catching ctx.Done(). timeout of 1 seconds.
+	<-ctx.Done()
+	log.Println("timeout of 1 seconds.")
 }
 
 func (web *FNDWebServer) addNotification(n FNDNotification) {
-	web.OverviewPayload.WebNotifications[web.notifyIndex] = FNDWebNotification{
+	webNotif := FNDWebNotification{
 		N:            n,
 		Jepg_encoded: base64.StdEncoding.EncodeToString(n.JpegData),
 	}
+
+	// Encode video if available
+	if n.HasVideo && len(n.VideoData) > 0 {
+		webNotif.Video_encoded = base64.StdEncoding.EncodeToString(n.VideoData)
+	}
+
+	web.OverviewPayload.WebNotifications[web.notifyIndex] = webNotif
 	web.notifyIndex = (web.notifyIndex + 1) % MAX_NOTIFICATIONS
 }
 

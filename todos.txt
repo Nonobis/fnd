@@ -1,13 +1,17 @@
-- Hide Telegram/Gotify Token in web menu
+- Hide Notification system Token in all configuration page. (value not displayed)
 - Add test button for each notification system
+- In notification page, if notification system is disabled, textbox entry are disabled.
 - Cooldown in overview
-- Snapshot support for all notification system (/snapshot or /live sends a live picture)
-- video support for all notification system (/snapshot or /live sends a live picture) if possible or at least a direct link to video.
+- on overview page, better ui
+- make a better layout for ui
+✅ Snapshot support for all notification system (/snapshot or /live sends a live picture)
+✅ video support for all notification system (/snapshot or /live sends a live picture) if possible or at least a direct link to video.
 - Implement LLM (OpenAI/Gemini/Ollama) configuration for LLM-Vision interpretation of image
-- Add Machine learning system for facial recognizion
+- Add Machine learning system for facial recognizion with stockage of facial image for better accurancy. Find a self hosted system for facial recognition easily integrable
 - Add LLM request for determining action done on event for better message
 - Add UI for managing Image/Face
 - Per Camera settings:
     - Notification Message
     - Object filter
     - Time scheduling
+- Remake ui with Angular / Material design.

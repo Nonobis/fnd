@@ -168,10 +168,15 @@ func (gotify *FNDGotifyNotificationSink) sendNotification(n FNDNotification) err
 		}
 	}
 
-	// Create the message
+	// Create the message with optional video link
+	messageText := fmt.Sprintf("%s\n\n%s", n.Caption, n.Date)
+	if n.HasVideo && n.VideoURL != "" {
+		messageText += "\n\n🎥 Video: " + n.VideoURL
+	}
+
 	message := GotifyMessage{
 		Title:    "FND Notification",
-		Message:  fmt.Sprintf("%s\n\n%s", n.Caption, n.Date),
+		Message:  messageText,
 		Priority: priority,
 	}
 

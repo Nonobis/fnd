@@ -45,7 +45,7 @@ type eventMessage struct {
 func newFrigateConnection(conf *FNDFrigateConfiguration) *FNDFrigateConnection {
 	con := &FNDFrigateConnection{
 		mqttServerAddress: "tcp://" + conf.MqttServer + ":" + conf.MqttPort,
-		api:               *NewFNDFrigateApi("http://" + conf.Host + ":" + conf.Port),
+		api:               *NewFNDFrigateApi("http://"+conf.Host+":"+conf.Port, conf.ExternalURL),
 	}
 	con.eventManager = *NewFNDFrigateEventManager(&con.api, conf)
 	return con

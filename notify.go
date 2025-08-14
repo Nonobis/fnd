@@ -2,12 +2,16 @@ package main
 
 import (
 	"fmt"
+	"time"
 )
 
 type FNDNotification struct {
-	JpegData []byte
-	Date     string
-	Caption  string
+	JpegData  []byte
+	VideoData []byte
+	VideoURL  string
+	Date      string
+	Caption   string
+	HasVideo  bool
 }
 
 type FNDNotificationSink interface {
@@ -119,4 +123,28 @@ func (m *FNDNotificationManager) notificationThread(c chan FNDNotification) {
 		m.notifyAll(n)
 		m.getStatusAll()
 	}
+}
+
+func (m *FNDNotificationManager) sendLiveSnapshot(camera string, api *FNDFrigateApi) error {
+	// Get live snapshot from camera
+	imageData, err := api.getLiveSnapshotByCamera(camera)
+	if err != nil {
+		return err
+	}
+
+	// Create notification with live snapshot
+	n := FNDNotification{
+		JpegData:  imageData,
+		Date:      time.Now().Format("15:04:05 02.01.2006"),
+		Caption:   "Live snapshot from camera: " + camera,
+		HasVideo:  false,
+		VideoData: nil,
+		VideoURL:  "",
+	}
+
+	// Send to all notification sinks
+	m.notifyAll(n)
+	m.getStatusAll()
+
+	return nil
 }

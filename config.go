@@ -14,13 +14,17 @@ type FNDConfiguration struct {
 }
 
 type FNDFrigateConfiguration struct {
-	Host       string
-	Port       string
-	MqttServer string
-	MqttPort   string
-	Cooldown   int
-	Cameras    map[string]CameraConfig
-	Language   string
+	Host           string
+	Port           string
+	MqttServer     string
+	MqttPort       string
+	Cooldown       int
+	Cameras        map[string]CameraConfig
+	Language       string
+	VideoEnabled   bool
+	VideoUrlOnly   bool
+	MaxVideoSizeMB int
+	ExternalURL    string
 
 	m sync.Mutex
 }
@@ -69,13 +73,17 @@ func LoadFNDConf(filename string) *FNDConfiguration {
 func NEWDefaultFNDConfiguration() *FNDConfiguration {
 	return &FNDConfiguration{
 		Frigate: FNDFrigateConfiguration{
-			Host:       "frigate",
-			Port:       "5000",
-			MqttServer: "mqtt-server",
-			MqttPort:   "1883",
-			Cooldown:   60,
-			Cameras:    make(map[string]CameraConfig),
-			Language:   "en",
+			Host:           "frigate",
+			Port:           "5000",
+			MqttServer:     "mqtt-server",
+			MqttPort:       "1883",
+			Cooldown:       60,
+			Cameras:        make(map[string]CameraConfig),
+			Language:       "en",
+			VideoEnabled:   true,
+			VideoUrlOnly:   false,
+			MaxVideoSizeMB: 10,
+			ExternalURL:    "",
 		},
 		Notify: FNDNotificationConfiguration{
 			Conf:    make(map[string]FNDNotificationConfigurationMap),

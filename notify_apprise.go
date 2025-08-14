@@ -170,13 +170,19 @@ func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) e
 	var err error
 	writer := multipart.NewWriter(&requestBody)
 
-	err = writer.WriteField("body", n.Caption+"   "+n.Date)
+	// Add video URL to caption if available
+	body := n.Caption + "   " + n.Date
+	if n.HasVideo && n.VideoURL != "" {
+		body += "\n🎥 Video: " + n.VideoURL
+	}
+
+	err = writer.WriteField("body", body)
 	if err != nil {
 		return err
 	}
 
+	// Attach image
 	jpedDataReader := bytes.NewReader(n.JpegData)
-
 	fileWriter, err := writer.CreateFormFile("attach", "Screenshot.jpeg")
 	if err != nil {
 		return err
@@ -185,6 +191,20 @@ func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) e
 	_, err = io.Copy(fileWriter, jpedDataReader)
 	if err != nil {
 		return err
+	}
+
+	// Attach video if we have video data
+	if n.HasVideo && len(n.VideoData) > 0 {
+		videoDataReader := bytes.NewReader(n.VideoData)
+		videoWriter, err := writer.CreateFormFile("attach", "clip.mp4")
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(videoWriter, videoDataReader)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = writer.Close()
@@ -212,7 +232,11 @@ func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) e
 		apprise.lastStatusMessage = "Invalid return value"
 		return nil
 	}
-	apprise.lastStatusMessage = "Online"
+	if n.HasVideo && len(n.VideoData) > 0 {
+		apprise.lastStatusMessage = "Online (with video)"
+	} else {
+		apprise.lastStatusMessage = "Online"
+	}
 	return nil
 }
 
