@@ -9,14 +9,14 @@
                 <div class="field">
                     <div class="control">
                         <label class="checkbox">
-                            <input type="checkbox" name="active" {{if .Active}}checked{{end}}>
+                            <input type="checkbox" name="active" id="web-active" {{if .Active}}checked{{end}} onchange="toggleWebFields()">
                             {{index .TranslatedText 0}}
                         </label>
                     </div>
                 </div>
 
                 <div class="control">
-                    <button class="button is-link">{{index .TranslatedText 1}}</button>
+                    <button class="button is-link web-field" {{if not .Active}}disabled{{end}}>{{index .TranslatedText 1}}</button>
                 </div>
 
                 <br>
@@ -35,4 +35,19 @@
         </div>
 
     </div>
+
+    <script>
+        function toggleWebFields() {
+            const isActive = document.getElementById('web-active').checked;
+            const fields = document.querySelectorAll('.web-field');
+            fields.forEach(field => {
+                field.disabled = !isActive;
+                if (isActive) {
+                    field.classList.remove('is-disabled');
+                } else {
+                    field.classList.add('is-disabled');
+                }
+            });
+        }
+    </script>
 </div>

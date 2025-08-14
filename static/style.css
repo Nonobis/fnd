@@ -33,3 +33,28 @@
     display: inline-block;
     min-width: 200px;
 }
+
+/* Disabled notification fields styling */
+.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.input:disabled,
+.select select:disabled,
+.button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: hsl(0, 0%, 96%);
+    color: hsl(0, 0%, 48%);
+}
+
+.button:disabled {
+    border-color: hsl(0, 0%, 86%);
+}
+
+.button:disabled:hover {
+    background-color: hsl(0, 0%, 96%);
+    color: hsl(0, 0%, 48%);
+    border-color: hsl(0, 0%, 86%);
+}

@@ -9,7 +9,7 @@
                 <div class="field">
                     <div class="control">
                         <label class="checkbox">
-                            <input type="checkbox" name="active" {{if .Active}}checked{{end}}>
+                            <input type="checkbox" name="active" id="gotify-active" {{if .Active}}checked{{end}} onchange="toggleGotifyFields()">
                             {{index .TranslatedText 0}}
                         </label>
                     </div>
@@ -18,26 +18,26 @@
                 <div class="field">
                     <label class="label">Server URL</label>
                     <div class="control">
-                        <input class="input" type="text" name="serverurl" placeholder="{{ .ServerURL }}">
+                        <input class="input gotify-field" type="text" name="serverurl" placeholder="{{ .ServerURL }}" {{if not .Active}}disabled{{end}}>
                     </div>
                 </div>
 
                 <div class="field">
                     <label class="label">App Token</label>
                     <div class="control">
-                        <input class="input" type="text" name="apptoken" placeholder="{{ .AppToken }}">
+                        <input class="input gotify-field" type="text" name="apptoken" placeholder="{{ .AppToken }}" {{if not .Active}}disabled{{end}}>
                     </div>
                 </div>
 
                 <div class="field">
                     <label class="label">Priority (0-10)</label>
                     <div class="control">
-                        <input class="input" type="number" name="priority" min="0" max="10" value="5">
+                        <input class="input gotify-field" type="number" name="priority" min="0" max="10" value="5" {{if not .Active}}disabled{{end}}>
                     </div>
                 </div>
 
                 <div class="control">
-                    <button class="button is-link">{{index .TranslatedText 1}}</button>
+                    <button class="button is-link gotify-field" {{if not .Active}}disabled{{end}}>{{index .TranslatedText 1}}</button>
                 </div>
 
                 <br>
@@ -59,4 +59,19 @@
         </div>
 
     </div>
+
+    <script>
+        function toggleGotifyFields() {
+            const isActive = document.getElementById('gotify-active').checked;
+            const fields = document.querySelectorAll('.gotify-field');
+            fields.forEach(field => {
+                field.disabled = !isActive;
+                if (isActive) {
+                    field.classList.remove('is-disabled');
+                } else {
+                    field.classList.add('is-disabled');
+                }
+            });
+        }
+    </script>
 </div>

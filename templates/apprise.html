@@ -9,7 +9,7 @@
                 <div class="field">
                     <div class="control">
                         <label class="checkbox">
-                            <input type="checkbox" name="active" {{if .Active}}checked{{end}}>
+                            <input type="checkbox" name="active" id="apprise-active" {{if .Active}}checked{{end}} onchange="toggleAppriseFields()">
                             {{index .TranslatedText 0}}
                         </label>
                     </div>
@@ -18,21 +18,21 @@
                 <div class="field">
                     <label class="label">{{index .TranslatedText 1}}</label>
                     <div class="control">
-                        <input class="input" type="text" name="appriseConfigID" placeholder="{{ .AppriseConfigID }}">
+                        <input class="input apprise-field" type="text" name="appriseConfigID" placeholder="{{ .AppriseConfigID }}" {{if not .Active}}disabled{{end}}>
                     </div>
                 </div>
 
                 <div class="field">
                     <label class="label">{{index .TranslatedText 4}}</label>
                     <div class="control">
-                        <input class="input" type="text" name="serverURL" placeholder="{{ .ServerURL }}">
+                        <input class="input apprise-field" type="text" name="serverURL" placeholder="{{ .ServerURL }}" {{if not .Active}}disabled{{end}}>
                     </div>
                 </div>
 
                 <div class="field">
                     <label class="label">{{index .TranslatedText 5}}</label>
                     <div class="control">
-                        <input class="input" type="number" name="timeout" placeholder="{{ .Timeout }}" min="1" max="300">
+                        <input class="input apprise-field" type="number" name="timeout" placeholder="{{ .Timeout }}" min="1" max="300" {{if not .Active}}disabled{{end}}>
                     </div>
                 </div>
 
@@ -40,7 +40,7 @@
                     <label class="label">{{index .TranslatedText 6}}</label>
                     <div class="control">
                         <div class="select">
-                            <select name="format">
+                            <select name="format" class="apprise-field" {{if not .Active}}disabled{{end}}>
                                 <option value="text" {{if eq .Format "text"}}selected{{end}}>Text</option>
                                 <option value="markdown" {{if eq .Format "markdown"}}selected{{end}}>Markdown</option>
                                 <option value="html" {{if eq .Format "html"}}selected{{end}}>HTML</option>
@@ -50,7 +50,7 @@
                 </div>
 
                 <div class="control">
-                    <button class="button is-link">{{index .TranslatedText 3}}</button>
+                    <button class="button is-link apprise-field" {{if not .Active}}disabled{{end}}>{{index .TranslatedText 3}}</button>
                 </div>
 
                 <br>
@@ -73,4 +73,19 @@
 
 
     </div>
+
+    <script>
+        function toggleAppriseFields() {
+            const isActive = document.getElementById('apprise-active').checked;
+            const fields = document.querySelectorAll('.apprise-field');
+            fields.forEach(field => {
+                field.disabled = !isActive;
+                if (isActive) {
+                    field.classList.remove('is-disabled');
+                } else {
+                    field.classList.add('is-disabled');
+                }
+            });
+        }
+    </script>
 </div>
