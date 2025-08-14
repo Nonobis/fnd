@@ -38,6 +38,8 @@ type TelegramTemplatePayload struct {
 func (tel *FNDTelegramNotificationSink) createDefaultConfig() {
 	tel.config = NEWDefaultFNDNotificationConfigurationMap()
 	tel.config.Map["enabled"] = "false"
+	tel.config.Map["token"] = ""
+	tel.config.Map["chatid"] = ""
 }
 
 func (tel *FNDTelegramNotificationSink) getName() string {

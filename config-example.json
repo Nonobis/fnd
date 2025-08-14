@@ -9,7 +9,28 @@
     "Language": "en"
   },
   "Notify": {
-    "Conf": {},
+    "Conf": {
+      "Web": {
+        "Map": {
+          "enabled": "true"
+        }
+      },
+      "Telegram": {
+        "Map": {
+          "enabled": "false",
+          "token": "",
+          "chatid": ""
+        }
+      },
+      "Gotify": {
+        "Map": {
+          "enabled": "false",
+          "serverurl": "http://gotify:80",
+          "apptoken": "",
+          "priority": "5"
+        }
+      }
+    },
     "apprise": {
       "enabled": false,
       "configID": "",

@@ -1,0 +1,62 @@
+<div id="gotify-einstellungen">
+    <div class="columns">
+        
+        <div class="column is-narrow">
+            <h3 class="title is-3">Gotify</h3>
+            <form hx-post="/htmx/gotify.html" hx-target="#gotify-einstellungen" hx-swap="outerHTML">
+
+                <label class="label">{{index .TranslatedText 0}}</label>
+                <div class="field">
+                    <div class="control">
+                        <label class="checkbox">
+                            <input type="checkbox" name="aktiv" {{if .Active}}checked{{end}}>
+                            {{index .TranslatedText 0}}
+                        </label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Server URL</label>
+                    <div class="control">
+                        <input class="input" type="text" name="serverurl" placeholder="{{ .ServerURL }}">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">App Token</label>
+                    <div class="control">
+                        <input class="input" type="text" name="apptoken" placeholder="{{ .AppToken }}">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Priority (0-10)</label>
+                    <div class="control">
+                        <input class="input" type="number" name="priority" min="0" max="10" value="5">
+                    </div>
+                </div>
+
+                <div class="control">
+                    <button class="button is-link">{{index .TranslatedText 1}}</button>
+                </div>
+
+                <br>
+                {{ if .ShowStatus }}<span class="tag {{.Color}} is-normal">{{.StatusMessage}}</span>{{end}}
+
+            </form>
+
+        </div>
+
+        <div class="column is-narrow">
+            <div class="content">
+                <h4>Configuration Help</h4>
+                <p><strong>Server URL:</strong> URL of your Gotify server (e.g., http://gotify:80 or https://your-domain.com)</p>
+                <p><strong>App Token:</strong> Application token from your Gotify server (create one in the Apps section)</p>
+                <p><strong>Priority:</strong> Message priority level (0=lowest, 10=highest)</p>
+                <br>
+                <p>{{index .TranslatedText 2}}</p>
+            </div>
+        </div>
+
+    </div>
+</div>

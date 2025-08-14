@@ -60,6 +60,18 @@ func setupTranslation() *Translation {
                 <li>Paste the configuration ID here and apply</li>
             </ol>`,
 	}
+	trans.TokenMap["gotify_doc"] = []string{
+		` <ol>
+                <li>Gotify Server installieren und konfigurieren</li>
+                <li>Eine neue Applikation in Gotify erstellen</li>
+                <li>Den App Token hier eintragen und übernehmen</li>
+            </ol>`,
+		` <ol>
+                <li>Install and configure your Gotify server</li>
+                <li>Create a new application in Gotify</li>
+                <li>Copy the app token here and apply</li>
+            </ol>`,
+	}
 	trans.TokenMap["camera"] = []string{"Kamera", "camera"}
 	trans.TokenMap["object"] = []string{"Objekt", "object"}
 	trans.TokenMap["test_notification"] = []string{"Benachrichtigung testen", "Test notification"}
