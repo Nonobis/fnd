@@ -34,7 +34,7 @@ func (e *FNDFrigateEventManager) addNewEventMessage(msg eventMessage) error {
 	switch msg.TypeInfo {
 	case "new":
 		if avail {
-			return errors.New("Unerwartetes NEW Event")
+			return errors.New("Unexpected NEW Event")
 		}
 		e.activeEvents[msg.Before.Id] = msg
 		var err error
@@ -46,12 +46,12 @@ func (e *FNDFrigateEventManager) addNewEventMessage(msg eventMessage) error {
 		}
 	case "update":
 		if !avail {
-			return errors.New("Unerwartetes UPDATE Event")
+			return errors.New("Unexpected UPDATE Event")
 		}
 		e.activeEvents[msg.Before.Id] = msg
 	case "end":
 		if !avail {
-			return errors.New("Unerwartetes END Event")
+			return errors.New("Unexpected END Event")
 		}
 		delete(e.activeEvents, msg.Before.Id)
 	}
@@ -91,8 +91,8 @@ func (e *FNDFrigateEventManager) prepareNotification(msg eventMessage) error {
 
 }
 
-// Reiht die Benachrichtigung ein. Wird die Schlange zu voll, wird die Benachrichtigung
-// verworfen. Blockiert also nie.
+// Queues the notification. If the queue is too full, the notification
+// is discarded. So it never blocks.
 func (e *FNDFrigateEventManager) sendNotification(n FNDNotification) {
 	if len(e.notificationChannel) == cap(e.notificationChannel) {
 		return

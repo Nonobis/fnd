@@ -1,101 +1,165 @@
 package main
 
 import (
+	"embed"
+	"encoding/json"
 	"errors"
-	"slices"
+	"fmt"
+	"os"
 )
 
+type Language struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+	Flag string `json:"flag"`
+	File string `json:"file"`
+}
+
+type LanguageConfig struct {
+	SupportedLanguages []Language `json:"supported_languages"`
+	DefaultLanguage    string     `json:"default_language"`
+}
+
 type Translation struct {
-	TokenMap           map[string][]string
+	TokenMap           map[string]string
 	CurrentLanguage    string
-	SupportedLanguages []string
+	SupportedLanguages []Language
 	currentIndex       int
 }
+
+//go:embed languages
+var languageFS embed.FS
 
 // TODO: Load this from an embedded file
 func setupTranslation() *Translation {
 	trans := Translation{
-		TokenMap: make(map[string][]string),
+		TokenMap: make(map[string]string),
 	}
 
-	trans.SupportedLanguages = []string{"de", "en"}
-	trans.CurrentLanguage = "en"
-	trans.currentIndex = 1
-
-	trans.TokenMap["header"] = []string{"Frigate Nachrichten Dienst", "Frigate Notification Service"}
-	trans.TokenMap["reload"] = []string{"Seite neuladen", "Reload page"}
-	trans.TokenMap["overview"] = []string{"Übersicht", "Overview"}
-	trans.TokenMap["menu"] = []string{"Menü", "Menu"}
-	trans.TokenMap["settings"] = []string{"Einstellungen", "Settings"}
-	trans.TokenMap["notifications"] = []string{"Benachrichtigungen", "Notifications"}
-	trans.TokenMap["last_notify"] = []string{"Letzte Benachrichtigungen", "Recent notifications"}
-	trans.TokenMap["cooldown"] = []string{"Abklingzeit (in Sek)", "Cooldown (in sec)"}
-	trans.TokenMap["active_cams"] = []string{"Aktive Kameras", "Active cameras"}
-	trans.TokenMap["apply"] = []string{"Übernehmen", "Apply"}
-	trans.TokenMap["active"] = []string{"Aktiv", "active"}
-	trans.TokenMap["tel_doc"] = []string{
-		` <ol>
-                <li>Zuerst beim <a href="https://telegram.me/BotFather">BotFather</a> einen neuen Bot erstellen</li>
-                <li>Dann den Bot in Telegram starten</li>
-                <li>Das Bot Token hier reinkopieren + aktiv anwählen und übernehmen</li>
-                <li>Dem Bot /getid schreiben und die Antwort hier in Chat ID reinkopieren und übernehmen</li>
-            </ol>`,
-		` <ol>
-                <li>Create a bot from <a href="https://telegram.me/BotFather">BotFather</a></li>
-                <li>Start the bot in telegram</li>
-                <li>Copy the bot token and add it here, press apply</li>
-                <li>Write /getid to the bot and copy the answer into Chat ID, press apply</li>
-            </ol>`,
-	}
-	trans.TokenMap["confID"] = []string{"Konfigurations ID", "Configuration ID"}
-	trans.TokenMap["apprise_doc"] = []string{
-		` <ol>
-                <li>Zu :7778 wechseln und eine neue Apprise Konfiguration erstellen</li>
-                <li>Eine Benachrichtigung in Apprise erstellen und testen</li>
-                <li>Die ID hier reinkopieren und übernehmen</li>
-            </ol>`,
-		` <ol>
-                <li>Go to :7778 (or whatever you configured in docker) and create a new Apprise configuration</li>
-                <li>Configure notifications in Apprise and test them</li>
-                <li>Paste the configuration ID here and apply</li>
-            </ol>`,
-	}
-	trans.TokenMap["camera"] = []string{"Kamera", "camera"}
-	trans.TokenMap["object"] = []string{"Objekt", "object"}
-	trans.TokenMap["test_notification"] = []string{"Benachrichtigung testen", "Test notification"}
-
-	return &trans
-}
-
-func (trans *Translation) getLanguages() []string {
-	return trans.SupportedLanguages
-}
-
-func (trans *Translation) setLanguage(lang string) error {
-	if !slices.Contains(trans.SupportedLanguages, lang) {
-		return errors.New("Language not supported")
+	// Load language configuration
+	config, err := loadLanguageConfig()
+	if err != nil {
+		fmt.Printf("Error loading language config: %v\n", err)
+		// Fallback to default
+		trans.SupportedLanguages = []Language{
+			{Code: "en", Name: "English", Flag: "🇬🇧", File: "en.json"},
+		}
+		trans.CurrentLanguage = "en"
+		trans.currentIndex = 0
+		return &trans
 	}
 
-	for i, v := range trans.SupportedLanguages {
-		if v == lang {
+	trans.SupportedLanguages = config.SupportedLanguages
+	trans.CurrentLanguage = config.DefaultLanguage
+
+	// Find index of default language
+	for i, lang := range trans.SupportedLanguages {
+		if lang.Code == trans.CurrentLanguage {
 			trans.currentIndex = i
 			break
 		}
 	}
 
-	trans.CurrentLanguage = lang
+	// Load default language translations
+	err = trans.loadLanguageTokens(trans.CurrentLanguage)
+	if err != nil {
+		fmt.Printf("Error loading default language tokens: %v\n", err)
+	}
+
+	return &trans
+}
+
+func loadLanguageConfig() (*LanguageConfig, error) {
+	// Try to load from file system first (for development)
+	if data, err := os.ReadFile("languages/languages.json"); err == nil {
+		var config LanguageConfig
+		if err := json.Unmarshal(data, &config); err == nil {
+			return &config, nil
+		}
+	}
+
+	// Fallback to embedded file system
+	data, err := languageFS.ReadFile("languages/languages.json")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read languages.json: %w", err)
+	}
+
+	var config LanguageConfig
+	if err := json.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse languages.json: %w", err)
+	}
+
+	return &config, nil
+}
+
+func (trans *Translation) loadLanguageTokens(langCode string) error {
+	var langFile string
+	for _, lang := range trans.SupportedLanguages {
+		if lang.Code == langCode {
+			langFile = lang.File
+			break
+		}
+	}
+
+	if langFile == "" {
+		return fmt.Errorf("language file not found for code: %s", langCode)
+	}
+
+	// Try to load from file system first (for development)
+	if data, err := os.ReadFile("languages/" + langFile); err == nil {
+		var tokens map[string]string
+		if err := json.Unmarshal(data, &tokens); err == nil {
+			trans.TokenMap = tokens
+			return nil
+		}
+	}
+
+	// Fallback to embedded file system
+	data, err := languageFS.ReadFile("languages/" + langFile)
+	if err != nil {
+		return fmt.Errorf("failed to read language file %s: %w", langFile, err)
+	}
+
+	var tokens map[string]string
+	if err := json.Unmarshal(data, &tokens); err != nil {
+		return fmt.Errorf("failed to parse language file %s: %w", langFile, err)
+	}
+
+	trans.TokenMap = tokens
 	return nil
+}
+
+func (trans *Translation) getLanguages() []Language {
+	return trans.SupportedLanguages
+}
+
+func (trans *Translation) setLanguage(lang string) error {
+	for i, v := range trans.SupportedLanguages {
+		if v.Code == lang {
+			trans.currentIndex = i
+			trans.CurrentLanguage = lang
+			// Load new language tokens
+			err := trans.loadLanguageTokens(lang)
+			if err != nil {
+				return fmt.Errorf("failed to load language tokens for %s: %w", lang, err)
+			}
+			return nil
+		}
+	}
+	return errors.New("Language not supported")
+}
+
+func (trans *Translation) getCurrentLanguage() Language {
+	if trans.currentIndex < len(trans.SupportedLanguages) {
+		return trans.SupportedLanguages[trans.currentIndex]
+	}
+	return Language{Code: "en", Name: "English", Flag: "🇬🇧"}
 }
 
 func (trans *Translation) lookupToken(token string) string {
 	s, avail := trans.TokenMap[token]
 	if !avail {
-		return ""
+		return token // Return the token itself as fallback
 	}
-
-	if len(s) < trans.currentIndex {
-		return ""
-	}
-
-	return s[trans.currentIndex]
+	return s
 }

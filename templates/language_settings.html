@@ -1,0 +1,62 @@
+<div id="language-settings">
+    <div class="columns">
+        
+        <div class="column is-narrow">
+            <h3 class="title is-3">Language Settings</h3>
+            
+            <div class="box">
+                <h4 class="title is-4">Current Language</h4>
+                <div class="field">
+                    <div class="control">
+                        <div class="tags has-addons">
+                            <span class="tag is-dark">{{ .CurrentLanguage.Flag }}</span>
+                            <span class="tag is-primary">{{ .CurrentLanguage.Name }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box">
+                <h4 class="title is-4">Available Languages</h4>
+                {{ range .SupportedLanguages }}
+                <div class="field">
+                    <div class="control">
+                        <button class="button is-fullwidth {{if eq .Code $.CurrentLanguage.Code}}is-primary{{else}}is-light{{end}}"
+                                hx-post="/htmx/language.html?lang={{ .Code }}"
+                                hx-target="#lang-info"
+                                {{if eq .Code $.CurrentLanguage.Code}}disabled{{end}}>
+                            <span class="icon">
+                                <span>{{ .Flag }}</span>
+                            </span>
+                            <span>{{ .Name }} ({{ .Code }})</span>
+                            {{if eq .Code $.CurrentLanguage.Code}}
+                            <span class="icon">
+                                <span>✓</span>
+                            </span>
+                            {{end}}
+                        </button>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
+
+            <div id="lang-info"></div>
+
+        </div>
+
+        <div class="column is-narrow">
+            <div class="content">
+                <h4>Language Information</h4>
+                <p><strong>Current:</strong> {{ .CurrentLanguage.Name }}</p>
+                <p><strong>Code:</strong> {{ .CurrentLanguage.Code }}</p>
+                <p><strong>Available languages:</strong> {{ len .SupportedLanguages }}</p>
+                
+                <div class="notification is-info is-light">
+                    <strong>Note:</strong> Language changes are applied immediately and affect the entire interface.
+                    The configuration is automatically saved.
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

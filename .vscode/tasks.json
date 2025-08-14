@@ -1,0 +1,145 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build FND",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "build",
+                "-o",
+                "bin/fnd.exe",
+                "-ldflags",
+                "-X main.version=dev",
+                "."
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [
+                "$go"
+            ],
+            "detail": "Build FND with development version"
+        },
+        {
+            "label": "Build FND (Release)",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "build",
+                "-o",
+                "bin/fnd.exe",
+                "-ldflags",
+                "-X main.version=${input:version} -s -w",
+                "."
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$go"
+            ],
+            "detail": "Build FND for release with version input"
+        },
+        {
+            "label": "Test FND",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "test",
+                "./...",
+                "-v"
+            ],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$go"
+            ],
+            "detail": "Run all tests with verbose output"
+        },
+        {
+            "label": "Clean Build",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "clean",
+                "-cache"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            },
+            "detail": "Clean Go build cache"
+        },
+        {
+            "label": "Install Dependencies",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "mod",
+                "tidy"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$go"
+            ],
+            "detail": "Install and clean up Go dependencies"
+        },
+        {
+            "label": "Create Config",
+            "type": "shell",
+            "command": "cmd",
+            "args": [
+                "/c",
+                "if not exist config.json copy config-example.json config.json"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            },
+            "detail": "Create config.json from example if it doesn't exist"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "version",
+            "description": "Enter version number (e.g., 1.0.0)",
+            "default": "1.0.0",
+            "type": "promptString"
+        }
+    ]
+}
+

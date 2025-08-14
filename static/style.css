@@ -1,3 +1,35 @@
 .Banner {
     text-align: center;
 }
+
+/* Language dropdown styling */
+.language-dropdown .dropdown-trigger button {
+    min-width: 150px;
+    justify-content: space-between;
+}
+
+.language-dropdown .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.language-dropdown .dropdown-item:hover {
+    background-color: hsl(0, 0%, 96%);
+}
+
+.language-dropdown .dropdown-item.is-active {
+    background-color: hsl(204, 86%, 53%);
+    color: white;
+}
+
+.language-dropdown .icon span {
+    font-size: 1.2em;
+}
+
+/* Language feedback notification */
+#lang-info .notification {
+    margin-top: 10px;
+    display: inline-block;
+    min-width: 200px;
+}

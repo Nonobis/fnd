@@ -6,13 +6,16 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"strconv"
 	"text/template"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 type FNDAppriseNotificationSink struct {
 	config            FNDNotificationConfigurationMap
+	appriseConfig     *AppriseConfig
 	webServer         *FNDWebServer
 	lastStatusMessage string
 }
@@ -20,6 +23,9 @@ type FNDAppriseNotificationSink struct {
 type AppriseTemplatePayload struct {
 	Active          bool
 	AppriseConfigID string
+	ServerURL       string
+	Timeout         int
+	Format          string
 	ShowStatus      bool
 	Color           string
 	StatusMessage   string
@@ -28,7 +34,15 @@ type AppriseTemplatePayload struct {
 
 func (apprise *FNDAppriseNotificationSink) createDefaultConfig() {
 	apprise.config = NEWDefaultFNDNotificationConfigurationMap()
-	apprise.config.Map["enabled"] = "false"
+	defaultApprise := NewDefaultAppriseConfig()
+	apprise.config.Map = defaultApprise.ToMap()
+}
+
+// updateConfig synchronizes changes back to the legacy map format
+func (apprise *FNDAppriseNotificationSink) updateConfig() {
+	if apprise.appriseConfig != nil {
+		apprise.config.Map = apprise.appriseConfig.ToMap()
+	}
 }
 
 func (apprise *FNDAppriseNotificationSink) getName() string {
@@ -38,8 +52,13 @@ func (apprise *FNDAppriseNotificationSink) getName() string {
 func (apprise *FNDAppriseNotificationSink) setup(conf FNDNotificationConfigurationMap, avail bool) error {
 	if avail {
 		apprise.config = conf
+		// Convert from legacy map format to structured config if needed
+		apprise.appriseConfig = &AppriseConfig{}
+		apprise.appriseConfig.FromMap(conf.Map)
 	} else {
 		apprise.createDefaultConfig()
+		apprise.appriseConfig = &AppriseConfig{}
+		*apprise.appriseConfig = NewDefaultAppriseConfig()
 	}
 	apprise.lastStatusMessage = "init"
 	return nil
@@ -54,24 +73,52 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 	})
 
 	apprise.webServer.r.POST("/htmx/apprise.html", func(c *gin.Context) {
-		apprise.config.Map["enabled"] = "false"
+		apprise.appriseConfig.Enabled = false
 		c.MultipartForm()
 		for key, value := range c.Request.PostForm {
 			if key == "appriseConfigID" {
 				if value[0] == "" {
 					continue
 				}
-				apprise.config.Map["configID"] = value[0]
+				apprise.appriseConfig.ConfigID = value[0]
 				continue
 			}
-			if key == "aktiv" {
+			if key == "serverURL" {
 				if value[0] == "" {
 					continue
 				}
-				apprise.config.Map["enabled"] = "true"
+				apprise.appriseConfig.ServerURL = value[0]
+				continue
+			}
+			if key == "timeout" {
+				if value[0] == "" {
+					continue
+				}
+				if timeout, err := strconv.Atoi(value[0]); err == nil && timeout > 0 && timeout <= 300 {
+					apprise.appriseConfig.Timeout = timeout
+				}
+				continue
+			}
+			if key == "format" {
+				if value[0] == "" {
+					continue
+				}
+				if value[0] == "text" || value[0] == "markdown" || value[0] == "html" {
+					apprise.appriseConfig.Format = value[0]
+				}
+				continue
+			}
+			if key == "active" {
+				if value[0] == "" {
+					continue
+				}
+				apprise.appriseConfig.Enabled = true
 				continue
 			}
 		}
+
+		// Synchronize back to legacy format for compatibility
+		apprise.updateConfig()
 
 		t := template.Must(template.ParseFS(templateFS, "templates/apprise.html"))
 		t.Execute(c.Writer, apprise.generatePayload(true))
@@ -80,22 +127,20 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 }
 
 func (apprise *FNDAppriseNotificationSink) generatePayload(postReq bool) AppriseTemplatePayload {
-	en, _ := apprise.config.Map["enabled"]
-	var en_bool bool
-	if en == "" || en == "false" {
-		en_bool = false
-	} else {
-		en_bool = true
-	}
-
 	pay := AppriseTemplatePayload{
-		Active:          en_bool,
-		AppriseConfigID: apprise.config.Map["configID"],
+		Active:          apprise.appriseConfig.Enabled,
+		AppriseConfigID: apprise.appriseConfig.ConfigID,
+		ServerURL:       apprise.appriseConfig.ServerURL,
+		Timeout:         apprise.appriseConfig.Timeout,
+		Format:          apprise.appriseConfig.Format,
 		TranslatedText: []string{
 			apprise.webServer.translation.lookupToken("active"),
 			apprise.webServer.translation.lookupToken("confID"),
 			apprise.webServer.translation.lookupToken("apprise_doc"),
 			apprise.webServer.translation.lookupToken("apply"),
+			apprise.webServer.translation.lookupToken("server_url"),
+			apprise.webServer.translation.lookupToken("timeout"),
+			apprise.webServer.translation.lookupToken("format"),
 		},
 	}
 
@@ -111,17 +156,16 @@ func (apprise *FNDAppriseNotificationSink) generatePayload(postReq bool) Apprise
 }
 
 func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) error {
-	if apprise.config.Map["enabled"] != "true" {
+	if !apprise.appriseConfig.Enabled {
 		apprise.lastStatusMessage = "disabled"
 		return nil
 	}
-	if apprise.config.Map["configID"] == "" {
+	if apprise.appriseConfig.ConfigID == "" {
 		apprise.lastStatusMessage = "Configuration ID is empty!"
 		return errors.New("Configuration ID is empty!")
 	}
 
-	//TODO: make this configurable
-	url := "http://apprise:8000/notify/" + apprise.config.Map["configID"]
+	url := apprise.appriseConfig.ServerURL + "/notify/" + apprise.appriseConfig.ConfigID
 	var requestBody bytes.Buffer
 	var err error
 	writer := multipart.NewWriter(&requestBody)
@@ -155,7 +199,9 @@ func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) e
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: time.Duration(apprise.appriseConfig.Timeout) * time.Second,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -163,7 +209,7 @@ func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) e
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		apprise.lastStatusMessage = "Rückgabewert falsch"
+		apprise.lastStatusMessage = "Invalid return value"
 		return nil
 	}
 	apprise.lastStatusMessage = "Online"
@@ -175,7 +221,20 @@ func (apprise *FNDAppriseNotificationSink) remove() (FNDNotificationConfiguratio
 }
 
 func (apprise *FNDAppriseNotificationSink) getConfiguration() FNDNotificationConfigurationMap {
+	// Ensure legacy map is up to date
+	apprise.updateConfig()
 	return apprise.config
+}
+
+// GetAppriseConfig returns the structured Apprise configuration
+func (apprise *FNDAppriseNotificationSink) GetAppriseConfig() *AppriseConfig {
+	return apprise.appriseConfig
+}
+
+// SetAppriseConfig updates the structured Apprise configuration
+func (apprise *FNDAppriseNotificationSink) SetAppriseConfig(config *AppriseConfig) {
+	apprise.appriseConfig = config
+	apprise.updateConfig()
 }
 
 func (apprise *FNDAppriseNotificationSink) getStatus() FNDNotificationSinkStatus {

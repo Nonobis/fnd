@@ -1,16 +1,16 @@
-<div id="telegram-einstellungen">
+<div id="telegram-settings">
     <div class="columns">
 
 
         <div class="column is-narrow">
             <h3 class="title is-3">Telegram</h3>
-            <form hx-post="/htmx/telegram.html" hx-target="#telegram-einstellungen" hx-swap="outerHTML">
+            <form hx-post="/htmx/telegram.html" hx-target="#telegram-settings" hx-swap="outerHTML">
 
                 <label class="label">{{index .TranslatedText 0}}</label>
                 <div class="field">
                     <div class="control">
                         <label class="checkbox">
-                            <input type="checkbox" name="aktiv" {{if .Active}}checked{{end}}>
+                            <input type="checkbox" name="active" {{if .Active}}checked{{end}}>
                             {{index .TranslatedText 0}}
                         </label>
                     </div>

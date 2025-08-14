@@ -42,6 +42,7 @@ func (m *FNDNotificationManager) setupNotificationSinks(c chan FNDNotification, 
 	m.registerNotificationSinks(&FNDWebNotificationSink{})
 	m.registerNotificationSinks(&FNDTelegramNotificationSink{})
 	m.registerNotificationSinks(&FNDAppriseNotificationSink{})
+	m.registerNotificationSinks(&FNDGotifyNotificationSink{})
 
 	m.web = web
 	m.frigateConn = frigateConn
