@@ -1,11 +1,28 @@
-## 0.1.15 -> 0.1.16 TBD
+## Version 0.1.6 - 13.08.2025
 
-- feat: add structured configuration with config.json for all services
-- feat: add support for gotify
-- feat : support all settings in ui
-- feat : full rework of translation system
-- feat : unify all code/comment to english
+🎉 **Première release de FND (Frigate Notification Daemon)**
 
-## 0.1.14 -> 0.1.15 14.03.2025
+### Fonctionnalités principales
+- Daemon de notification pour Frigate
+- Support des notifications Telegram
+- Support des notifications Apprise
+- Interface web de configuration
 
-- Added test notifications from overview to test the setup
+
+### 🐳 Image Docker
+
+Cette release est disponible sous forme d'image Docker :
+
+**Image principale :**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.6
+```
+
+**Image latest :**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Liens directs :**
+- 📦 [Package GitHub](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.6](ghcr.io/Nonobis/fnd:0.1.6)
