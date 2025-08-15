@@ -9,9 +9,10 @@
 ✅ Remake ui more beautiful, modern and responsibe.
 - Implement LLM (OpenAI/Gemini/Ollama) configuration for LLM-Vision interpretation of snapshot, if activated this interpretation is a description of the snapshot added to template with a custom tag
 - LLM need to be fully configuratble and optional. 1 page for configuring all LLM.
-- Add Machine learning system for facial recognizion (deepface ou with stockage of facial image for better accurancy. Find a self hosted system for facial recognition easily integrable
-- If needed implement database use (postgres)
 - Add LLM request for determining action done on event for better message
+- Add Machine learning system for facial recognizion (deepface or another free dockerized app)
+- Store image of facial image for better accurancy. Find a self hosted system for facial recognition easily integrable
+- If needed implement database use (postgres)
 - Add UI for managing Image/Face with a First Name / Last Name 
 ✅ implement Cooldown in overview
 ✅ Add test button for each notification system on each settings page
