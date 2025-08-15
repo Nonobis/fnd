@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"embed"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -16,13 +15,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const MAX_NOTIFICATIONS = 3
+
 
 type FNDWebServer struct {
 	srv             *http.Server
 	r               *gin.Engine
 	OverviewPayload OverviewPayload
-	notifyIndex     int
 	frigateConf     *FNDFrigateConfiguration
 	globalConf      *FNDConfiguration
 	configPath      string
@@ -31,11 +29,7 @@ type FNDWebServer struct {
 	frigateEvent    *FNDFrigateEventManager
 }
 
-type FNDWebNotification struct {
-	N             FNDNotification
-	Jepg_encoded  string
-	Video_encoded string
-}
+
 
 type FNDNotificationSinkStatus struct {
 	Name    string
@@ -44,14 +38,12 @@ type FNDNotificationSinkStatus struct {
 }
 
 type OverviewPayload struct {
-	WebNotifications        []FNDWebNotification
 	NotificationStatus      map[string]FNDNotificationSinkStatus
 	Version                 string
 	TranslatedText          []string
 	ActiveLanguage          int
 	SupportedLanguages      []Language
 	CurrentLanguage         Language
-	WebNotificationsEnabled bool
 	CooldownInfo            CooldownInfo
 }
 
@@ -131,7 +123,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		Addr:    addr,
 		Handler: r,
 	}
-	web.OverviewPayload.WebNotifications = make([]FNDWebNotification, MAX_NOTIFICATIONS)
+
 	web.OverviewPayload.NotificationStatus = make(map[string]FNDNotificationSinkStatus)
 	web.OverviewPayload.Version = version
 
@@ -157,7 +149,6 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 			web.translation.lookupToken("menu"),
 			web.translation.lookupToken("settings"),
 			web.translation.lookupToken("notifications"),
-			web.translation.lookupToken("last_notify"),
 			web.translation.lookupToken("test_notification"),
 			web.translation.lookupToken("cooldown_status"),
 			web.translation.lookupToken("cooldown_active"),
@@ -273,7 +264,6 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 			web.translation.lookupToken("menu"),
 			web.translation.lookupToken("settings"),
 			web.translation.lookupToken("notifications"),
-			web.translation.lookupToken("last_notify"),
 			web.translation.lookupToken("test_notification"),
 		}
 
@@ -859,9 +849,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		web.sendTestNotificationToSink("Apprise", c)
 	})
 
-	r.POST("/api/test/web", func(c *gin.Context) {
-		web.sendTestNotificationToSink("Web", c)
-	})
+
 
 	return &web
 }
@@ -970,28 +958,13 @@ func (web *FNDWebServer) stop() {
 	log.Println("timeout of 1 seconds.")
 }
 
-func (web *FNDWebServer) addNotification(n FNDNotification) {
-	webNotif := FNDWebNotification{
-		N:            n,
-		Jepg_encoded: base64.StdEncoding.EncodeToString(n.JpegData),
-	}
 
-	// Encode video if available
-	if n.HasVideo && len(n.VideoData) > 0 {
-		webNotif.Video_encoded = base64.StdEncoding.EncodeToString(n.VideoData)
-	}
-
-	web.OverviewPayload.WebNotifications[web.notifyIndex] = webNotif
-	web.notifyIndex = (web.notifyIndex + 1) % MAX_NOTIFICATIONS
-}
 
 func (web *FNDWebServer) addNotificationSinkStatus(n FNDNotificationSinkStatus) {
 	web.OverviewPayload.NotificationStatus[n.Name] = n
 }
 
-func (web *FNDWebServer) setWebNotificationsEnabled(enabled bool) {
-	web.OverviewPayload.WebNotificationsEnabled = enabled
-}
+
 
 func (web *FNDWebServer) sendTestNotification() {
 	if web.frigateEvent == nil {

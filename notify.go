@@ -43,7 +43,6 @@ func NewFNDNotificationManager(conf FNDNotificationConfiguration) *FNDNotificati
 }
 
 func (m *FNDNotificationManager) setupNotificationSinks(c chan FNDNotification, web *FNDWebServer, frigateConn *FNDFrigateConnection) {
-	m.registerNotificationSinks(&FNDWebNotificationSink{})
 	m.registerNotificationSinks(&FNDTelegramNotificationSink{})
 	m.registerNotificationSinks(&FNDAppriseNotificationSink{})
 	m.registerNotificationSinks(&FNDGotifyNotificationSink{})
@@ -112,14 +111,6 @@ func (m *FNDNotificationManager) getStatusAll() {
 
 	// Add MQTT status as a separate block
 	m.web.addNotificationSinkStatus(m.frigateConn.getMqttStatus())
-
-	// Check if Web service is enabled and update the overview payload
-	webSink, exists := m.sinks["Web"]
-	if exists {
-		m.web.setWebNotificationsEnabled(m.isSinkEnabled(webSink))
-	} else {
-		m.web.setWebNotificationsEnabled(false)
-	}
 
 	for _, v := range m.sinks {
 		// Only add status for enabled sinks to overview

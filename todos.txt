@@ -19,3 +19,4 @@
     - Notification Message
     - Object filter
     - Time scheduling
+✅ Remove web notification system completly
