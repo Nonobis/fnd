@@ -188,6 +188,14 @@ func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) e
 		body += "\n🎥 Video: " + n.VideoURL
 	}
 
+	// Add title if available
+	if n.Title != "" {
+		err = writer.WriteField("title", n.Title)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = writer.WriteField("body", body)
 	if err != nil {
 		return err

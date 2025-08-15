@@ -1,0 +1,126 @@
+name: Docker Build and Publish
+
+run-name: Docker Build and Publish - ${{ gitea.ref_name }}
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [ opened, synchronize, reopened ]
+
+env:
+  REGISTRY: registry.gitea.com
+  IMAGE_NAME: ${{ gitea.repository }}
+  BUILD_VERSION: ${{ gitea.ref_name }}
+  BUILD_DATE: ${{ gitea.event.head_commit.timestamp }}
+
+concurrency:
+  group: ${{ gitea.workflow }}-${{ gitea.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Get version from Makefile
+      id: version
+      run: |
+        if [ -f Makefile ]; then
+          VERSION=$(grep '^VERSION=' Makefile | cut -d'=' -f2)
+          echo "version=$VERSION" >> $GITEA_OUTPUT
+        else
+          echo "version=${{ gitea.ref_name }}" >> $GITEA_OUTPUT
+        fi
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Build Go application
+      run: |
+        mkdir -p bin
+        go build -o bin/fnd -ldflags "-X main.version=${{ steps.version.outputs.version }}"
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ gitea.actor }}
+        password: ${{ secrets.GITEA_TOKEN }}
+
+    - name: Generate alpha version for PR
+      id: alpha_version
+      run: |
+        VERSION=${{ steps.version.outputs.version }}
+        PR_NUMBER=${{ gitea.event.number }}
+        COMMIT_SHA=${GITEA_SHA:0:7}
+        ALPHA_VERSION="${VERSION}-alpha.pr${PR_NUMBER}.${COMMIT_SHA}"
+        echo "alpha_version=$ALPHA_VERSION" >> $GITEA_OUTPUT
+        echo "Generated alpha version: $ALPHA_VERSION"
+
+    - name: Extract metadata for PRs (Alpha)
+      id: meta-alpha
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=raw,value=${{ steps.alpha_version.outputs.alpha_version }}
+          type=raw,value=latest-dev
+          type=raw,value=pr-${{ gitea.event.number }}
+        labels: |
+          org.opencontainers.image.title=FND
+          org.opencontainers.image.description=Frigate Notification Daemon (Alpha Build)
+          org.opencontainers.image.vendor=${{ gitea.repository_owner }}
+          org.opencontainers.image.source=${{ gitea.server_url }}/${{ gitea.repository }}
+          org.opencontainers.image.revision=${{ gitea.sha }}
+          org.opencontainers.image.created=${{ gitea.event.head_commit.timestamp }}
+          org.opencontainers.image.version=${{ steps.alpha_version.outputs.alpha_version }}
+          org.opencontainers.image.documentation=Alpha build from PR #${{ gitea.event.number }}
+
+    - name: Display build information
+      run: |
+        echo "=== Build Information ==="
+        echo "Event: ${{ gitea.event_name }}"
+        echo "Base Version: ${{ steps.version.outputs.version }}"
+        echo "Alpha Version: ${{ steps.alpha_version.outputs.alpha_version }}"
+        echo "PR Number: ${{ gitea.event.number }}"
+        echo "Target Tags: ${{ steps.meta-alpha.outputs.tags }}"
+        echo "Commit SHA: ${{ gitea.sha }}"
+        echo "========================"
+
+    - name: Build and push Docker image (Alpha)
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/Dockerfile
+        push: true
+        tags: ${{ steps.meta-alpha.outputs.tags }}
+        labels: ${{ steps.meta-alpha.outputs.labels }}
+        build-args: |
+          BUILD_VERSION=${{ steps.alpha_version.outputs.alpha_version }}
+          BUILD_DATE=${{ env.BUILD_DATE }}
+          VCS_REF=${{ gitea.sha }}
+          VCS_URL=${{ gitea.server_url }}/${{ gitea.repository }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Display pushed images
+      run: |
+        echo "=== Successfully pushed images ==="
+        echo "🔧 Alpha images for PR #${{ gitea.event.number }}:"
+        echo "${{ steps.meta-alpha.outputs.tags }}" | tr ',' '\n' | sed 's/^/  - /'
+        echo ""
+        echo "💡 To use this alpha version:"
+        echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-dev"
+        echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.alpha_version.outputs.alpha_version }}"
+        echo "================================="

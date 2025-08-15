@@ -40,6 +40,14 @@
                                     <span>{{index .TranslatedText 6}}</span>
                                 </button>
                             </div>
+                            <div class="control">
+                                <button class="button is-success" onclick="showLogSettings()">
+                                    <span class="icon">
+                                        <i class="fas fa-cog"></i>
+                                    </span>
+                                    <span>Settings</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -105,10 +113,22 @@
                     <table class="table is-fullwidth is-striped is-hoverable logs-table">
                         <thead>
                             <tr>
-                                <th style="width: 150px;">{{index .TranslatedText 4}}</th>
-                                <th style="width: 80px;">{{index .TranslatedText 1}}</th>
-                                <th style="width: 120px;">{{index .TranslatedText 2}}</th>
-                                <th>{{index .TranslatedText 3}}</th>
+                                <th style="width: 150px;" class="sortable" onclick="sortTable(0)">
+                                    {{index .TranslatedText 4}}
+                                    <span class="sort-icon">⇅</span>
+                                </th>
+                                <th style="width: 80px;" class="sortable" onclick="sortTable(1)">
+                                    {{index .TranslatedText 1}}
+                                    <span class="sort-icon">⇅</span>
+                                </th>
+                                <th style="width: 120px;" class="sortable" onclick="sortTable(2)">
+                                    {{index .TranslatedText 2}}
+                                    <span class="sort-icon">⇅</span>
+                                </th>
+                                <th class="sortable" onclick="sortTable(3)">
+                                    {{index .TranslatedText 3}}
+                                    <span class="sort-icon">⇅</span>
+                                </th>
                                 <th style="width: 60px;">{{index .TranslatedText 5}}</th>
                             </tr>
                         </thead>
@@ -159,6 +179,27 @@
             <i class="fas fa-wifi"></i>
         </span>
         <strong>Live updates active</strong>
+    </div>
+
+    <!-- Log Settings Modal -->
+    <div id="log-settings-modal" class="modal">
+        <div class="modal-background" onclick="hideLogSettings()"></div>
+        <div class="modal-card" style="width: 98%; max-width: 1600px;">
+            <header class="modal-card-head">
+                <p class="modal-card-title">
+                    <span class="icon-text">
+                        <span class="icon">
+                            <i class="fas fa-cog"></i>
+                        </span>
+                        <span>Log Settings</span>
+                    </span>
+                </p>
+                <button class="delete" aria-label="close" onclick="hideLogSettings()"></button>
+            </header>
+            <section class="modal-card-body" id="log-settings-content">
+                <!-- Content will be loaded here -->
+            </section>
+        </div>
     </div>
 </div>
 
@@ -342,19 +383,25 @@
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-.field .control .select select,
-.field .control .input {
-    border-radius: 8px;
-    border: 2px solid #e9ecef;
-    background: rgba(255, 255, 255, 0.9);
-    transition: all 0.3s ease;
-}
-
-.field .control .select select:focus,
-.field .control .input:focus {
-    border-color: #4facfe;
-    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
-}
+ .field .control .select select,
+ .field .control .input {
+     border-radius: 8px;
+     border: 2px solid #e9ecef;
+     background: rgba(255, 255, 255, 0.9);
+     transition: all 0.3s ease;
+     color: #495057;
+ }
+ 
+ .field .control .select select:focus,
+ .field .control .input:focus {
+     border-color: #4facfe;
+     box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+ }
+ 
+ .field .control .select select option {
+     background: white;
+     color: #495057;
+ }
 
 .button {
     border-radius: 8px;
@@ -460,12 +507,39 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Notification styling */
-.notification {
-    border-radius: 12px;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
+ /* Notification styling */
+ .notification {
+     border-radius: 12px;
+     border: none;
+     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+ }
+ 
+ /* Sorting styles */
+ .sortable {
+     cursor: pointer;
+     user-select: none;
+     position: relative;
+ }
+ 
+ .sortable:hover {
+     background: linear-gradient(135deg, #5a6268 0%, #3d4448 100%) !important;
+ }
+ 
+ .sort-icon {
+     font-size: 0.8rem;
+     margin-left: 0.5rem;
+     opacity: 0.7;
+ }
+ 
+ .sortable.asc .sort-icon::after {
+     content: "↑";
+     color: #4facfe;
+ }
+ 
+ .sortable.desc .sort-icon::after {
+     content: "↓";
+     color: #4facfe;
+ }
 </style>
 
 <script>
@@ -653,6 +727,23 @@ function hideLiveIndicator() {
     document.getElementById('live-indicator').classList.add('is-hidden');
 }
 
+function showLogSettings() {
+    fetch('/htmx/log_settings.html?modal=true')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('log-settings-content').innerHTML = html;
+            document.getElementById('log-settings-modal').classList.add('is-active');
+        })
+        .catch(error => {
+            console.error('Error loading log settings:', error);
+            showNotification('Error loading log settings', 'danger');
+        });
+}
+
+function hideLogSettings() {
+    document.getElementById('log-settings-modal').classList.remove('is-active');
+}
+
 function showNotification(message, type) {
     const notification = document.createElement('div');
     notification.className = `notification is-${type}`;
@@ -672,6 +763,79 @@ function showNotification(message, type) {
             notification.remove();
         }
     }, 5000);
+}
+
+// Sorting functionality
+let currentSortColumn = -1;
+let currentSortDirection = 'asc';
+
+function sortTable(columnIndex) {
+    const table = document.querySelector('.logs-table');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Remove previous sort indicators
+    document.querySelectorAll('.sortable').forEach(th => {
+        th.classList.remove('asc', 'desc');
+    });
+    
+    // Add sort indicator to current column
+    const header = table.querySelector(`th:nth-child(${columnIndex + 1})`);
+    if (header && header.classList.contains('sortable')) {
+        if (currentSortColumn === columnIndex) {
+            currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            currentSortDirection = 'asc';
+        }
+        header.classList.add(currentSortDirection);
+    }
+    
+    currentSortColumn = columnIndex;
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        const aValue = getCellValue(a, columnIndex);
+        const bValue = getCellValue(b, columnIndex);
+        
+        let comparison = 0;
+        if (aValue < bValue) comparison = -1;
+        if (aValue > bValue) comparison = 1;
+        
+        return currentSortDirection === 'asc' ? comparison : -comparison;
+    });
+    
+    // Reorder rows in the table
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function getCellValue(row, columnIndex) {
+    const cell = row.querySelector(`td:nth-child(${columnIndex + 1})`);
+    if (!cell) return '';
+    
+    // For timestamp column, convert to sortable format
+    if (columnIndex === 0) {
+        const timestamp = cell.textContent.trim();
+        // Convert "15:04:05 02/01" to sortable format
+        const parts = timestamp.split(' ');
+        if (parts.length === 2) {
+            const time = parts[0];
+            const date = parts[1];
+            const dateParts = date.split('/');
+            if (dateParts.length === 2) {
+                return `2024-${dateParts[1]}-${dateParts[0]} ${time}`;
+            }
+        }
+        return timestamp;
+    }
+    
+    // For level column, use numeric values for proper sorting
+    if (columnIndex === 1) {
+        const level = cell.textContent.trim();
+        const levelOrder = { 'DEBUG': 0, 'INFO': 1, 'WARN': 2, 'ERROR': 3 };
+        return levelOrder[level] || 0;
+    }
+    
+    return cell.textContent.trim().toLowerCase();
 }
 
 // Initialize page

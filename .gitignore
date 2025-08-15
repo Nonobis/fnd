@@ -11,3 +11,5 @@ fnd*.tar
 **/fnd.exe
 **/fnd_conf/**
 **/__debug_bin.*
+./fnd.exe
+fnd.exe

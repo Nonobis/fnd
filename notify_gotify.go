@@ -86,10 +86,10 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 
 	gotify.webServer.r.POST("/htmx/gotify.html", func(c *gin.Context) {
 		c.MultipartForm()
-		
+
 		// Keep the current enabled state by default (variable kept for future use)
 		_ = gotify.config.Map["enabled"]
-		
+
 		// Process form fields
 		for key, value := range c.Request.PostForm {
 			if key == "serverurl" {
@@ -116,8 +116,8 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 			// Gotify doesn't have an active checkbox in the form
 			// The active state is managed by the separate toggle button
 		}
-		
-		LogInfo("GOTIFY", "Configuration updated", fmt.Sprintf("Enabled: %s, ServerURL: %s", 
+
+		LogInfo("GOTIFY", "Configuration updated", fmt.Sprintf("Enabled: %s, ServerURL: %s",
 			gotify.config.Map["enabled"], gotify.config.Map["serverurl"]))
 
 		// Save configuration to disk immediately
@@ -194,8 +194,14 @@ func (gotify *FNDGotifyNotificationSink) sendNotification(n FNDNotification) err
 		messageText += "\n\n🎥 Video: " + n.VideoURL
 	}
 
+	// Use custom title if available
+	title := "FND Notification"
+	if n.Title != "" {
+		title = n.Title
+	}
+
 	message := GotifyMessage{
-		Title:    "FND Notification",
+		Title:    title,
 		Message:  messageText,
 		Priority: priority,
 	}

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"embed"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -16,25 +15,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const MAX_NOTIFICATIONS = 3
-
 type FNDWebServer struct {
 	srv             *http.Server
 	r               *gin.Engine
 	OverviewPayload OverviewPayload
-	notifyIndex     int
 	frigateConf     *FNDFrigateConfiguration
 	globalConf      *FNDConfiguration
 	configPath      string
 	notifyManager   *FNDNotificationManager
 	translation     *Translation
 	frigateEvent    *FNDFrigateEventManager
-}
-
-type FNDWebNotification struct {
-	N             FNDNotification
-	Jepg_encoded  string
-	Video_encoded string
 }
 
 type FNDNotificationSinkStatus struct {
@@ -44,22 +34,20 @@ type FNDNotificationSinkStatus struct {
 }
 
 type OverviewPayload struct {
-	WebNotifications        []FNDWebNotification
-	NotificationStatus      map[string]FNDNotificationSinkStatus
-	Version                 string
-	TranslatedText          []string
-	ActiveLanguage          int
-	SupportedLanguages      []Language
-	CurrentLanguage         Language
-	WebNotificationsEnabled bool
-	CooldownInfo            CooldownInfo
+	NotificationStatus map[string]FNDNotificationSinkStatus
+	Version            string
+	TranslatedText     []string
+	ActiveLanguage     int
+	SupportedLanguages []Language
+	CurrentLanguage    Language
+	CooldownInfo       CooldownInfo
 }
 
 type CooldownInfo struct {
-	CooldownPeriod    int  // Cooldown period in seconds
-	IsActive          bool // Whether cooldown is currently active
-	SecondsRemaining  int  // Seconds remaining until next notification allowed
-	LastNotification  string // Time of last notification (formatted)
+	CooldownPeriod   int    // Cooldown period in seconds
+	IsActive         bool   // Whether cooldown is currently active
+	SecondsRemaining int    // Seconds remaining until next notification allowed
+	LastNotification string // Time of last notification (formatted)
 }
 
 type LogStats struct {
@@ -108,7 +96,7 @@ func (web *FNDWebServer) saveConfigurationWithNotifications(notifyManager *FNDNo
 	if notifyManager != nil {
 		web.globalConf.Notify = notifyManager.getConfigAll()
 	}
-	
+
 	err := web.globalConf.WriteToFile(web.configPath)
 	if err != nil {
 		LogError("WEB", "Failed to save configuration file", err.Error())
@@ -131,7 +119,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		Addr:    addr,
 		Handler: r,
 	}
-	web.OverviewPayload.WebNotifications = make([]FNDWebNotification, MAX_NOTIFICATIONS)
+
 	web.OverviewPayload.NotificationStatus = make(map[string]FNDNotificationSinkStatus)
 	web.OverviewPayload.Version = version
 
@@ -157,7 +145,6 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 			web.translation.lookupToken("menu"),
 			web.translation.lookupToken("settings"),
 			web.translation.lookupToken("notifications"),
-			web.translation.lookupToken("last_notify"),
 			web.translation.lookupToken("test_notification"),
 			web.translation.lookupToken("cooldown_status"),
 			web.translation.lookupToken("cooldown_active"),
@@ -189,7 +176,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 	r.GET("/htmx/overview.html", func(c *gin.Context) {
 		// Update cooldown information for live updates
 		web.OverviewPayload.CooldownInfo = getCooldownInfo(web.frigateEvent)
-		
+
 		t := template.Must(template.ParseFS(templateFS, "templates/overview.html"))
 		t.Execute(c.Writer, web.OverviewPayload)
 	})
@@ -217,13 +204,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 			TranslatedText: text,
 		})
 	})
-	r.GET("/htmx/testnotification", func(c *gin.Context) {
-		LogInfo("WEB", "Test notification requested", "")
-		web.sendTestNotification()
 
-		t := template.Must(template.ParseFS(templateFS, "templates/generic_ok.html"))
-		t.Execute(c.Writer, nil)
-	})
 	r.GET("/htmx/notifications.html", func(c *gin.Context) {
 
 		text := []string{
@@ -273,7 +254,6 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 			web.translation.lookupToken("menu"),
 			web.translation.lookupToken("settings"),
 			web.translation.lookupToken("notifications"),
-			web.translation.lookupToken("last_notify"),
 			web.translation.lookupToken("test_notification"),
 		}
 
@@ -495,7 +475,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		}
 
 		conf.activateCameras(onList)
-		
+
 		// Save configuration to disk immediately
 		web.saveConfiguration()
 
@@ -729,20 +709,38 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 			web.translation.lookupToken("log_level_error"),
 		}
 
-		t := template.Must(template.ParseFS(templateFS, "templates/log_settings.html"))
-		t.Execute(c.Writer, struct {
-			ShowStatus     bool
-			Color          string
-			StatusMessage  string
-			Conf           *FNDLoggingConfiguration
-			Stats          LogStats
-			TranslatedText []string
-		}{
-			ShowStatus:     false,
-			Conf:           config,
-			Stats:          stats,
-			TranslatedText: translatedText,
-		})
+		// Check if this is a modal request
+		if c.Query("modal") == "true" {
+			t := template.Must(template.ParseFS(templateFS, "templates/log_settings_modal.html"))
+			t.Execute(c.Writer, struct {
+				ShowStatus     bool
+				Color          string
+				StatusMessage  string
+				Conf           *FNDLoggingConfiguration
+				Stats          LogStats
+				TranslatedText []string
+			}{
+				ShowStatus:     false,
+				Conf:           config,
+				Stats:          stats,
+				TranslatedText: translatedText,
+			})
+		} else {
+			t := template.Must(template.ParseFS(templateFS, "templates/log_settings.html"))
+			t.Execute(c.Writer, struct {
+				ShowStatus     bool
+				Color          string
+				StatusMessage  string
+				Conf           *FNDLoggingConfiguration
+				Stats          LogStats
+				TranslatedText []string
+			}{
+				ShowStatus:     false,
+				Conf:           config,
+				Stats:          stats,
+				TranslatedText: translatedText,
+			})
+		}
 	})
 
 	r.POST("/htmx/log_settings.html", func(c *gin.Context) {
@@ -859,8 +857,21 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		web.sendTestNotificationToSink("Apprise", c)
 	})
 
-	r.POST("/api/test/web", func(c *gin.Context) {
-		web.sendTestNotificationToSink("Web", c)
+	// Notification Templates routes
+	r.GET("/htmx/notification_templates.html", func(c *gin.Context) {
+		web.handleNotificationTemplatesPage(c)
+	})
+
+	r.POST("/htmx/notification-templates/global", func(c *gin.Context) {
+		web.handleNotificationTemplatesGlobal(c)
+	})
+
+	r.POST("/htmx/notification-templates/service/:service", func(c *gin.Context) {
+		web.handleNotificationTemplatesService(c)
+	})
+
+	r.POST("/api/test/template", func(c *gin.Context) {
+		web.handleTemplateTest(c)
 	})
 
 	return &web
@@ -876,21 +887,21 @@ func getCooldownInfo(frigateEvent *FNDFrigateEventManager) CooldownInfo {
 			LastNotification: "Never",
 		}
 	}
-	
+
 	frigateEvent.m.Lock()
 	lastNotification := frigateEvent.lastNotificationSent
 	frigateEvent.m.Unlock()
-	
+
 	cooldownPeriod := frigateEvent.fConf.Cooldown
 	elapsed := time.Since(lastNotification)
 	elapsedSeconds := int(elapsed.Seconds())
-	
+
 	isActive := elapsedSeconds < cooldownPeriod
 	secondsRemaining := 0
 	if isActive {
 		secondsRemaining = cooldownPeriod - elapsedSeconds
 	}
-	
+
 	// Format last notification time
 	var lastNotificationStr string
 	if lastNotification.IsZero() || time.Since(lastNotification) > 24*time.Hour {
@@ -898,7 +909,7 @@ func getCooldownInfo(frigateEvent *FNDFrigateEventManager) CooldownInfo {
 	} else {
 		lastNotificationStr = lastNotification.Format("15:04:05")
 	}
-	
+
 	return CooldownInfo{
 		CooldownPeriod:   cooldownPeriod,
 		IsActive:         isActive,
@@ -970,46 +981,8 @@ func (web *FNDWebServer) stop() {
 	log.Println("timeout of 1 seconds.")
 }
 
-func (web *FNDWebServer) addNotification(n FNDNotification) {
-	webNotif := FNDWebNotification{
-		N:            n,
-		Jepg_encoded: base64.StdEncoding.EncodeToString(n.JpegData),
-	}
-
-	// Encode video if available
-	if n.HasVideo && len(n.VideoData) > 0 {
-		webNotif.Video_encoded = base64.StdEncoding.EncodeToString(n.VideoData)
-	}
-
-	web.OverviewPayload.WebNotifications[web.notifyIndex] = webNotif
-	web.notifyIndex = (web.notifyIndex + 1) % MAX_NOTIFICATIONS
-}
-
 func (web *FNDWebServer) addNotificationSinkStatus(n FNDNotificationSinkStatus) {
 	web.OverviewPayload.NotificationStatus[n.Name] = n
-}
-
-func (web *FNDWebServer) setWebNotificationsEnabled(enabled bool) {
-	web.OverviewPayload.WebNotificationsEnabled = enabled
-}
-
-func (web *FNDWebServer) sendTestNotification() {
-	if web.frigateEvent == nil {
-		fmt.Println("ASSERTION failed: FrigateEventManager is nil")
-		return
-	}
-
-	data, err := staticFS.ReadFile("static/test_notification.jpg")
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	web.frigateEvent.sendNotification(FNDNotification{
-		JpegData: data,
-		Date:     time.Now().Format("15:04:05 02.01.2006"),
-		Caption:  "Test",
-	})
 }
 
 // sendTestNotificationToSink sends a test notification to a specific notification sink
@@ -1052,14 +1025,29 @@ func (web *FNDWebServer) sendTestNotificationToSink(sinkName string, c *gin.Cont
 		return
 	}
 
-	// Create test notification
+	// Create test notification with proper template variables
 	testNotification := FNDNotification{
 		JpegData:  data,
 		VideoData: nil,
-		VideoURL:  "",
+		VideoURL:  "https://example.com/test-video.mp4",
 		Date:      time.Now().Format("15:04:05 02.01.2006"),
 		Caption:   fmt.Sprintf("🧪 Test notification from FND\n\nThis is a test message sent to verify your %s configuration is working correctly.\n\nTime: %s", sinkName, time.Now().Format("2006-01-02 15:04:05")),
-		HasVideo:  false,
+		HasVideo:  true,
+		Title:     "🧪 FND Test Notification",
+	}
+
+	// Create template variables for test
+	templateVars := CreateTemplateVariables(testNotification, "Test Camera", "Test Object", "test_event_123")
+
+	// Process template if available
+	if web.notifyManager.templateProcessor != nil {
+		processedCaption, processedTitle, err := web.notifyManager.templateProcessor.ProcessTemplate(sinkName, templateVars)
+		if err == nil {
+			testNotification.Caption = processedCaption
+			if processedTitle != "" {
+				testNotification.Title = processedTitle
+			}
+		}
 	}
 
 	// Send test notification
@@ -1078,4 +1066,200 @@ func (web *FNDWebServer) sendTestNotificationToSink(sinkName string, c *gin.Cont
 		<span class="icon"><i class="fas fa-check-circle"></i></span>
 		<span>Test notification sent successfully to %s!</span>
 	</div>`, sinkName))
+}
+
+// Notification Templates handlers
+func (web *FNDWebServer) handleNotificationTemplatesPage(c *gin.Context) {
+	// Get available variables
+	variables := GetAvailableVariables()
+	var variableList []struct {
+		Variable    string
+		Description string
+	}
+	for variable, description := range variables {
+		variableList = append(variableList, struct {
+			Variable    string
+			Description string
+		}{
+			Variable:    variable,
+			Description: description,
+		})
+	}
+
+	// Define services
+	services := []struct {
+		Key      string
+		Name     string
+		Icon     string
+		Template NotificationTemplate
+	}{
+		{
+			Key:      "Telegram",
+			Name:     "Telegram",
+			Icon:     "fab fa-telegram-plane",
+			Template: web.globalConf.Notify.Templates.PerService["Telegram"],
+		},
+		{
+			Key:      "Gotify",
+			Name:     "Gotify",
+			Icon:     "fas fa-bell",
+			Template: web.globalConf.Notify.Templates.PerService["Gotify"],
+		},
+		{
+			Key:      "Apprise",
+			Name:     "Apprise",
+			Icon:     "fas fa-broadcast-tower",
+			Template: web.globalConf.Notify.Templates.PerService["Apprise"],
+		},
+	}
+
+	payload := struct {
+		Global   NotificationTemplate
+		Services []struct {
+			Key      string
+			Name     string
+			Icon     string
+			Template NotificationTemplate
+		}
+		Variables []struct {
+			Variable    string
+			Description string
+		}
+	}{
+		Global:    web.globalConf.Notify.Templates.Global,
+		Services:  services,
+		Variables: variableList,
+	}
+
+	// Debug logging
+	LogInfo("WEB", "Loading notification templates page", fmt.Sprintf("Global title: '%s', Global message: '%s'",
+		web.globalConf.Notify.Templates.Global.Title,
+		web.globalConf.Notify.Templates.Global.Message))
+
+	// Ensure templates are initialized
+	if web.globalConf.Notify.Templates.Global.Title == "" {
+		web.globalConf.Notify.Templates.Global.Title = "New Event"
+	}
+	if web.globalConf.Notify.Templates.Global.Message == "" {
+		web.globalConf.Notify.Templates.Global.Message = "A new event has occurred: {{.Object}} at {{.Camera}} on {{.Date}} {{.Time}}. Video: {{.VideoURL}}"
+	}
+
+	t := template.Must(template.ParseFS(templateFS, "templates/notification_templates.html"))
+	err := t.Execute(c.Writer, payload)
+	if err != nil {
+		LogError("WEB", "Failed to execute notification templates template", err.Error())
+		c.Data(500, "text/html", []byte(fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Template error: %s</span>
+		</div>`, err.Error())))
+	}
+}
+
+func (web *FNDWebServer) handleNotificationTemplatesGlobal(c *gin.Context) {
+	c.MultipartForm()
+
+	title := c.PostForm("title")
+	message := c.PostForm("message")
+
+	LogInfo("WEB", "Saving global template", fmt.Sprintf("Title: '%s', Message: '%s'", title, message))
+
+	web.globalConf.Notify.Templates.Global.Title = title
+	web.globalConf.Notify.Templates.Global.Message = message
+
+	// Update notification manager if available
+	if web.notifyManager != nil {
+		web.notifyManager.updateTemplates(&web.globalConf.Notify.Templates)
+	}
+
+	web.saveConfiguration()
+	web.handleNotificationTemplatesPage(c)
+}
+
+func (web *FNDWebServer) handleNotificationTemplatesService(c *gin.Context) {
+	service := c.Param("service")
+	c.MultipartForm()
+
+	title := c.PostForm("title")
+	message := c.PostForm("message")
+
+	LogInfo("WEB", "Saving service template", fmt.Sprintf("Service: %s, Title: '%s', Message: '%s'", service, title, message))
+
+	if web.globalConf.Notify.Templates.PerService == nil {
+		web.globalConf.Notify.Templates.PerService = make(map[string]NotificationTemplate)
+	}
+
+	template := web.globalConf.Notify.Templates.PerService[service]
+	template.Title = title
+	template.Message = message
+	web.globalConf.Notify.Templates.PerService[service] = template
+
+	// Update notification manager if available
+	if web.notifyManager != nil {
+		web.notifyManager.updateTemplates(&web.globalConf.Notify.Templates)
+	}
+
+	web.saveConfiguration()
+	web.handleNotificationTemplatesPage(c)
+}
+
+func (web *FNDWebServer) handleTemplateTest(c *gin.Context) {
+	c.MultipartForm()
+
+	title := c.PostForm("title")
+	message := c.PostForm("message")
+
+	// Create test variables
+	testVars := TemplateVariables{
+		Camera:      "front_door",
+		Object:      "person",
+		Date:        "15.12.2024",
+		Time:        "14:30:25",
+		VideoURL:    "http://example.com/video.mp4",
+		HasVideo:    true,
+		EventID:     "test_event_123",
+		HasSnapshot: true,
+		SnapshotURL: "[Snapshot attached]",
+	}
+
+	// Process templates
+	processor := NewTemplateProcessor(&web.globalConf.Notify.Templates)
+
+	var processedTitle, processedMessage string
+	var err error
+
+	if title != "" {
+		processedTitle, err = processor.processTemplateString(title, testVars)
+		if err != nil {
+			errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+				<span class="icon"><i class="fas fa-times-circle"></i></span>
+				<span>Title template error: %s</span>
+			</div>`, err.Error())
+			c.Data(200, "text/html", []byte(errorHTML))
+			return
+		}
+	}
+
+	if message != "" {
+		processedMessage, err = processor.processTemplateString(message, testVars)
+		if err != nil {
+			errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+				<span class="icon"><i class="fas fa-times-circle"></i></span>
+				<span>Message template error: %s</span>
+			</div>`, err.Error())
+			c.Data(200, "text/html", []byte(errorHTML))
+			return
+		}
+	}
+
+	// Return preview
+	previewHTML := fmt.Sprintf(`<div class="notification is-info is-light">
+		<h4 class="title is-5">Template Preview:</h4>
+		<div class="content">
+			<p><strong>Title:</strong> %s</p>
+			<p><strong>Message:</strong></p>
+			<pre style="white-space: pre-wrap; background: #f5f5f5; padding: 1rem; border-radius: 4px;">%s</pre>
+		</div>
+	</div>`, processedTitle, processedMessage)
+
+	c.Data(200, "text/html", []byte(previewHTML))
 }
