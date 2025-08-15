@@ -71,16 +71,16 @@ const (
 	LOG_LEVEL_INFO_VALUE  = 1
 	LOG_LEVEL_WARN_VALUE  = 2
 	LOG_LEVEL_ERROR_VALUE = 3
-	
+
 	DEFAULT_MAX_LOG_ENTRIES = 1000
-	DEFAULT_LOG_LEVEL = LOG_LEVEL_INFO_VALUE
+	DEFAULT_LOG_LEVEL       = LOG_LEVEL_INFO_VALUE
 )
 
 type FNDLoggingConfiguration struct {
-	MaxEntries    int    `json:"maxEntries"`
-	LogLevel      int    `json:"logLevel"`
-	EnableFile    bool   `json:"enableFile"`
-	EnableConsole bool   `json:"enableConsole"`
+	MaxEntries    int  `json:"maxEntries"`
+	LogLevel      int  `json:"logLevel"`
+	EnableFile    bool `json:"enableFile"`
+	EnableConsole bool `json:"enableConsole"`
 }
 
 func LoadFNDConf(filename string) *FNDConfiguration {

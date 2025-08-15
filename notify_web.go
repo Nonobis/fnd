@@ -80,17 +80,23 @@ func (web *FNDWebNotificationSink) registerWebServer(webServer *FNDWebServer) {
 	})
 
 	web.webServer.r.POST("/htmx/web.html", func(c *gin.Context) {
-		web.config.Map["enabled"] = "false"
 		c.MultipartForm()
+		
+		// Process form fields
 		for key, value := range c.Request.PostForm {
 			if key == "active" {
-				if value[0] == "" {
-					continue
-				}
+				// If active checkbox is present, enable it
 				web.config.Map["enabled"] = "true"
 				continue
 			}
 		}
+		
+		// If no active checkbox was found in the form, it means it was unchecked
+		if _, hasActive := c.Request.PostForm["active"]; !hasActive {
+			web.config.Map["enabled"] = "false"
+		}
+		
+		LogInfo("WEB", "Configuration updated", fmt.Sprintf("Enabled: %s", web.config.Map["enabled"]))
 
 		t := template.Must(template.ParseFS(templateFS, "templates/web.html"))
 		t.Execute(c.Writer, web.generatePayload(true))
@@ -135,4 +141,6 @@ func (web *FNDWebNotificationSink) getStatus() FNDNotificationSinkStatus {
 		Good:    true,
 		Message: "OK",
 	}
+}
+
 }

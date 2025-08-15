@@ -53,10 +53,10 @@ type OverviewPayload struct {
 }
 
 type LogStats struct {
-	EntriesInMemory     int
-	FileSizeHuman       string
-	ActiveSubscribers   int
-	MemoryUsageHuman    string
+	EntriesInMemory   int
+	FileSizeHuman     string
+	ActiveSubscribers int
+	MemoryUsageHuman  string
 }
 
 type NotificationPayload struct {
@@ -722,7 +722,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		web.globalConf.Logging = newConfig
 		logger.UpdateConfiguration(&newConfig)
 
-		LogInfo("WEB", "Log settings updated successfully", fmt.Sprintf("MaxEntries: %d, LogLevel: %d, EnableFile: %t, EnableConsole: %t", 
+		LogInfo("WEB", "Log settings updated successfully", fmt.Sprintf("MaxEntries: %d, LogLevel: %d, EnableFile: %t, EnableConsole: %t",
 			newConfig.MaxEntries, newConfig.LogLevel, newConfig.EnableFile, newConfig.EnableConsole))
 
 		stats := getLogStats(logger)
@@ -763,7 +763,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		LogInfo("TEST", "Info level test message", "This is an info level test")
 		LogWarn("TEST", "Warning level test message", "This is a warning level test")
 		LogError("TEST", "Error level test message", "This is an error level test")
-		
+
 		c.JSON(200, gin.H{"message": "Test log entries created"})
 	})
 
@@ -784,19 +784,19 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 // getLogStats returns current logging statistics
 func getLogStats(logger *Logger) LogStats {
 	stats := LogStats{}
-	
+
 	if logger == nil {
 		return stats
 	}
-	
+
 	logger.mutex.RLock()
 	stats.EntriesInMemory = len(logger.entries)
 	logger.mutex.RUnlock()
-	
+
 	logger.subscribeMutex.RLock()
 	stats.ActiveSubscribers = len(logger.subscribers)
 	logger.subscribeMutex.RUnlock()
-	
+
 	// Get file size
 	if fileInfo, err := os.Stat(logger.filePath); err == nil {
 		size := fileInfo.Size()
@@ -810,7 +810,7 @@ func getLogStats(logger *Logger) LogStats {
 	} else {
 		stats.FileSizeHuman = "N/A"
 	}
-	
+
 	// Estimate memory usage (rough calculation)
 	estimatedSize := stats.EntriesInMemory * 200 // rough estimate per log entry
 	if estimatedSize < 1024 {
@@ -820,7 +820,7 @@ func getLogStats(logger *Logger) LogStats {
 	} else {
 		stats.MemoryUsageHuman = fmt.Sprintf("%.1f MB", float64(estimatedSize)/(1024*1024))
 	}
-	
+
 	return stats
 }
 

@@ -177,6 +177,26 @@
 <style>
 .log-settings-container {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 0;
+}
+
+.log-settings-container .section {
+    background: transparent;
+}
+
+.log-settings-container .container {
+    max-width: 1000px;
+}
+
+.log-settings-container .title {
+    color: white;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.log-settings-container .subtitle {
+    color: rgba(255,255,255,0.9);
 }
 
 .field .help {
@@ -185,44 +205,128 @@
     margin-top: 0.25rem;
 }
 
+.field .label {
+    color: #32325d;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
 .box {
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
 }
 
 .notification.is-warning.is-light {
-    background-color: #fff3cd;
-    border-left: 4px solid #ffc107;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 12px;
+    color: #e65100;
+}
+
+.notification.is-success.is-light {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(56, 142, 60, 0.1) 100%);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 12px;
+    color: #2e7d32;
 }
 
 .title.is-5 {
     margin-bottom: 1rem;
+    color: #32325d;
+}
+
+.checkbox {
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    color: #525f7f;
 }
 
 .checkbox input[type="checkbox"] {
-    margin-right: 0.5rem;
+    margin-right: 0.75rem;
+    transform: scale(1.2);
+    accent-color: #667eea;
+}
+
+.select {
+    width: 100%;
 }
 
 .select select {
-    background-color: #fff;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 100%;
 }
 
 .select select:focus {
-    border-color: #80bdff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: #4facfe;
+    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+    outline: none;
 }
 
 .input {
-    background-color: #fff;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
 }
 
 .input:focus {
-    border-color: #80bdff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: #4facfe;
+    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+    outline: none;
+}
+
+.button {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.button.is-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.button.is-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.button.is-light {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: #525f7f;
+}
+
+.button.is-light:hover {
+    background: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.button.is-danger.is-light {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(211, 47, 47, 0.1) 100%);
+    border: 2px solid rgba(244, 67, 54, 0.3);
+    color: #d32f2f;
+}
+
+.button.is-danger.is-light:hover {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.2) 0%, rgba(211, 47, 47, 0.2) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
 }
 
 .heading {
@@ -230,19 +334,98 @@
     text-transform: uppercase;
     font-size: 0.75rem;
     letter-spacing: 0.5px;
-    color: #6c757d;
+    color: #8898aa;
     margin-bottom: 0.5rem;
 }
 
+.title.is-4 {
+    color: #32325d;
+    font-weight: 700;
+}
+
+.has-text-centered .title.is-4 {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.columns .column {
+    padding: 1rem;
+}
+
+.field {
+    margin-bottom: 1.5rem;
+}
+
+.field.is-grouped {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
 #loading-indicator {
-    position: absolute;
+    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(255, 255, 255, 0.9);
-    padding: 1rem;
-    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 2rem;
+    border-radius: 12px;
     z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    color: #525f7f;
+    font-weight: 600;
+}
+
+/* Card hover effects */
+.box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Form focus states */
+.field:focus-within .label {
+    color: #4facfe;
+}
+
+/* Statistics cards */
+.columns .column .has-text-centered {
+    padding: 1.5rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
+    transition: all 0.3s ease;
+}
+
+.columns .column .has-text-centered:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Icon styling */
+.icon {
+    color: inherit;
+}
+
+.title .icon {
+    margin-right: 0.5rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .log-settings-container .container {
+        padding: 1rem;
+    }
+    
+    .box {
+        padding: 1.5rem;
+    }
+    
+    .button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
 }
 </style>
 

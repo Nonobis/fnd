@@ -94,36 +94,44 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 
 		lastToken := tel.config.Map["token"]
 
-		tel.config.Map["enabled"] = "false"
 		c.MultipartForm()
 		for key, value := range c.Request.PostForm {
 			if key == "token0815" {
-				if value[0] == "" {
-					continue
+				if value[0] != "" {
+					tel.config.Map["token"] = value[0]
 				}
-				tel.config.Map["token"] = value[0]
 				continue
 			}
 			if key == "chatid" {
-				if value[0] == "" {
-					continue
+				if value[0] != "" {
+					data, err := strconv.ParseInt(value[0], 10, 64)
+					if err == nil {
+						tel.config.Map["chatid"] = value[0]
+						tel.chatid = data
+					}
 				}
-				data, err := strconv.ParseInt(value[0], 10, 64)
-				if err != nil {
-					continue
-				}
-				tel.config.Map["chatid"] = value[0]
-				tel.chatid = data
 				continue
 			}
 			if key == "active" {
-				if value[0] == "" {
-					continue
-				}
+				// If active checkbox is present, enable it
 				tel.config.Map["enabled"] = "true"
 				continue
 			}
 		}
+		
+		// If no active checkbox was found in the form, it means it was unchecked
+		if _, hasActive := c.Request.PostForm["active"]; !hasActive {
+			tel.config.Map["enabled"] = "false"
+		}
+		
+		LogInfo("TELEGRAM", "Configuration updated", fmt.Sprintf("Enabled: %s, Token: %s", 
+			tel.config.Map["enabled"], 
+			func() string {
+				if len(tel.config.Map["token"]) > 10 {
+					return tel.config.Map["token"][:10] + "..."
+				}
+				return tel.config.Map["token"]
+			}()))
 
 		if !tel.botRunning {
 			if tel.config.Map["enabled"] == "true" {
@@ -407,4 +415,6 @@ func (tel *FNDTelegramNotificationSink) getStatus() FNDNotificationSinkStatus {
 		Good:    tel.botRunning,
 		Message: tel.lastStatusMessage,
 	}
+}
+
 }

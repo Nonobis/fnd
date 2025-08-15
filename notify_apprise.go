@@ -82,49 +82,50 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 	})
 
 	apprise.webServer.r.POST("/htmx/apprise.html", func(c *gin.Context) {
-		apprise.appriseConfig.Enabled = false
 		c.MultipartForm()
 		for key, value := range c.Request.PostForm {
 			if key == "appriseConfigID" {
-				if value[0] == "" {
-					continue
+				if value[0] != "" {
+					apprise.appriseConfig.ConfigID = value[0]
 				}
-				apprise.appriseConfig.ConfigID = value[0]
 				continue
 			}
 			if key == "serverURL" {
-				if value[0] == "" {
-					continue
+				if value[0] != "" {
+					apprise.appriseConfig.ServerURL = value[0]
 				}
-				apprise.appriseConfig.ServerURL = value[0]
 				continue
 			}
 			if key == "timeout" {
-				if value[0] == "" {
-					continue
-				}
-				if timeout, err := strconv.Atoi(value[0]); err == nil && timeout > 0 && timeout <= 300 {
-					apprise.appriseConfig.Timeout = timeout
+				if value[0] != "" {
+					if timeout, err := strconv.Atoi(value[0]); err == nil && timeout > 0 && timeout <= 300 {
+						apprise.appriseConfig.Timeout = timeout
+					}
 				}
 				continue
 			}
 			if key == "format" {
-				if value[0] == "" {
-					continue
-				}
-				if value[0] == "text" || value[0] == "markdown" || value[0] == "html" {
-					apprise.appriseConfig.Format = value[0]
+				if value[0] != "" {
+					if value[0] == "text" || value[0] == "markdown" || value[0] == "html" {
+						apprise.appriseConfig.Format = value[0]
+					}
 				}
 				continue
 			}
 			if key == "active" {
-				if value[0] == "" {
-					continue
-				}
+				// If active checkbox is present, enable it
 				apprise.appriseConfig.Enabled = true
 				continue
 			}
 		}
+		
+		// If no active checkbox was found in the form, it means it was unchecked
+		if _, hasActive := c.Request.PostForm["active"]; !hasActive {
+			apprise.appriseConfig.Enabled = false
+		}
+		
+		LogInfo("APPRISE", "Configuration updated", fmt.Sprintf("Enabled: %t, ConfigID: %s, ServerURL: %s", 
+			apprise.appriseConfig.Enabled, apprise.appriseConfig.ConfigID, apprise.appriseConfig.ServerURL))
 
 		// Synchronize back to legacy format for compatibility
 		apprise.updateConfig()
@@ -276,4 +277,6 @@ func (apprise *FNDAppriseNotificationSink) getStatus() FNDNotificationSinkStatus
 		Good:    apprise.lastStatusMessage == "Online",
 		Message: apprise.lastStatusMessage,
 	}
+}
+
 }

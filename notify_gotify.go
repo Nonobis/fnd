@@ -82,41 +82,48 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 	})
 
 	gotify.webServer.r.POST("/htmx/gotify.html", func(c *gin.Context) {
-		gotify.config.Map["enabled"] = "false"
 		c.MultipartForm()
+		
+		// Keep the current enabled state by default (variable kept for future use)
+		_ = gotify.config.Map["enabled"]
+		
+		// Process form fields
 		for key, value := range c.Request.PostForm {
 			if key == "serverurl" {
-				if value[0] == "" {
-					continue
+				if value[0] != "" {
+					gotify.config.Map["serverurl"] = value[0]
 				}
-				gotify.config.Map["serverurl"] = value[0]
 				continue
 			}
 			if key == "apptoken" {
-				if value[0] == "" {
-					continue
+				if value[0] != "" {
+					gotify.config.Map["apptoken"] = value[0]
 				}
-				gotify.config.Map["apptoken"] = value[0]
 				continue
 			}
 			if key == "priority" {
-				if value[0] == "" {
-					continue
-				}
-				// Validate priority is between 0-10
-				if priority, err := strconv.Atoi(value[0]); err == nil && priority >= 0 && priority <= 10 {
-					gotify.config.Map["priority"] = value[0]
+				if value[0] != "" {
+					// Validate priority is between 0-10
+					if priority, err := strconv.Atoi(value[0]); err == nil && priority >= 0 && priority <= 10 {
+						gotify.config.Map["priority"] = value[0]
+					}
 				}
 				continue
 			}
 			if key == "active" {
-				if value[0] == "" {
-					continue
-				}
+				// If active checkbox is present, enable it
 				gotify.config.Map["enabled"] = "true"
 				continue
 			}
 		}
+		
+		// If no active checkbox was found in the form, it means it was unchecked
+		if _, hasActive := c.Request.PostForm["active"]; !hasActive {
+			gotify.config.Map["enabled"] = "false"
+		}
+		
+		LogInfo("GOTIFY", "Configuration updated", fmt.Sprintf("Enabled: %s, ServerURL: %s", 
+			gotify.config.Map["enabled"], gotify.config.Map["serverurl"]))
 
 		t := template.Must(template.ParseFS(templateFS, "templates/gotify.html"))
 		t.Execute(c.Writer, gotify.generatePayload(true))
@@ -249,4 +256,6 @@ func (gotify *FNDGotifyNotificationSink) getStatus() FNDNotificationSinkStatus {
 		Good:    gotify.lastStatusMessage == "Online",
 		Message: gotify.lastStatusMessage,
 	}
+}
+
 }
