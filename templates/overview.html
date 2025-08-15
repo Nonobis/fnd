@@ -85,69 +85,7 @@
             </div>
         </div>
 
-        <!-- Recent Notifications Section -->
-        {{ if .WebNotificationsEnabled }}
-        <div class="notifications-section">
-            <h2 class="section-title">
-                <span class="section-icon">
-                    <i class="fas fa-history"></i>
-                </span>
-                <span class="section-text">{{index .TranslatedText 5}}</span>
-            </h2>
-            
-            {{ if .WebNotifications }}
-            <div class="notifications-grid">
-                {{ range .WebNotifications}}
-                {{ if .N.Caption }}
-                <div class="notification-card">
-                    <div class="notification-image">
-                        <figure class="image">
-                            <img src="data:image/png;base64,{{ .Jepg_encoded}}" alt="Notification snapshot" />
-                        </figure>
-                    </div>
-                    <div class="notification-content">
-                        <div class="notification-header">
-                            <h3 class="notification-title">{{ .N.Caption }}</h3>
-                            <span class="notification-badge">
-                                <span class="icon">
-                                    <i class="fas fa-camera"></i>
-                                </span>
-                            </span>
-                        </div>
-                        <div class="notification-meta">
-                            <span class="icon-text">
-                                <span class="icon">
-                                    <i class="fas fa-clock"></i>
-                                </span>
-                                <span class="notification-date">{{ .N.Date }}</span>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                {{ end }}
-                {{ end }}
-            </div>
-            {{ else }}
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-bell-slash"></i>
-                </div>
-                <h3 class="empty-state-title">No recent notifications</h3>
-                <p class="empty-state-message">When notifications are received, they will appear here.</p>
-            </div>
-            {{ end }}
-        </div>
-        {{ else }}
-        <div class="notifications-section">
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <h3 class="empty-state-title">Web Notifications Disabled</h3>
-                <p class="empty-state-message">Enable web notifications in the settings to view recent events here.</p>
-            </div>
-        </div>
-        {{ end }}
+
     </div>
 </div>
 
