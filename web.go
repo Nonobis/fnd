@@ -26,6 +26,7 @@ type FNDWebServer struct {
 	frigateConf     *FNDFrigateConfiguration
 	globalConf      *FNDConfiguration
 	configPath      string
+	notifyManager   *FNDNotificationManager
 	translation     *Translation
 	frigateEvent    *FNDFrigateEventManager
 }
@@ -99,6 +100,27 @@ func (web *FNDWebServer) saveConfiguration() error {
 	}
 	LogInfo("WEB", "Configuration saved successfully", web.configPath)
 	return nil
+}
+
+// saveConfigurationWithNotifications synchronizes notification configurations and saves to disk
+func (web *FNDWebServer) saveConfigurationWithNotifications(notifyManager *FNDNotificationManager) error {
+	// Synchronize notification configurations
+	if notifyManager != nil {
+		web.globalConf.Notify = notifyManager.getConfigAll()
+	}
+	
+	err := web.globalConf.WriteToFile(web.configPath)
+	if err != nil {
+		LogError("WEB", "Failed to save configuration file", err.Error())
+		return err
+	}
+	LogInfo("WEB", "Configuration saved successfully", web.configPath)
+	return nil
+}
+
+// setNotificationManager sets the notification manager for configuration synchronization
+func (web *FNDWebServer) setNotificationManager(notifyManager *FNDNotificationManager) {
+	web.notifyManager = notifyManager
 }
 
 func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FNDConfiguration, configPath string) *FNDWebServer {

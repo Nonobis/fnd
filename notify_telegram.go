@@ -86,7 +86,7 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 		}
 
 		// Save configuration to disk immediately
-		tel.webServer.saveConfiguration()
+		tel.webServer.saveConfigurationWithNotifications(tel.webServer.notifyManager)
 
 		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/telegram.html"))
@@ -146,7 +146,7 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 		}
 
 		// Save configuration to disk immediately
-		tel.webServer.saveConfiguration()
+		tel.webServer.saveConfigurationWithNotifications(tel.webServer.notifyManager)
 
 		t := template.Must(template.ParseFS(templateFS, "templates/telegram.html"))
 		_ = t.Execute(c.Writer, tel.generatePayload(true))

@@ -77,7 +77,7 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 		}
 
 		// Save configuration to disk immediately
-		gotify.webServer.saveConfiguration()
+		gotify.webServer.saveConfigurationWithNotifications(gotify.webServer.notifyManager)
 
 		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/gotify.html"))
@@ -121,7 +121,7 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 			gotify.config.Map["enabled"], gotify.config.Map["serverurl"]))
 
 		// Save configuration to disk immediately
-		gotify.webServer.saveConfiguration()
+		gotify.webServer.saveConfigurationWithNotifications(gotify.webServer.notifyManager)
 
 		t := template.Must(template.ParseFS(templateFS, "templates/gotify.html"))
 		_ = t.Execute(c.Writer, gotify.generatePayload(true))

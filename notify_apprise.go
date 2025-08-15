@@ -81,7 +81,7 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 		apprise.updateConfig()
 
 		// Save configuration to disk immediately
-		apprise.webServer.saveConfiguration()
+		apprise.webServer.saveConfigurationWithNotifications(apprise.webServer.notifyManager)
 
 		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/apprise.html"))
@@ -130,7 +130,7 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 		apprise.updateConfig()
 
 		// Save configuration to disk immediately
-		apprise.webServer.saveConfiguration()
+		apprise.webServer.saveConfigurationWithNotifications(apprise.webServer.notifyManager)
 
 		t := template.Must(template.ParseFS(templateFS, "templates/apprise.html"))
 		_ = t.Execute(c.Writer, apprise.generatePayload(true))

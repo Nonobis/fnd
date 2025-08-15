@@ -61,6 +61,7 @@ func main() {
 
 	notify := NewFNDNotificationManager(conf.Notify)
 	notify.setupNotificationSinks(connection.eventManager.notificationChannel, web, connection)
+	web.setNotificationManager(notify)
 	LogInfo("NOTIFY", "Notification manager initialized", "")
 
 	go web.run(&connection.eventManager)
