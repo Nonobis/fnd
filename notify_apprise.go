@@ -113,7 +113,7 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 				}
 				continue
 			}
-						// Apprise doesn't have an active checkbox in the form
+			// Apprise doesn't have an active checkbox in the form
 			// The active state is managed by the separate toggle button
 		}
 

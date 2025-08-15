@@ -82,7 +82,7 @@ func (web *FNDWebNotificationSink) registerWebServer(webServer *FNDWebServer) {
 	web.webServer.r.POST("/htmx/web.html", func(c *gin.Context) {
 		c.MultipartForm()
 
-				// Process form fields
+		// Process form fields
 		for key, _ := range c.Request.PostForm {
 			// Web notifications don't have an active checkbox in the form
 			// The active state is managed by the separate toggle button

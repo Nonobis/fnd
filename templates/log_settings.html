@@ -1,54 +1,75 @@
-<div class="log-settings-container">
-    <!-- Log Settings Header -->
-    <div class="section">
-        <div class="container">
-            <div class="level">
-                <div class="level-left">
-                    <div class="level-item">
-                        <h2 class="title is-3">
-                            <span class="icon">
-                                <i class="fas fa-cogs"></i>
-                            </span>
-                            {{index .TranslatedText 0}}
-                        </h2>
-                    </div>
-                </div>
-            </div>
-            <p class="subtitle">{{index .TranslatedText 5}}</p>
-        </div>
+<div id="log-settings" class="settings-container">
+    <!-- Header Section -->
+    <div class="settings-header">
+        <h1 class="title is-2">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fas fa-cogs"></i>
+                </span>
+                <span>{{index .TranslatedText 0}}</span>
+            </span>
+        </h1>
+        <p class="subtitle is-6">{{index .TranslatedText 5}}</p>
     </div>
 
-    <!-- Log Settings Form -->
-    <div class="section pt-0">
-        <div class="container">
-            <form hx-post="/htmx/log_settings.html" hx-target="#log-settings-form" hx-indicator="#loading-indicator">
-                <div id="log-settings-form">
-                    <!-- Status Message -->
-                    {{if .ShowStatus}}
-                    <div class="notification {{.Color}} is-light">
-                        <span class="icon">
-                            <i class="fas fa-check"></i>
+    <div class="columns">
+        <!-- Configuration Form -->
+        <div class="column is-8">
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h2 class="title is-4">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-sliders-h"></i>
+                            </span>
+                            <span>Log Configuration</span>
                         </span>
-                        {{.StatusMessage}}
-                    </div>
-                    {{end}}
+                    </h2>
+                </div>
+                <div class="settings-card-body">
+                    <form hx-post="/htmx/log_settings.html" hx-target="#log-settings" hx-swap="outerHTML" id="log-form">
+                        <!-- Status Message -->
+                        {{if .ShowStatus}}
+                        <div class="status-message mb-4">
+                            <div class="notification {{.Color}} is-light">
+                                <span class="icon">
+                                    <i class="fas {{ if eq .Color "is-success"}}fa-check-circle{{ else }}fa-exclamation-triangle{{ end }}"></i>
+                                </span>
+                                <span>{{.StatusMessage}}</span>
+                            </div>
+                        </div>
+                        {{end}}
 
-                    <div class="columns">
-                        <div class="column is-6">
-                            <!-- Maximum Log Entries -->
-                            <div class="field">
-                                <label class="label">{{index .TranslatedText 1}}</label>
-                                <div class="control">
-                                    <input class="input" type="number" name="maxEntries" value="{{.Conf.MaxEntries}}" min="100" max="10000" step="100">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="label">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-database"></i>
+                                        </span>
+                                        <span>{{index .TranslatedText 1}}</span>
+                                    </span>
+                                </label>
+                                <div class="control has-icons-left">
+                                    <input class="input is-medium" type="number" name="maxEntries" value="{{.Conf.MaxEntries}}" min="100" max="10000" step="100">
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-database"></i>
+                                    </span>
                                 </div>
                                 <p class="help">Number of log entries to keep in memory (100-10000)</p>
                             </div>
 
-                            <!-- Minimum Log Level -->
-                            <div class="field">
-                                <label class="label">{{index .TranslatedText 2}}</label>
+                            <div class="form-group">
+                                <label class="label">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-filter"></i>
+                                        </span>
+                                        <span>{{index .TranslatedText 2}}</span>
+                                    </span>
+                                </label>
                                 <div class="control">
-                                    <div class="select is-fullwidth">
+                                    <div class="select is-fullwidth is-medium">
                                         <select name="logLevel">
                                             <option value="0" {{if eq .Conf.LogLevel 0}}selected{{end}}>{{index .TranslatedText 6}}</option>
                                             <option value="1" {{if eq .Conf.LogLevel 1}}selected{{end}}>{{index .TranslatedText 7}}</option>
@@ -59,12 +80,16 @@
                                 </div>
                                 <p class="help">Only logs at or above this level will be recorded</p>
                             </div>
-                        </div>
 
-                        <div class="column is-6">
-                            <!-- Enable File Logging -->
-                            <div class="field">
-                                <label class="label">{{index .TranslatedText 3}}</label>
+                            <div class="form-group">
+                                <label class="label">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-file-alt"></i>
+                                        </span>
+                                        <span>{{index .TranslatedText 3}}</span>
+                                    </span>
+                                </label>
                                 <div class="control">
                                     <label class="checkbox">
                                         <input type="checkbox" name="enableFile" {{if .Conf.EnableFile}}checked{{end}}>
@@ -74,9 +99,15 @@
                                 <p class="help">Persistent logging to disk for later analysis</p>
                             </div>
 
-                            <!-- Enable Console Logging -->
-                            <div class="field">
-                                <label class="label">{{index .TranslatedText 4}}</label>
+                            <div class="form-group">
+                                <label class="label">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-terminal"></i>
+                                        </span>
+                                        <span>{{index .TranslatedText 4}}</span>
+                                    </span>
+                                </label>
                                 <div class="control">
                                     <label class="checkbox">
                                         <input type="checkbox" name="enableConsole" {{if .Conf.EnableConsole}}checked{{end}}>
@@ -86,343 +117,218 @@
                                 <p class="help">Real-time logging output to console (useful for debugging)</p>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Current Statistics -->
-                    <div class="box">
-                        <h4 class="title is-5">
+                        <!-- Log Level Impact Warning -->
+                        <div class="notification is-warning is-light mt-4">
                             <span class="icon">
-                                <i class="fas fa-chart-bar"></i>
+                                <i class="fas fa-exclamation-triangle"></i>
                             </span>
-                            Current Statistics
-                        </h4>
-                        <div class="columns">
-                            <div class="column">
-                                <div class="has-text-centered">
-                                    <p class="heading">Entries in Memory</p>
-                                    <p class="title is-4">{{.Stats.EntriesInMemory}}</p>
-                                </div>
-                            </div>
-                            <div class="column">
-                                <div class="has-text-centered">
-                                    <p class="heading">File Size</p>
-                                    <p class="title is-4">{{.Stats.FileSizeHuman}}</p>
-                                </div>
-                            </div>
-                            <div class="column">
-                                <div class="has-text-centered">
-                                    <p class="heading">Active Subscribers</p>
-                                    <p class="title is-4">{{.Stats.ActiveSubscribers}}</p>
-                                </div>
-                            </div>
-                            <div class="column">
-                                <div class="has-text-centered">
-                                    <p class="heading">Memory Usage</p>
-                                    <p class="title is-4">{{.Stats.MemoryUsageHuman}}</p>
-                                </div>
-                            </div>
+                            <strong>Note:</strong> Changing the log level will only affect new log entries. 
+                            Existing logs will remain visible until they are naturally rotated out or cleared.
                         </div>
-                    </div>
 
-                    <!-- Log Level Impact Warning -->
-                    <div class="notification is-warning is-light">
-                        <span class="icon">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </span>
-                        <strong>Note:</strong> Changing the log level will only affect new log entries. 
-                        Existing logs will remain visible until they are naturally rotated out or cleared.
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="field is-grouped">
-                        <div class="control">
-                            <button class="button is-primary" type="submit">
+                        <div class="form-actions">
+                            <button class="button is-primary is-medium is-rounded" type="submit">
                                 <span class="icon">
                                     <i class="fas fa-save"></i>
                                 </span>
                                 <span>Apply Settings</span>
                             </button>
-                        </div>
-                        <div class="control">
-                            <button class="button is-light" type="button" onclick="testLogging()">
+                            <button class="button is-light is-medium is-rounded" type="button" onclick="testLogging()">
                                 <span class="icon">
                                     <i class="fas fa-flask"></i>
                                 </span>
                                 <span>Test Logging</span>
                             </button>
-                        </div>
-                        <div class="control">
-                            <button class="button is-danger is-light" type="button" onclick="clearAllLogs()">
+                            <button class="button is-danger is-light is-medium is-rounded" type="button" onclick="clearAllLogs()">
                                 <span class="icon">
                                     <i class="fas fa-trash-alt"></i>
                                 </span>
                                 <span>Clear All Logs</span>
                             </button>
                         </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics and Help Section -->
+        <div class="column is-4">
+            <div class="settings-card mb-4">
+                <div class="settings-card-header">
+                    <h3 class="title is-5">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </span>
+                            <span>Current Statistics</span>
+                        </span>
+                    </h3>
+                </div>
+                <div class="settings-card-body">
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-value">{{.Stats.EntriesInMemory}}</div>
+                            <div class="stat-label">Entries in Memory</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{.Stats.FileSizeHuman}}</div>
+                            <div class="stat-label">File Size</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{.Stats.ActiveSubscribers}}</div>
+                            <div class="stat-label">Active Subscribers</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{.Stats.MemoryUsageHuman}}</div>
+                            <div class="stat-label">Memory Usage</div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Loading Indicator -->
-                <div id="loading-indicator" class="has-text-centered" style="display: none;">
-                    <span class="icon">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </span>
-                    <span>Applying settings...</span>
+            <div class="help-card">
+                <div class="help-card-header">
+                    <h3 class="title is-5">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-info-circle"></i>
+                            </span>
+                            <span>Log Level Guide</span>
+                        </span>
+                    </h3>
                 </div>
-            </form>
+                <div class="help-card-body">
+                    <div class="help-item">
+                        <h4 class="help-title">
+                            <span class="icon">
+                                <i class="fas fa-bug"></i>
+                            </span>
+                            <span>DEBUG</span>
+                        </h4>
+                        <p class="help-text">Detailed diagnostic information for development</p>
+                    </div>
+
+                    <div class="help-item">
+                        <h4 class="help-title">
+                            <span class="icon">
+                                <i class="fas fa-info"></i>
+                            </span>
+                            <span>INFO</span>
+                        </h4>
+                        <p class="help-text">General operational messages</p>
+                    </div>
+
+                    <div class="help-item">
+                        <h4 class="help-title">
+                            <span class="icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </span>
+                            <span>WARN</span>
+                        </h4>
+                        <p class="help-text">Warning messages about potential issues</p>
+                    </div>
+
+                    <div class="help-item">
+                        <h4 class="help-title">
+                            <span class="icon">
+                                <i class="fas fa-times-circle"></i>
+                            </span>
+                            <span>ERROR</span>
+                        </h4>
+                        <p class="help-text">Error conditions that need attention</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <style>
-.log-settings-container {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    padding: 0;
+/* Log Statistics Styling */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
 }
 
-.log-settings-container .section {
-    background: transparent;
-}
-
-.log-settings-container .container {
-    max-width: 1000px;
-}
-
-.log-settings-container .title {
-    color: white;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-.log-settings-container .subtitle {
-    color: rgba(255,255,255,0.9);
-}
-
-.field .help {
-    color: #6c757d;
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
-}
-
-.field .label {
-    color: #32325d;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
-
-.box {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    padding: 2rem;
-}
-
-.notification.is-warning.is-light {
-    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%);
-    border: 1px solid rgba(255, 193, 7, 0.3);
+.stat-item {
+    text-align: center;
+    padding: 1rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     border-radius: 12px;
-    color: #e65100;
-}
-
-.notification.is-success.is-light {
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(56, 142, 60, 0.1) 100%);
-    border: 1px solid rgba(76, 175, 80, 0.3);
-    border-radius: 12px;
-    color: #2e7d32;
-}
-
-.title.is-5 {
-    margin-bottom: 1rem;
-    color: #32325d;
-}
-
-.checkbox {
-    display: flex;
-    align-items: center;
-    font-weight: 500;
-    color: #525f7f;
-}
-
-.checkbox input[type="checkbox"] {
-    margin-right: 0.75rem;
-    transform: scale(1.2);
-    accent-color: #667eea;
-}
-
-.select {
-    width: 100%;
-}
-
-.select select {
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid #e9ecef;
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    width: 100%;
-}
-
-.select select:focus {
-    border-color: #4facfe;
-    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
-    outline: none;
-}
-
-.input {
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid #e9ecef;
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
+    border: 1px solid #dee2e6;
     transition: all 0.3s ease;
 }
 
-.input:focus {
-    border-color: #4facfe;
-    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
-    outline: none;
-}
-
-.button {
-    border-radius: 8px;
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
-    transition: all 0.3s ease;
-    border: none;
-}
-
-.button.is-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-
-.button.is-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-}
-
-.button.is-light {
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    color: #525f7f;
-}
-
-.button.is-light:hover {
-    background: white;
+.stat-item:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.button.is-danger.is-light {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(211, 47, 47, 0.1) 100%);
-    border: 2px solid rgba(244, 67, 54, 0.3);
-    color: #d32f2f;
-}
-
-.button.is-danger.is-light:hover {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.2) 0%, rgba(211, 47, 47, 0.2) 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
-}
-
-.heading {
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.5px;
-    color: #8898aa;
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #495057;
     margin-bottom: 0.5rem;
 }
 
-.title.is-4 {
-    color: #32325d;
-    font-weight: 700;
+.stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.has-text-centered .title.is-4 {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.columns .column {
-    padding: 1rem;
-}
-
-.field {
-    margin-bottom: 1.5rem;
-}
-
-.field.is-grouped {
-    margin-top: 2rem;
+/* Form adjustments for log settings */
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
     padding-top: 1.5rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    border-top: 1px solid #f1f3f4;
+    margin-top: 1.5rem;
 }
 
-#loading-indicator {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    padding: 2rem;
-    border-radius: 12px;
-    z-index: 1000;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    color: #525f7f;
-    font-weight: 600;
+.form-actions .button {
+    flex: 1;
+    min-width: 150px;
 }
 
-/* Card hover effects */
-.box:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-}
-
-/* Form focus states */
-.field:focus-within .label {
-    color: #4facfe;
-}
-
-/* Statistics cards */
-.columns .column .has-text-centered {
-    padding: 1.5rem;
-    border-radius: 12px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
+/* Checkbox styling for log settings */
+.checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 500;
+    color: #495057;
+    padding: 0.5rem;
+    border-radius: 8px;
     transition: all 0.3s ease;
 }
 
-.columns .column .has-text-centered:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+.checkbox:hover {
+    background: rgba(52, 152, 219, 0.1);
 }
 
-/* Icon styling */
-.icon {
-    color: inherit;
+.checkbox input[type="checkbox"] {
+    transform: scale(1.2);
+    accent-color: #3498db;
 }
 
-.title .icon {
-    margin-right: 0.5rem;
-}
-
-/* Responsive design */
+/* Mobile responsive for stat grid */
 @media (max-width: 768px) {
-    .log-settings-container .container {
-        padding: 1rem;
+    .stat-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
     }
     
-    .box {
-        padding: 1.5rem;
+    .form-actions {
+        flex-direction: column;
     }
     
-    .button {
+    .form-actions .button {
         width: 100%;
         margin-bottom: 0.5rem;
     }
