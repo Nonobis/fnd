@@ -63,7 +63,7 @@ func (web *FNDWebNotificationSink) registerWebServer(webServer *FNDWebServer) {
 
 	web.webServer.r.GET("/htmx/web.html", func(c *gin.Context) {
 		t := template.Must(template.ParseFS(templateFS, "templates/web.html"))
-		t.Execute(c.Writer, web.generatePayload(false))
+		_ = t.Execute(c.Writer, web.generatePayload(false))
 	})
 
 	web.webServer.r.POST("/htmx/web/toggle", func(c *gin.Context) {
@@ -76,30 +76,23 @@ func (web *FNDWebNotificationSink) registerWebServer(webServer *FNDWebServer) {
 
 		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/web.html"))
-		t.Execute(c.Writer, web.generatePayload(false))
+		_ = t.Execute(c.Writer, web.generatePayload(false))
 	})
 
 	web.webServer.r.POST("/htmx/web.html", func(c *gin.Context) {
 		c.MultipartForm()
-		
-		// Process form fields
-		for key, value := range c.Request.PostForm {
-			if key == "active" {
-				// If active checkbox is present, enable it
-				web.config.Map["enabled"] = "true"
-				continue
-			}
+
+				// Process form fields
+		for key, _ := range c.Request.PostForm {
+			// Web notifications don't have an active checkbox in the form
+			// The active state is managed by the separate toggle button
+			_ = key // Keep variable to avoid unused variable error
 		}
-		
-		// If no active checkbox was found in the form, it means it was unchecked
-		if _, hasActive := c.Request.PostForm["active"]; !hasActive {
-			web.config.Map["enabled"] = "false"
-		}
-		
+
 		LogInfo("WEB", "Configuration updated", fmt.Sprintf("Enabled: %s", web.config.Map["enabled"]))
 
 		t := template.Must(template.ParseFS(templateFS, "templates/web.html"))
-		t.Execute(c.Writer, web.generatePayload(true))
+		_ = t.Execute(c.Writer, web.generatePayload(true))
 	})
 }
 
@@ -141,6 +134,4 @@ func (web *FNDWebNotificationSink) getStatus() FNDNotificationSinkStatus {
 		Good:    true,
 		Message: "OK",
 	}
-}
-
 }

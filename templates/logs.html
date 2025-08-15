@@ -165,7 +165,7 @@
 <style>
 .logs-container {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     min-height: 100vh;
     padding: 0;
 }
@@ -179,12 +179,12 @@
 }
 
 .logs-container .title {
-    color: white;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    color: #2c3e50;
+    text-shadow: none;
 }
 
 .logs-container .subtitle {
-    color: rgba(255,255,255,0.9);
+    color: #6c757d;
 }
 
 .logs-table {
@@ -198,7 +198,7 @@
 }
 
 .logs-table thead th {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
     color: white;
     font-weight: 600;
     border: none;
@@ -219,9 +219,9 @@
 }
 
 .logs-table tbody tr:hover {
-    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     cursor: pointer;
 }
 
@@ -232,58 +232,62 @@
 }
 
 .log-level-DEBUG {
-    background: linear-gradient(135deg, #9c27b0 0%, #673ab7 100%);
+    background: #6f42c1;
     color: white;
-    border-radius: 20px;
+    border-radius: 12px;
     padding: 0.25rem 0.75rem;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 500;
+    opacity: 0.9;
 }
 
 .log-level-INFO {
-    background: linear-gradient(135deg, #2196f3 0%, #21cbf3 100%);
+    background: #17a2b8;
     color: white;
-    border-radius: 20px;
+    border-radius: 12px;
     padding: 0.25rem 0.75rem;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 500;
+    opacity: 0.9;
 }
 
 .log-level-WARN {
-    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    background: #fd7e14;
     color: white;
-    border-radius: 20px;
+    border-radius: 12px;
     padding: 0.25rem 0.75rem;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 500;
+    opacity: 0.9;
 }
 
 .log-level-ERROR {
-    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+    background: #dc3545;
     color: white;
-    border-radius: 20px;
+    border-radius: 12px;
     padding: 0.25rem 0.75rem;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 500;
+    opacity: 0.9;
 }
 
 .timestamp {
     font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
     font-size: 0.85rem;
-    color: #5e72e4;
+    color: #6c757d;
     font-weight: 500;
-    background: rgba(94, 114, 228, 0.1);
+    background: rgba(108, 117, 125, 0.1);
     padding: 0.25rem 0.5rem;
     border-radius: 6px;
 }
 
 .component {
     font-weight: 600;
-    color: #32325d;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #495057;
+    background: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
 }
 
 .message {
@@ -310,7 +314,7 @@
 }
 
 .details-cell .button {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: #6c757d;
     color: white;
     border: none;
     border-radius: 50%;
@@ -322,7 +326,8 @@
 
 .details-cell .button:hover {
     transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+    background: #495057;
 }
 
 .box {
@@ -439,11 +444,11 @@
 
 /* No logs state */
 .has-text-grey {
-    color: rgba(255, 255, 255, 0.7) !important;
+    color: #6c757d !important;
 }
 
 .has-text-grey-light {
-    color: rgba(255, 255, 255, 0.5) !important;
+    color: #adb5bd !important;
 }
 
 /* Level indicator glow effect */

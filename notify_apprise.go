@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -69,7 +70,7 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 
 	apprise.webServer.r.GET("/htmx/apprise.html", func(c *gin.Context) {
 		t := template.Must(template.ParseFS(templateFS, "templates/apprise.html"))
-		t.Execute(c.Writer, apprise.generatePayload(false))
+		_ = t.Execute(c.Writer, apprise.generatePayload(false))
 	})
 
 	apprise.webServer.r.POST("/htmx/apprise/toggle", func(c *gin.Context) {
@@ -78,7 +79,7 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 
 		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/apprise.html"))
-		t.Execute(c.Writer, apprise.generatePayload(false))
+		_ = t.Execute(c.Writer, apprise.generatePayload(false))
 	})
 
 	apprise.webServer.r.POST("/htmx/apprise.html", func(c *gin.Context) {
@@ -112,26 +113,18 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 				}
 				continue
 			}
-			if key == "active" {
-				// If active checkbox is present, enable it
-				apprise.appriseConfig.Enabled = true
-				continue
-			}
+						// Apprise doesn't have an active checkbox in the form
+			// The active state is managed by the separate toggle button
 		}
-		
-		// If no active checkbox was found in the form, it means it was unchecked
-		if _, hasActive := c.Request.PostForm["active"]; !hasActive {
-			apprise.appriseConfig.Enabled = false
-		}
-		
-		LogInfo("APPRISE", "Configuration updated", fmt.Sprintf("Enabled: %t, ConfigID: %s, ServerURL: %s", 
+
+		LogInfo("APPRISE", "Configuration updated", fmt.Sprintf("Enabled: %t, ConfigID: %s, ServerURL: %s",
 			apprise.appriseConfig.Enabled, apprise.appriseConfig.ConfigID, apprise.appriseConfig.ServerURL))
 
 		// Synchronize back to legacy format for compatibility
 		apprise.updateConfig()
 
 		t := template.Must(template.ParseFS(templateFS, "templates/apprise.html"))
-		t.Execute(c.Writer, apprise.generatePayload(true))
+		_ = t.Execute(c.Writer, apprise.generatePayload(true))
 	})
 
 }
@@ -277,6 +270,4 @@ func (apprise *FNDAppriseNotificationSink) getStatus() FNDNotificationSinkStatus
 		Good:    apprise.lastStatusMessage == "Online",
 		Message: apprise.lastStatusMessage,
 	}
-}
-
 }

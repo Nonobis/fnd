@@ -14,7 +14,7 @@
 - Add LLM request for determining action done on event for better message
 - Add UI for managing Image/Face with a First Name / Last Name
 ✅ implement Cooldown in overview
-- Add system for personalising template of notification. (Wysiwig editor ?? compatible differetent notification system )
+- Add system for personalising template of notification. (Wysiwig editor ?? compatible different notification system implemented
 - Per Camera settings:
     - Notification Message
     - Object filter

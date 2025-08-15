@@ -72,7 +72,7 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 	tel.webServer.r.GET("/htmx/telegram.html", func(c *gin.Context) {
 
 		t := template.Must(template.ParseFS(templateFS, "templates/telegram.html"))
-		t.Execute(c.Writer, tel.generatePayload(false))
+		_ = t.Execute(c.Writer, tel.generatePayload(false))
 	})
 
 	tel.webServer.r.POST("/htmx/telegram/toggle", func(c *gin.Context) {
@@ -87,7 +87,7 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 
 		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/telegram.html"))
-		t.Execute(c.Writer, tel.generatePayload(false))
+		_ = t.Execute(c.Writer, tel.generatePayload(false))
 	})
 
 	tel.webServer.r.POST("/htmx/telegram.html", func(c *gin.Context) {
@@ -112,16 +112,8 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 				}
 				continue
 			}
-			if key == "active" {
-				// If active checkbox is present, enable it
-				tel.config.Map["enabled"] = "true"
-				continue
-			}
-		}
-		
-		// If no active checkbox was found in the form, it means it was unchecked
-		if _, hasActive := c.Request.PostForm["active"]; !hasActive {
-			tel.config.Map["enabled"] = "false"
+			// Telegram doesn't have an active checkbox in the form
+			// The active state is managed by the separate toggle button
 		}
 		
 		LogInfo("TELEGRAM", "Configuration updated", fmt.Sprintf("Enabled: %s, Token: %s", 
@@ -151,7 +143,7 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 		}
 
 		t := template.Must(template.ParseFS(templateFS, "templates/telegram.html"))
-		t.Execute(c.Writer, tel.generatePayload(true))
+		_ = t.Execute(c.Writer, tel.generatePayload(true))
 	})
 
 }
@@ -417,4 +409,3 @@ func (tel *FNDTelegramNotificationSink) getStatus() FNDNotificationSinkStatus {
 	}
 }
 
-}

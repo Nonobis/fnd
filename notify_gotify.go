@@ -63,7 +63,7 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 
 	gotify.webServer.r.GET("/htmx/gotify.html", func(c *gin.Context) {
 		t := template.Must(template.ParseFS(templateFS, "templates/gotify.html"))
-		t.Execute(c.Writer, gotify.generatePayload(false))
+		_ = t.Execute(c.Writer, gotify.generatePayload(false))
 	})
 
 	gotify.webServer.r.POST("/htmx/gotify/toggle", func(c *gin.Context) {
@@ -78,7 +78,7 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 
 		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/gotify.html"))
-		t.Execute(c.Writer, gotify.generatePayload(false))
+		_ = t.Execute(c.Writer, gotify.generatePayload(false))
 	})
 
 	gotify.webServer.r.POST("/htmx/gotify.html", func(c *gin.Context) {
@@ -110,23 +110,15 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 				}
 				continue
 			}
-			if key == "active" {
-				// If active checkbox is present, enable it
-				gotify.config.Map["enabled"] = "true"
-				continue
-			}
-		}
-		
-		// If no active checkbox was found in the form, it means it was unchecked
-		if _, hasActive := c.Request.PostForm["active"]; !hasActive {
-			gotify.config.Map["enabled"] = "false"
+			// Gotify doesn't have an active checkbox in the form
+			// The active state is managed by the separate toggle button
 		}
 		
 		LogInfo("GOTIFY", "Configuration updated", fmt.Sprintf("Enabled: %s, ServerURL: %s", 
 			gotify.config.Map["enabled"], gotify.config.Map["serverurl"]))
 
 		t := template.Must(template.ParseFS(templateFS, "templates/gotify.html"))
-		t.Execute(c.Writer, gotify.generatePayload(true))
+		_ = t.Execute(c.Writer, gotify.generatePayload(true))
 	})
 }
 
@@ -256,6 +248,4 @@ func (gotify *FNDGotifyNotificationSink) getStatus() FNDNotificationSinkStatus {
 		Good:    gotify.lastStatusMessage == "Online",
 		Message: gotify.lastStatusMessage,
 	}
-}
-
 }
