@@ -150,6 +150,12 @@ func (m *FNDNotificationManager) getConfigAll() FNDNotificationConfiguration {
 	return m.conf
 }
 
+// getSink returns a specific notification sink by name
+func (m *FNDNotificationManager) getSink(name string) (FNDNotificationSink, bool) {
+	sink, exists := m.sinks[name]
+	return sink, exists
+}
+
 func (m *FNDNotificationManager) notificationThread(c chan FNDNotification) {
 	for {
 		n, ok := <-c

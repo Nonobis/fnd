@@ -846,6 +846,23 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		c.JSON(200, gin.H{"stats": stats})
 	})
 
+	// Test notification endpoints
+	r.POST("/api/test/gotify", func(c *gin.Context) {
+		web.sendTestNotificationToSink("Gotify", c)
+	})
+
+	r.POST("/api/test/telegram", func(c *gin.Context) {
+		web.sendTestNotificationToSink("Telegram", c)
+	})
+
+	r.POST("/api/test/apprise", func(c *gin.Context) {
+		web.sendTestNotificationToSink("Apprise", c)
+	})
+
+	r.POST("/api/test/web", func(c *gin.Context) {
+		web.sendTestNotificationToSink("Web", c)
+	})
+
 	return &web
 }
 
@@ -993,4 +1010,72 @@ func (web *FNDWebServer) sendTestNotification() {
 		Date:     time.Now().Format("15:04:05 02.01.2006"),
 		Caption:  "Test",
 	})
+}
+
+// sendTestNotificationToSink sends a test notification to a specific notification sink
+func (web *FNDWebServer) sendTestNotificationToSink(sinkName string, c *gin.Context) {
+	if web.notifyManager == nil {
+		c.HTML(200, "", `<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Notification manager not initialized</span>
+		</div>`)
+		return
+	}
+
+	// Find the specific sink
+	sink, exists := web.notifyManager.getSink(sinkName)
+	if !exists {
+		c.HTML(200, "", fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>%s notification sink not found</span>
+		</div>`, sinkName))
+		return
+	}
+
+	// Check if sink is enabled
+	if !web.notifyManager.isSinkEnabled(sink) {
+		c.HTML(200, "", fmt.Sprintf(`<div class="notification is-warning is-light">
+			<span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+			<span>%s notifications are currently disabled</span>
+		</div>`, sinkName))
+		return
+	}
+
+	// Load test image
+	data, err := staticFS.ReadFile("static/test_notification.jpg")
+	if err != nil {
+		LogError("WEB", "Failed to load test notification image", err.Error())
+		c.HTML(200, "", `<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Failed to load test image</span>
+		</div>`)
+		return
+	}
+
+	// Create test notification
+	testNotification := FNDNotification{
+		JpegData:  data,
+		VideoData: nil,
+		VideoURL:  "",
+		Date:      time.Now().Format("15:04:05 02.01.2006"),
+		Caption:   fmt.Sprintf("🧪 Test notification from FND\n\nThis is a test message sent to verify your %s configuration is working correctly.\n\nTime: %s", sinkName, time.Now().Format("2006-01-02 15:04:05")),
+		HasVideo:  false,
+	}
+
+	// Send test notification
+	err = sink.sendNotification(testNotification)
+	if err != nil {
+		LogError("WEB", "Test notification failed", fmt.Sprintf("Sink: %s, Error: %s", sinkName, err.Error()))
+		c.HTML(200, "", fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Test failed: %s</span>
+		</div>`, err.Error()))
+		return
+	}
+
+	LogInfo("WEB", "Test notification sent successfully", fmt.Sprintf("Sink: %s", sinkName))
+	c.HTML(200, "", fmt.Sprintf(`<div class="notification is-success is-light">
+		<span class="icon"><i class="fas fa-check-circle"></i></span>
+		<span>Test notification sent successfully to %s!</span>
+	</div>`, sinkName))
 }

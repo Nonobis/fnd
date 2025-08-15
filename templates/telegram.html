@@ -114,6 +114,24 @@
                                 </span>
                                 <span>{{index .TranslatedText 1}}</span>
                             </button>
+                            <button type="button" class="button is-info is-medium is-rounded telegram-field" {{if not .Active}}disabled{{end}} 
+                                    hx-post="/api/test/telegram" 
+                                    hx-target="#test-result-telegram" 
+                                    hx-indicator="#test-loading-telegram">
+                                <span class="icon">
+                                    <i class="fas fa-paper-plane"></i>
+                                </span>
+                                <span>Test Notification</span>
+                            </button>
+                        </div>
+
+                        <!-- Test Result Area -->
+                        <div id="test-result-telegram" class="mt-3"></div>
+                        <div id="test-loading-telegram" class="has-text-centered mt-3" style="display: none;">
+                            <span class="icon">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                            <span>Sending test notification...</span>
                         </div>
 
                         {{ if .ShowStatus }}
