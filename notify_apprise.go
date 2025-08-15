@@ -34,15 +34,26 @@ type AppriseTemplatePayload struct {
 }
 
 func (apprise *FNDAppriseNotificationSink) createDefaultConfig() {
+	LogDebug("APPRISE", "Creating default configuration", "")
+
 	apprise.config = NEWDefaultFNDNotificationConfigurationMap()
 	defaultApprise := NewDefaultAppriseConfig()
 	apprise.config.Map = defaultApprise.ToMap()
+
+	LogDebug("APPRISE", "Default configuration created", fmt.Sprintf("Enabled: %t, ServerURL: %s, ConfigID: %s",
+		defaultApprise.Enabled, defaultApprise.ServerURL, defaultApprise.ConfigID))
 }
 
 // updateConfig synchronizes changes back to the legacy map format
 func (apprise *FNDAppriseNotificationSink) updateConfig() {
+	LogDebug("APPRISE", "Updating configuration", "")
+
 	if apprise.appriseConfig != nil {
 		apprise.config.Map = apprise.appriseConfig.ToMap()
+		LogDebug("APPRISE", "Configuration synchronized", fmt.Sprintf("Enabled: %t, ServerURL: %s",
+			apprise.appriseConfig.Enabled, apprise.appriseConfig.ServerURL))
+	} else {
+		LogWarn("APPRISE", "AppriseConfig is nil, cannot update", "")
 	}
 }
 
@@ -51,17 +62,28 @@ func (apprise *FNDAppriseNotificationSink) getName() string {
 }
 
 func (apprise *FNDAppriseNotificationSink) setup(conf FNDNotificationConfigurationMap, avail bool) error {
+	LogInfo("APPRISE", "Setting up Apprise sink", fmt.Sprintf("Configuration available: %t", avail))
+
 	if avail {
 		apprise.config = conf
+		LogDebug("APPRISE", "Using existing configuration", fmt.Sprintf("Enabled: %s, ServerURL: %s, ConfigID: %s",
+			conf.Map["enabled"], conf.Map["serverURL"], conf.Map["configID"]))
+
 		// Convert from legacy map format to structured config if needed
 		apprise.appriseConfig = &AppriseConfig{}
 		apprise.appriseConfig.FromMap(conf.Map)
+		LogDebug("APPRISE", "Configuration converted to structured format", fmt.Sprintf("Enabled: %t, ServerURL: %s",
+			apprise.appriseConfig.Enabled, apprise.appriseConfig.ServerURL))
 	} else {
 		apprise.createDefaultConfig()
 		apprise.appriseConfig = &AppriseConfig{}
 		*apprise.appriseConfig = NewDefaultAppriseConfig()
+		LogDebug("APPRISE", "Using default configuration", fmt.Sprintf("Enabled: %t, ServerURL: %s",
+			apprise.appriseConfig.Enabled, apprise.appriseConfig.ServerURL))
 	}
+
 	apprise.lastStatusMessage = "init"
+	LogDebug("APPRISE", "Apprise sink setup complete", fmt.Sprintf("Initial status: %s", apprise.lastStatusMessage))
 	return nil
 }
 

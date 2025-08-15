@@ -37,10 +37,15 @@ type TelegramTemplatePayload struct {
 }
 
 func (tel *FNDTelegramNotificationSink) createDefaultConfig() {
+	LogDebug("TELEGRAM", "Creating default configuration", "")
+	
 	tel.config = NEWDefaultFNDNotificationConfigurationMap()
 	tel.config.Map["enabled"] = "false"
 	tel.config.Map["token"] = ""
 	tel.config.Map["chatid"] = ""
+	
+	LogDebug("TELEGRAM", "Default configuration created", fmt.Sprintf("Enabled: %s, Token: %s, ChatID: %s", 
+		tel.config.Map["enabled"], tel.config.Map["token"], tel.config.Map["chatid"]))
 }
 
 func (tel *FNDTelegramNotificationSink) getName() string {
@@ -48,21 +53,36 @@ func (tel *FNDTelegramNotificationSink) getName() string {
 }
 
 func (tel *FNDTelegramNotificationSink) setup(conf FNDNotificationConfigurationMap, avail bool) error {
+	LogInfo("TELEGRAM", "Setting up Telegram sink", fmt.Sprintf("Configuration available: %t", avail))
+	
 	if avail {
 		tel.config = conf
+		LogDebug("TELEGRAM", "Using existing configuration", fmt.Sprintf("Enabled: %s, Token: %s, ChatID: %s", 
+			conf.Map["enabled"], conf.Map["token"], conf.Map["chatid"]))
+		
 		data, err := strconv.ParseInt(tel.config.Map["chatid"], 10, 64)
 		if err == nil {
 			tel.chatid = data
+			LogDebug("TELEGRAM", "Chat ID parsed successfully", fmt.Sprintf("ChatID: %d", tel.chatid))
+		} else {
+			LogWarn("TELEGRAM", "Failed to parse Chat ID", fmt.Sprintf("ChatID string: %s, Error: %s", tel.config.Map["chatid"], err.Error()))
 		}
 
 	} else {
 		tel.createDefaultConfig()
 	}
+	
+	LogDebug("TELEGRAM", "Starting Telegram bot", "")
 	err := tel.botStart()
 	if err != nil {
+		LogError("TELEGRAM", "Failed to start bot", err.Error())
 		fmt.Println(err.Error())
+	} else {
+		LogInfo("TELEGRAM", "Telegram bot started successfully", "")
 	}
+	
 	tel.lastStatusMessage = "init"
+	LogDebug("TELEGRAM", "Telegram sink setup complete", fmt.Sprintf("Initial status: %s", tel.lastStatusMessage))
 	return nil
 }
 

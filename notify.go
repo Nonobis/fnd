@@ -84,10 +84,14 @@ func (m *FNDNotificationManager) registerNotificationSinks(sink FNDNotificationS
 }
 
 func (m *FNDNotificationManager) notifyAll(n FNDNotification) {
+	LogInfo("NOTIFY", "Sending notification to all enabled sinks", fmt.Sprintf("Caption: %s", n.Caption))
 	enabledCount := 0
-	for _, v := range m.sinks {
+	for sinkName, v := range m.sinks {
 		// Check if the sink is enabled before sending notification
-		if m.isSinkEnabled(v) {
+		enabled := m.isSinkEnabled(v)
+		LogDebug("NOTIFY", "Checking sink for notification", fmt.Sprintf("Sink: %s, Enabled: %t", sinkName, enabled))
+
+		if enabled {
 			enabledCount++
 
 			// Process template if available
@@ -134,24 +138,42 @@ func (m *FNDNotificationManager) notifyAll(n FNDNotification) {
 
 // Check if a notification sink is enabled
 func (m *FNDNotificationManager) isSinkEnabled(sink FNDNotificationSink) bool {
+	sinkName := sink.getName()
 	config := sink.getConfiguration()
 	enabled, exists := config.Map["enabled"]
-	return exists && enabled == "true"
+	enabledBool := exists && enabled == "true"
+	LogDebug("NOTIFY", "Sink enabled check", fmt.Sprintf("Sink: %s, Config exists: %t, Enabled value: %s, Enabled: %t", sinkName, exists, enabled, enabledBool))
+	return enabledBool
 }
 
 func (m *FNDNotificationManager) getStatusAll() {
+	LogDebug("NOTIFY", "Updating status for all notification sinks", "")
 
 	// Always add Frigate status - it will show "Configuration required" if not configured
-	m.web.addNotificationSinkStatus(m.frigateConn.getStatus())
+	frigateStatus := m.frigateConn.getStatus()
+	LogDebug("NOTIFY", "Frigate status", fmt.Sprintf("Name: %s, Good: %t, Message: %s", frigateStatus.Name, frigateStatus.Good, frigateStatus.Message))
+	m.web.addNotificationSinkStatus(frigateStatus)
 
 	// Add MQTT status as a separate block
-	m.web.addNotificationSinkStatus(m.frigateConn.getMqttStatus())
+	mqttStatus := m.frigateConn.getMqttStatus()
+	LogDebug("NOTIFY", "MQTT status", fmt.Sprintf("Name: %s, Good: %t, Message: %s", mqttStatus.Name, mqttStatus.Good, mqttStatus.Message))
+	m.web.addNotificationSinkStatus(mqttStatus)
 
-	for _, v := range m.sinks {
-		// Only add status for enabled sinks to overview
-		if m.isSinkEnabled(v) {
-			m.web.addNotificationSinkStatus(v.getStatus())
+	for sinkName, v := range m.sinks {
+		LogDebug("NOTIFY", "Processing sink", fmt.Sprintf("Name: %s, Enabled: %t", sinkName, m.isSinkEnabled(v)))
+
+		// Add status for all sinks to overview, regardless of enabled state
+		status := v.getStatus()
+
+		// If the sink is disabled, modify the status to show it's disabled
+		if !m.isSinkEnabled(v) {
+			LogDebug("NOTIFY", "Sink disabled, updating status", fmt.Sprintf("Name: %s", sinkName))
+			status.Good = false
+			status.Message = "Disabled"
 		}
+
+		LogDebug("NOTIFY", "Sink status", fmt.Sprintf("Name: %s, Good: %t, Message: %s", status.Name, status.Good, status.Message))
+		m.web.addNotificationSinkStatus(status)
 	}
 }
 

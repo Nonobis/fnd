@@ -49,12 +49,17 @@ func (gotify *FNDGotifyNotificationSink) getName() string {
 }
 
 func (gotify *FNDGotifyNotificationSink) setup(conf FNDNotificationConfigurationMap, avail bool) error {
+	LogInfo("GOTIFY", "Setting up Gotify sink", fmt.Sprintf("Configuration available: %t", avail))
+
 	if avail {
 		gotify.config = conf
+		LogDebug("GOTIFY", "Using existing configuration", fmt.Sprintf("Enabled: %s, ServerURL: %s", conf.Map["enabled"], conf.Map["serverurl"]))
 	} else {
 		gotify.createDefaultConfig()
+		LogDebug("GOTIFY", "Using default configuration", fmt.Sprintf("Enabled: %s, ServerURL: %s", gotify.config.Map["enabled"], gotify.config.Map["serverurl"]))
 	}
 	gotify.lastStatusMessage = "init"
+	LogDebug("GOTIFY", "Gotify sink setup complete", fmt.Sprintf("Initial status: %s", gotify.lastStatusMessage))
 	return nil
 }
 
@@ -167,15 +172,20 @@ func (gotify *FNDGotifyNotificationSink) generatePayload(postReq bool) GotifyTem
 }
 
 func (gotify *FNDGotifyNotificationSink) sendNotification(n FNDNotification) error {
+	LogDebug("GOTIFY", "Attempting to send notification", fmt.Sprintf("Enabled: %s, Caption: %s", gotify.config.Map["enabled"], n.Caption))
+
 	if gotify.config.Map["enabled"] != "true" {
+		LogDebug("GOTIFY", "Gotify is disabled, skipping notification", "")
 		gotify.lastStatusMessage = "disabled"
 		return nil
 	}
 	if gotify.config.Map["apptoken"] == "" {
+		LogError("GOTIFY", "App token is empty", "")
 		gotify.lastStatusMessage = "App token is empty!"
 		return errors.New("App token is empty!")
 	}
 	if gotify.config.Map["serverurl"] == "" {
+		LogError("GOTIFY", "Server URL is empty", "")
 		gotify.lastStatusMessage = "Server URL is empty!"
 		return errors.New("Server URL is empty!")
 	}
@@ -224,11 +234,13 @@ func (gotify *FNDGotifyNotificationSink) sendNotification(n FNDNotification) err
 	req.Header.Set("X-Gotify-Key", gotify.config.Map["apptoken"])
 
 	// Send the request
+	LogDebug("GOTIFY", "Sending HTTP request", fmt.Sprintf("URL: %s, Title: %s", url, message.Title))
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		LogError("GOTIFY", "Failed to send notification", err.Error())
 		gotify.lastStatusMessage = "Failed to send notification: " + err.Error()
 		return err
 	}
@@ -238,10 +250,12 @@ func (gotify *FNDGotifyNotificationSink) sendNotification(n FNDNotification) err
 	respBody, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
+		LogError("GOTIFY", "HTTP error response", fmt.Sprintf("Status: %d, Body: %s", resp.StatusCode, string(respBody)))
 		gotify.lastStatusMessage = fmt.Sprintf("HTTP %d: %s", resp.StatusCode, string(respBody))
 		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(respBody))
 	}
 
+	LogInfo("GOTIFY", "Notification sent successfully", "")
 	gotify.lastStatusMessage = "Online"
 	return nil
 }
@@ -255,9 +269,11 @@ func (gotify *FNDGotifyNotificationSink) getConfiguration() FNDNotificationConfi
 }
 
 func (gotify *FNDGotifyNotificationSink) getStatus() FNDNotificationSinkStatus {
-	return FNDNotificationSinkStatus{
+	status := FNDNotificationSinkStatus{
 		Name:    gotify.getName(),
 		Good:    gotify.lastStatusMessage == "Online",
 		Message: gotify.lastStatusMessage,
 	}
+	LogDebug("GOTIFY", "Getting status", fmt.Sprintf("Name: %s, Good: %t, Message: %s", status.Name, status.Good, status.Message))
+	return status
 }

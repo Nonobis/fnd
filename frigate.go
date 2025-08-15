@@ -53,19 +53,32 @@ func newFrigateConnection(conf *FNDFrigateConfiguration) *FNDFrigateConnection {
 }
 
 func (o *FNDFrigateConnection) handle(_ mqtt.Client, msg mqtt.Message) {
+	LogDebug("MQTT", "Message received", fmt.Sprintf("Topic: %s, Payload length: %d bytes", msg.Topic(), len(msg.Payload())))
 
 	switch msg.Topic() {
 	case "frigate/events":
+		LogDebug("FRIGATE", "Processing Frigate event", fmt.Sprintf("Raw payload: %s", string(msg.Payload())))
+
 		if err := json.Unmarshal(msg.Payload(), &o.lastEventMessage); err != nil {
-			fmt.Printf("Message could not be parsed (%s): %s", msg.Payload(), err)
+			LogError("FRIGATE", "Failed to parse event message", fmt.Sprintf("Payload: %s, Error: %s", string(msg.Payload()), err.Error()))
 		} else {
+			LogInfo("FRIGATE", "Event message parsed successfully", fmt.Sprintf("Event ID: %s, Type: %s, Camera: %s, Label: %s, Score: %.2f",
+				o.lastEventMessage.Before.Id,
+				o.lastEventMessage.TypeInfo,
+				o.lastEventMessage.Before.Camera,
+				o.lastEventMessage.Before.Label,
+				o.lastEventMessage.Before.Score))
+
 			err = o.eventManager.addNewEventMessage(o.lastEventMessage)
 			if err != nil {
-				fmt.Println(err.Error())
+				LogError("FRIGATE", "Failed to process event message", err.Error())
+			} else {
+				LogDebug("FRIGATE", "Event message processed successfully", fmt.Sprintf("Event ID: %s", o.lastEventMessage.Before.Id))
 			}
 		}
+	default:
+		LogWarn("MQTT", "Unexpected topic received", fmt.Sprintf("Topic: %s", msg.Topic()))
 	}
-
 }
 
 func setupFNDFrigateConnection(conf *FNDFrigateConfiguration) (*FNDFrigateConnection, error) {
@@ -81,9 +94,9 @@ func setupFNDFrigateConnection(conf *FNDFrigateConfiguration) (*FNDFrigateConnec
 		if conf.MqttPassword != "" {
 			opts.SetPassword(conf.MqttPassword)
 		}
-		fmt.Printf("MQTT: Using authentication for user %s\n", conf.MqttUsername)
+		LogInfo("MQTT", "Using authentication", fmt.Sprintf("Username: %s", conf.MqttUsername))
 	} else {
-		fmt.Println("MQTT: Using anonymous connection")
+		LogInfo("MQTT", "Using anonymous connection", "")
 	}
 
 	opts.SetOrderMatters(false)       // Allow out of order messages (use this option unless in order delivery is essential)
@@ -97,29 +110,29 @@ func setupFNDFrigateConnection(conf *FNDFrigateConfiguration) (*FNDFrigateConnec
 	opts.AutoReconnect = true
 
 	opts.DefaultPublishHandler = func(_ mqtt.Client, msg mqtt.Message) {
-		fmt.Printf("UNEXPECTED MESSAGE: %s\n", msg)
+		LogWarn("MQTT", "Unexpected message received", fmt.Sprintf("Topic: %s, Payload: %s", msg.Topic(), string(msg.Payload())))
 	}
 
 	opts.OnConnectionLost = func(cl mqtt.Client, err error) {
-		fmt.Println("MQTT connection lost")
+		LogError("MQTT", "Connection lost", err.Error())
 	}
 
 	opts.OnConnect = func(c mqtt.Client) {
-		fmt.Println("MQTT connection established")
+		LogInfo("MQTT", "Connection established", fmt.Sprintf("Broker: %s", connection.mqttServerAddress))
 
 		t := c.Subscribe("frigate/events", QOS, connection.handle)
 
 		go func() {
 			_ = t.Wait()
 			if t.Error() != nil {
-				fmt.Printf("ERROR SUBSCRIBING: %s\n", t.Error())
+				LogError("MQTT", "Failed to subscribe", t.Error().Error())
 			} else {
-				fmt.Println("subscribed to: ", "frigate/events")
+				LogInfo("MQTT", "Successfully subscribed", "Topic: frigate/events")
 			}
 		}()
 	}
 	opts.OnReconnecting = func(mqtt.Client, *mqtt.ClientOptions) {
-		fmt.Println("MQTT: attempting to reconnect")
+		LogInfo("MQTT", "Attempting to reconnect", fmt.Sprintf("Broker: %s", connection.mqttServerAddress))
 	}
 
 	connection.client = mqtt.NewClient(opts)
@@ -128,10 +141,10 @@ func setupFNDFrigateConnection(conf *FNDFrigateConfiguration) (*FNDFrigateConnec
 
 	go func() {
 		if token.Wait() && token.Error() != nil {
-			fmt.Println("MQTT Error: ", token.Error())
+			LogError("MQTT", "Connection failed", token.Error().Error())
 			return
 		}
-		fmt.Println("Connection is up")
+		LogInfo("MQTT", "Connection successful", "")
 	}()
 
 	return connection, nil
