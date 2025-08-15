@@ -1,21 +1,32 @@
-✅ Hide Notification system Token in all configuration page. (value not displayed)
-✅ In notification page, if notification system is disabled, textbox entry are disabled.
-✅ on overview page, better ui
-✅ make a better layout for ui
-✅ Snapshot support for all notification system (/snapshot or /live sends a live picture)
-✅ video support for all notification system (/snapshot or /live sends a live picture) if possible or at least a direct link to video.
-✅ Add logs in application (save as file ?)
-✅ Add logs on all action of application, logs must be displayed in live in ui (with modern ui like other page)
-✅ Remake ui more beautiful, modern and responsibe.
-- Implement LLM (OpenAI/Gemini/Ollama) configuration for LLM-Vision interpretation of snapshot, if activated this interpretation is a description of the snapshot
-- LLM need to be fully configuratble and optional. 1 page for configuring all LLM.
-- Add Machine learning system for facial recognizion with stockage of facial image for better accurancy. Find a self hosted system for facial recognition easily integrable
-- Add LLM request for determining action done on event for better message
-- Add UI for managing Image/Face with a First Name / Last Name
-✅ implement Cooldown in overview
-- Add test button for each notification system on each settings page
-- Add system for personalising template of notification. (Wysiwig editor ?? it's must be fully compatible with all different notification system implemented
-- Per Camera settings:
-    - Notification Message
-    - Object filter
-    - Time scheduling
+## ✅ Completed
+
+* Hide the **notification system token** on all configuration pages (value not displayed).
+* In the **Notifications** page, disable text fields when the notification system is disabled.
+* Improve the **Overview** page UI.
+* Refactor the overall layout for a cleaner UI.
+* Add **snapshot** support for all notification systems (`/snapshot` or `/live` sends a live picture).
+* Add **video** support for all notification systems (if possible), or at least provide a direct video link.
+* Add an **application logging** system (with file saving).
+* Log **all application actions**, with live log display in the UI (modern style consistent with other pages).
+* Redesign the UI to be **more modern, beautiful, and responsive**.
+* Implement **cooldown** in the Overview page.
+* Add a **Test** button for each notification system on its settings page.
+
+---
+
+## 🚧 To Do
+
+* Implement **LLM** (OpenAI / Gemini / Ollama) configuration for LLM-Vision snapshot interpretation — if enabled, this provides a description of the snapshot.
+* Make the LLM system **fully configurable and optional**, with a dedicated configuration page.
+* Add a **machine learning facial recognition** system with local storage of facial images for improved accuracy (self-hosted, easily integrable).
+* Use LLM to determine the **action/event context** for more relevant notification messages.
+* Add a UI for managing stored **images/faces** with First Name / Last Name labels.
+* Add a **notification template customization** system (possibly a WYSIWYG editor) fully compatible with all implemented notification systems.
+
+---
+
+## 🎯 Per-Camera Settings
+
+* Custom notification message.
+* Object filtering.
+* Time scheduling.
