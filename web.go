@@ -24,6 +24,7 @@ type FNDWebServer struct {
 	OverviewPayload OverviewPayload
 	notifyIndex     int
 	frigateConf     *FNDFrigateConfiguration
+	globalConf      *FNDConfiguration
 	translation     *Translation
 	frigateEvent    *FNDFrigateEventManager
 }
@@ -51,6 +52,13 @@ type OverviewPayload struct {
 	WebNotificationsEnabled bool
 }
 
+type LogStats struct {
+	EntriesInMemory     int
+	FileSizeHuman       string
+	ActiveSubscribers   int
+	MemoryUsageHuman    string
+}
+
 type NotificationPayload struct {
 	ShowStatus     bool
 	Color          string
@@ -73,7 +81,7 @@ var templateFS embed.FS
 //go:embed static
 var staticFS embed.FS
 
-func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer {
+func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FNDConfiguration) *FNDWebServer {
 	r := gin.Default()
 
 	var web FNDWebServer
@@ -86,6 +94,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 	web.OverviewPayload.Version = version
 
 	web.frigateConf = conf
+	web.globalConf = globalConf
 	web.r = r
 	web.translation = setupTranslation()
 	err := web.translation.setLanguage(web.frigateConf.Language)
@@ -601,7 +610,8 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 
 		// Clear in-memory logs (we keep the file for safety)
 		logger.mutex.Lock()
-		logger.entries = make([]LogEntry, 0, MAX_LOG_ENTRIES)
+		config := logger.config
+		logger.entries = make([]LogEntry, 0, config.MaxEntries)
 		logger.mutex.Unlock()
 
 		LogInfo("WEB", "Logs cleared via web interface", "")
@@ -630,12 +640,193 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 		c.Data(200, "application/octet-stream", data)
 	})
 
+	// Log Settings routes
+	r.GET("/htmx/log_settings.html", func(c *gin.Context) {
+		logger := GetLogger()
+		if logger == nil {
+			c.JSON(500, gin.H{"error": "Logger not initialized"})
+			return
+		}
+
+		config := logger.GetConfiguration()
+		stats := getLogStats(logger)
+
+		translatedText := []string{
+			web.translation.lookupToken("log_settings"),
+			web.translation.lookupToken("max_log_entries"),
+			web.translation.lookupToken("minimum_log_level"),
+			web.translation.lookupToken("enable_file_logging"),
+			web.translation.lookupToken("enable_console_logging"),
+			web.translation.lookupToken("log_settings_desc"),
+			web.translation.lookupToken("log_level_debug"),
+			web.translation.lookupToken("log_level_info"),
+			web.translation.lookupToken("log_level_warn"),
+			web.translation.lookupToken("log_level_error"),
+		}
+
+		t := template.Must(template.ParseFS(templateFS, "templates/log_settings.html"))
+		t.Execute(c.Writer, struct {
+			ShowStatus     bool
+			Color          string
+			StatusMessage  string
+			Conf           *FNDLoggingConfiguration
+			Stats          LogStats
+			TranslatedText []string
+		}{
+			ShowStatus:     false,
+			Conf:           config,
+			Stats:          stats,
+			TranslatedText: translatedText,
+		})
+	})
+
+	r.POST("/htmx/log_settings.html", func(c *gin.Context) {
+		LogInfo("WEB", "Log settings update requested", "")
+		logger := GetLogger()
+		if logger == nil {
+			c.JSON(500, gin.H{"error": "Logger not initialized"})
+			return
+		}
+
+		// Parse form data
+		c.MultipartForm()
+		currentConfig := logger.GetConfiguration()
+		newConfig := *currentConfig // Start with current config
+
+		for key, value := range c.Request.PostForm {
+			switch key {
+			case "maxEntries":
+				if value[0] != "" {
+					if maxEntries, err := strconv.Atoi(value[0]); err == nil {
+						if maxEntries >= 100 && maxEntries <= 10000 {
+							newConfig.MaxEntries = maxEntries
+						}
+					}
+				}
+			case "logLevel":
+				if value[0] != "" {
+					if logLevel, err := strconv.Atoi(value[0]); err == nil {
+						if logLevel >= 0 && logLevel <= 3 {
+							newConfig.LogLevel = logLevel
+						}
+					}
+				}
+			case "enableFile":
+				newConfig.EnableFile = value[0] == "on"
+			case "enableConsole":
+				newConfig.EnableConsole = value[0] == "on"
+			}
+		}
+
+		// Update configuration in memory and logger
+		web.globalConf.Logging = newConfig
+		logger.UpdateConfiguration(&newConfig)
+
+		LogInfo("WEB", "Log settings updated successfully", fmt.Sprintf("MaxEntries: %d, LogLevel: %d, EnableFile: %t, EnableConsole: %t", 
+			newConfig.MaxEntries, newConfig.LogLevel, newConfig.EnableFile, newConfig.EnableConsole))
+
+		stats := getLogStats(logger)
+		translatedText := []string{
+			web.translation.lookupToken("log_settings"),
+			web.translation.lookupToken("max_log_entries"),
+			web.translation.lookupToken("minimum_log_level"),
+			web.translation.lookupToken("enable_file_logging"),
+			web.translation.lookupToken("enable_console_logging"),
+			web.translation.lookupToken("log_settings_desc"),
+			web.translation.lookupToken("log_level_debug"),
+			web.translation.lookupToken("log_level_info"),
+			web.translation.lookupToken("log_level_warn"),
+			web.translation.lookupToken("log_level_error"),
+		}
+
+		t := template.Must(template.ParseFS(templateFS, "templates/log_settings.html"))
+		t.Execute(c.Writer, struct {
+			ShowStatus     bool
+			Color          string
+			StatusMessage  string
+			Conf           *FNDLoggingConfiguration
+			Stats          LogStats
+			TranslatedText []string
+		}{
+			ShowStatus:     true,
+			Color:          "is-success",
+			StatusMessage:  "Settings updated successfully",
+			Conf:           &newConfig,
+			Stats:          stats,
+			TranslatedText: translatedText,
+		})
+	})
+
+	// Additional API endpoints for log settings
+	r.POST("/api/logs/test", func(c *gin.Context) {
+		LogDebug("TEST", "Debug level test message", "This is a debug level test")
+		LogInfo("TEST", "Info level test message", "This is an info level test")
+		LogWarn("TEST", "Warning level test message", "This is a warning level test")
+		LogError("TEST", "Error level test message", "This is an error level test")
+		
+		c.JSON(200, gin.H{"message": "Test log entries created"})
+	})
+
+	r.GET("/api/logs/stats", func(c *gin.Context) {
+		logger := GetLogger()
+		if logger == nil {
+			c.JSON(500, gin.H{"error": "Logger not initialized"})
+			return
+		}
+
+		stats := getLogStats(logger)
+		c.JSON(200, gin.H{"stats": stats})
+	})
+
 	return &web
+}
+
+// getLogStats returns current logging statistics
+func getLogStats(logger *Logger) LogStats {
+	stats := LogStats{}
+	
+	if logger == nil {
+		return stats
+	}
+	
+	logger.mutex.RLock()
+	stats.EntriesInMemory = len(logger.entries)
+	logger.mutex.RUnlock()
+	
+	logger.subscribeMutex.RLock()
+	stats.ActiveSubscribers = len(logger.subscribers)
+	logger.subscribeMutex.RUnlock()
+	
+	// Get file size
+	if fileInfo, err := os.Stat(logger.filePath); err == nil {
+		size := fileInfo.Size()
+		if size < 1024 {
+			stats.FileSizeHuman = fmt.Sprintf("%d B", size)
+		} else if size < 1024*1024 {
+			stats.FileSizeHuman = fmt.Sprintf("%.1f KB", float64(size)/1024)
+		} else {
+			stats.FileSizeHuman = fmt.Sprintf("%.1f MB", float64(size)/(1024*1024))
+		}
+	} else {
+		stats.FileSizeHuman = "N/A"
+	}
+	
+	// Estimate memory usage (rough calculation)
+	estimatedSize := stats.EntriesInMemory * 200 // rough estimate per log entry
+	if estimatedSize < 1024 {
+		stats.MemoryUsageHuman = fmt.Sprintf("%d B", estimatedSize)
+	} else if estimatedSize < 1024*1024 {
+		stats.MemoryUsageHuman = fmt.Sprintf("%.1f KB", float64(estimatedSize)/1024)
+	} else {
+		stats.MemoryUsageHuman = fmt.Sprintf("%.1f MB", float64(estimatedSize)/(1024*1024))
+	}
+	
+	return stats
 }
 
 func (web *FNDWebServer) run(frigateEvent *FNDFrigateEventManager) {
 	web.frigateEvent = frigateEvent
-	LogInfo("WEB", "Starting web server", "Address: " + web.srv.Addr)
+	LogInfo("WEB", "Starting web server", "Address: "+web.srv.Addr)
 	if err := web.srv.ListenAndServe(); err != nil {
 		LogError("WEB", "Web server error", err.Error())
 		fmt.Println(err.Error())

@@ -18,9 +18,8 @@ const (
 )
 
 const (
-	LOG_FILE_NAME     = "fnd.log"
-	MAX_LOG_ENTRIES   = 1000
-	LOG_BUFFER_SIZE   = 100
+	LOG_FILE_NAME   = "fnd.log"
+	LOG_BUFFER_SIZE = 100
 )
 
 // LogEntry represents a single log entry
@@ -35,12 +34,13 @@ type LogEntry struct {
 
 // Logger manages application logging with file storage and live updates
 type Logger struct {
-	logFile       *os.File
-	entries       []LogEntry
-	liveChannel   chan LogEntry
-	subscribers   map[string]chan LogEntry
-	filePath      string
-	mutex         sync.RWMutex
+	logFile        *os.File
+	entries        []LogEntry
+	liveChannel    chan LogEntry
+	subscribers    map[string]chan LogEntry
+	filePath       string
+	config         *FNDLoggingConfiguration
+	mutex          sync.RWMutex
 	subscribeMutex sync.RWMutex
 }
 
@@ -48,14 +48,15 @@ type Logger struct {
 var appLogger *Logger
 
 // InitializeLogger creates and initializes the global logger
-func InitializeLogger() error {
+func InitializeLogger(config *FNDLoggingConfiguration) error {
 	logPath := filepath.Join(CONFIGURATION_FOLDER, LOG_FILE_NAME)
 	
 	logger := &Logger{
-		entries:     make([]LogEntry, 0, MAX_LOG_ENTRIES),
+		entries:     make([]LogEntry, 0, config.MaxEntries),
 		liveChannel: make(chan LogEntry, LOG_BUFFER_SIZE),
 		subscribers: make(map[string]chan LogEntry),
 		filePath:    logPath,
+		config:      config,
 	}
 	
 	// Create log file
@@ -107,9 +108,9 @@ func (l *Logger) loadExistingLogs() {
 			}
 		}
 		
-		// Keep only the last MAX_LOG_ENTRIES
-		if len(l.entries) > MAX_LOG_ENTRIES {
-			l.entries = l.entries[len(l.entries)-MAX_LOG_ENTRIES:]
+		// Keep only the last MaxEntries
+		if len(l.entries) > l.config.MaxEntries {
+			l.entries = l.entries[len(l.entries)-l.config.MaxEntries:]
 		}
 	}
 }
@@ -152,6 +153,11 @@ func (l *Logger) Unsubscribe(id string) {
 
 // addLogEntry adds a new log entry
 func (l *Logger) addLogEntry(level, component, message, details string) {
+	// Check if log level should be filtered
+	if !l.shouldLog(level) {
+		return
+	}
+	
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	
@@ -166,15 +172,27 @@ func (l *Logger) addLogEntry(level, component, message, details string) {
 	
 	// Add to memory
 	l.entries = append(l.entries, entry)
-	if len(l.entries) > MAX_LOG_ENTRIES {
+	if len(l.entries) > l.config.MaxEntries {
 		l.entries = l.entries[1:]
 	}
 	
-	// Write to file
-	if l.logFile != nil {
+	// Write to file if enabled
+	if l.config.EnableFile && l.logFile != nil {
 		jsonData, _ := json.Marshal(entry)
 		l.logFile.WriteString(string(jsonData) + "\n")
 		l.logFile.Sync()
+	}
+	
+	// Write to console if enabled
+	if l.config.EnableConsole {
+		fmt.Printf("[%s] %s - %s: %s\n", 
+			entry.Timestamp.Format("15:04:05"), 
+			entry.Level, 
+			entry.Component, 
+			entry.Message)
+		if entry.Details != "" {
+			fmt.Printf("  Details: %s\n", entry.Details)
+		}
 	}
 	
 	// Send to live channel
@@ -182,6 +200,28 @@ func (l *Logger) addLogEntry(level, component, message, details string) {
 	case l.liveChannel <- entry:
 	default:
 		// Skip if channel is full
+	}
+}
+
+// shouldLog determines if a log entry should be recorded based on the configured log level
+func (l *Logger) shouldLog(level string) bool {
+	levelValue := l.getLevelValue(level)
+	return levelValue >= l.config.LogLevel
+}
+
+// getLevelValue converts string level to numeric value
+func (l *Logger) getLevelValue(level string) int {
+	switch level {
+	case LOG_LEVEL_DEBUG:
+		return LOG_LEVEL_DEBUG_VALUE
+	case LOG_LEVEL_INFO:
+		return LOG_LEVEL_INFO_VALUE
+	case LOG_LEVEL_WARN:
+		return LOG_LEVEL_WARN_VALUE
+	case LOG_LEVEL_ERROR:
+		return LOG_LEVEL_ERROR_VALUE
+	default:
+		return LOG_LEVEL_INFO_VALUE
 	}
 }
 
@@ -232,6 +272,37 @@ func (l *Logger) GetLogsByComponent(component string, limit int) []LogEntry {
 	}
 	
 	return filtered
+}
+
+// UpdateConfiguration updates the logger configuration
+func (l *Logger) UpdateConfiguration(config *FNDLoggingConfiguration) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	
+	l.config = config
+	
+	// Resize entries slice if needed
+	if len(l.entries) > config.MaxEntries {
+		start := len(l.entries) - config.MaxEntries
+		l.entries = l.entries[start:]
+	}
+	
+	// Re-allocate if capacity is significantly different
+	if cap(l.entries) > config.MaxEntries*2 || cap(l.entries) < config.MaxEntries {
+		newEntries := make([]LogEntry, len(l.entries), config.MaxEntries)
+		copy(newEntries, l.entries)
+		l.entries = newEntries
+	}
+}
+
+// GetConfiguration returns the current logger configuration
+func (l *Logger) GetConfiguration() *FNDLoggingConfiguration {
+	l.mutex.RLock()
+	defer l.mutex.RUnlock()
+	
+	// Return a copy to prevent external modification
+	configCopy := *l.config
+	return &configCopy
 }
 
 // Close properly closes the logger

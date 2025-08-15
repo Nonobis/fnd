@@ -43,5 +43,15 @@
   "filter_level": "Filtrer par niveau",
   "filter_component": "Filtrer par composant",
   "all_levels": "Tous les niveaux",
-  "all_components": "Tous les composants"
+  "all_components": "Tous les composants",
+  "log_settings": "Paramètres de journalisation",
+  "max_log_entries": "Nombre maximum d'entrées de journal",
+  "minimum_log_level": "Niveau de journal minimum",
+  "enable_file_logging": "Activer la journalisation de fichier",
+  "enable_console_logging": "Activer la journalisation de console",
+  "log_settings_desc": "Configurer le comportement et les limites de journalisation",
+  "log_level_debug": "Débogage (Tous les messages)",
+  "log_level_info": "Information (Fonctionnement normal)",
+  "log_level_warn": "Avertissement (Avis importants)",
+  "log_level_error": "Erreur (Erreurs uniquement)"
 }

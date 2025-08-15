@@ -36,15 +36,15 @@ func main() {
 		panic(err)
 	}
 
-	// Initialize logger
-	err = InitializeLogger()
+	conf := LoadFNDConf(configuration_path)
+	
+	// Initialize logger with configuration
+	err = InitializeLogger(&conf.Logging)
 	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		panic(err)
 	}
 	LogInfo("SYSTEM", "Application starting", fmt.Sprintf("Version: %s", version))
-
-	conf := LoadFNDConf(configuration_path)
 
 	// ###################################
 
@@ -56,7 +56,7 @@ func main() {
 	}
 	LogInfo("FRIGATE", "Frigate connection established successfully", "")
 
-	web := setupBasicRoutes("0.0.0.0:7777", &conf.Frigate)
+	web := setupBasicRoutes("0.0.0.0:7777", &conf.Frigate, conf)
 	LogInfo("WEB", "Web server initialized", "Address: 0.0.0.0:7777")
 
 	notify := NewFNDNotificationManager(conf.Notify)

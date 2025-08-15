@@ -1,0 +1,331 @@
+<div class="log-settings-container">
+    <!-- Log Settings Header -->
+    <div class="section">
+        <div class="container">
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item">
+                        <h2 class="title is-3">
+                            <span class="icon">
+                                <i class="fas fa-cogs"></i>
+                            </span>
+                            {{index .TranslatedText 0}}
+                        </h2>
+                    </div>
+                </div>
+            </div>
+            <p class="subtitle">{{index .TranslatedText 5}}</p>
+        </div>
+    </div>
+
+    <!-- Log Settings Form -->
+    <div class="section pt-0">
+        <div class="container">
+            <form hx-post="/htmx/log_settings.html" hx-target="#log-settings-form" hx-indicator="#loading-indicator">
+                <div id="log-settings-form">
+                    <!-- Status Message -->
+                    {{if .ShowStatus}}
+                    <div class="notification {{.Color}} is-light">
+                        <span class="icon">
+                            <i class="fas fa-check"></i>
+                        </span>
+                        {{.StatusMessage}}
+                    </div>
+                    {{end}}
+
+                    <div class="columns">
+                        <div class="column is-6">
+                            <!-- Maximum Log Entries -->
+                            <div class="field">
+                                <label class="label">{{index .TranslatedText 1}}</label>
+                                <div class="control">
+                                    <input class="input" type="number" name="maxEntries" value="{{.Conf.MaxEntries}}" min="100" max="10000" step="100">
+                                </div>
+                                <p class="help">Number of log entries to keep in memory (100-10000)</p>
+                            </div>
+
+                            <!-- Minimum Log Level -->
+                            <div class="field">
+                                <label class="label">{{index .TranslatedText 2}}</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select name="logLevel">
+                                            <option value="0" {{if eq .Conf.LogLevel 0}}selected{{end}}>{{index .TranslatedText 6}}</option>
+                                            <option value="1" {{if eq .Conf.LogLevel 1}}selected{{end}}>{{index .TranslatedText 7}}</option>
+                                            <option value="2" {{if eq .Conf.LogLevel 2}}selected{{end}}>{{index .TranslatedText 8}}</option>
+                                            <option value="3" {{if eq .Conf.LogLevel 3}}selected{{end}}>{{index .TranslatedText 9}}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <p class="help">Only logs at or above this level will be recorded</p>
+                            </div>
+                        </div>
+
+                        <div class="column is-6">
+                            <!-- Enable File Logging -->
+                            <div class="field">
+                                <label class="label">{{index .TranslatedText 3}}</label>
+                                <div class="control">
+                                    <label class="checkbox">
+                                        <input type="checkbox" name="enableFile" {{if .Conf.EnableFile}}checked{{end}}>
+                                        Save logs to file (fnd_conf/fnd.log)
+                                    </label>
+                                </div>
+                                <p class="help">Persistent logging to disk for later analysis</p>
+                            </div>
+
+                            <!-- Enable Console Logging -->
+                            <div class="field">
+                                <label class="label">{{index .TranslatedText 4}}</label>
+                                <div class="control">
+                                    <label class="checkbox">
+                                        <input type="checkbox" name="enableConsole" {{if .Conf.EnableConsole}}checked{{end}}>
+                                        Display logs in console/terminal
+                                    </label>
+                                </div>
+                                <p class="help">Real-time logging output to console (useful for debugging)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Statistics -->
+                    <div class="box">
+                        <h4 class="title is-5">
+                            <span class="icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </span>
+                            Current Statistics
+                        </h4>
+                        <div class="columns">
+                            <div class="column">
+                                <div class="has-text-centered">
+                                    <p class="heading">Entries in Memory</p>
+                                    <p class="title is-4">{{.Stats.EntriesInMemory}}</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="has-text-centered">
+                                    <p class="heading">File Size</p>
+                                    <p class="title is-4">{{.Stats.FileSizeHuman}}</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="has-text-centered">
+                                    <p class="heading">Active Subscribers</p>
+                                    <p class="title is-4">{{.Stats.ActiveSubscribers}}</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="has-text-centered">
+                                    <p class="heading">Memory Usage</p>
+                                    <p class="title is-4">{{.Stats.MemoryUsageHuman}}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Log Level Impact Warning -->
+                    <div class="notification is-warning is-light">
+                        <span class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </span>
+                        <strong>Note:</strong> Changing the log level will only affect new log entries. 
+                        Existing logs will remain visible until they are naturally rotated out or cleared.
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button class="button is-primary" type="submit">
+                                <span class="icon">
+                                    <i class="fas fa-save"></i>
+                                </span>
+                                <span>Apply Settings</span>
+                            </button>
+                        </div>
+                        <div class="control">
+                            <button class="button is-light" type="button" onclick="testLogging()">
+                                <span class="icon">
+                                    <i class="fas fa-flask"></i>
+                                </span>
+                                <span>Test Logging</span>
+                            </button>
+                        </div>
+                        <div class="control">
+                            <button class="button is-danger is-light" type="button" onclick="clearAllLogs()">
+                                <span class="icon">
+                                    <i class="fas fa-trash-alt"></i>
+                                </span>
+                                <span>Clear All Logs</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="loading-indicator" class="has-text-centered" style="display: none;">
+                    <span class="icon">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+                    <span>Applying settings...</span>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.log-settings-container {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.field .help {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.box {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+}
+
+.notification.is-warning.is-light {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+.title.is-5 {
+    margin-bottom: 1rem;
+}
+
+.checkbox input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+.select select {
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+.select select:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.input {
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+.input:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.heading {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+#loading-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 1rem;
+    border-radius: 8px;
+    z-index: 1000;
+}
+</style>
+
+<script>
+function testLogging() {
+    // Send test log entries at different levels
+    fetch('/api/logs/test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'test_all_levels'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        showNotification('Test log entries created successfully', 'success');
+    })
+    .catch(error => {
+        console.error('Error creating test logs:', error);
+        showNotification('Failed to create test logs', 'danger');
+    });
+}
+
+function clearAllLogs() {
+    if (confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
+        fetch('/api/logs/clear', {
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                showNotification('All logs cleared successfully', 'success');
+                // Refresh the page to update statistics
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showNotification('Failed to clear logs', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error clearing logs:', error);
+            showNotification('Error clearing logs', 'danger');
+        });
+    }
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `notification is-${type}`;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '1001';
+    notification.innerHTML = `
+        <button class="delete" onclick="this.parentElement.remove()"></button>
+        ${message}
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Auto-refresh statistics every 30 seconds
+setInterval(function() {
+    fetch('/api/logs/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update statistics in the UI
+            if (data.stats) {
+                const stats = data.stats;
+                // You could update the stats here without full page reload
+                // For simplicity, we'll leave it as is since the page isn't accessed frequently
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching log stats:', error);
+        });
+}, 30000);
+</script>

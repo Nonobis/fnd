@@ -38,5 +38,15 @@
   "filter_level": "Nach Stufe filtern",
   "filter_component": "Nach Komponente filtern",
   "all_levels": "Alle Stufen",
-  "all_components": "Alle Komponenten"
+  "all_components": "Alle Komponenten",
+  "log_settings": "Protokoll-Einstellungen",
+  "max_log_entries": "Maximale Protokolleinträge",
+  "minimum_log_level": "Minimale Protokollstufe",
+  "enable_file_logging": "Datei-Protokollierung aktivieren",
+  "enable_console_logging": "Konsolen-Protokollierung aktivieren",
+  "log_settings_desc": "Protokollverhalten und -grenzen konfigurieren",
+  "log_level_debug": "Debug (Alle Nachrichten)",
+  "log_level_info": "Info (Normaler Betrieb)",
+  "log_level_warn": "Warnung (Wichtige Hinweise)",
+  "log_level_error": "Fehler (Nur Fehler)"
 }

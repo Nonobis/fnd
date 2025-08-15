@@ -11,6 +11,7 @@ import (
 type FNDConfiguration struct {
 	Frigate FNDFrigateConfiguration
 	Notify  FNDNotificationConfiguration
+	Logging FNDLoggingConfiguration
 }
 
 type FNDFrigateConfiguration struct {
@@ -64,6 +65,24 @@ type FNDNotificationConfiguration struct {
 	Apprise AppriseConfig `json:"apprise"`
 }
 
+// Logging configuration constants
+const (
+	LOG_LEVEL_DEBUG_VALUE = 0
+	LOG_LEVEL_INFO_VALUE  = 1
+	LOG_LEVEL_WARN_VALUE  = 2
+	LOG_LEVEL_ERROR_VALUE = 3
+	
+	DEFAULT_MAX_LOG_ENTRIES = 1000
+	DEFAULT_LOG_LEVEL = LOG_LEVEL_INFO_VALUE
+)
+
+type FNDLoggingConfiguration struct {
+	MaxEntries    int    `json:"maxEntries"`
+	LogLevel      int    `json:"logLevel"`
+	EnableFile    bool   `json:"enableFile"`
+	EnableConsole bool   `json:"enableConsole"`
+}
+
 func LoadFNDConf(filename string) *FNDConfiguration {
 	conf, err := NewFNDConfigurationFromFile(filename)
 	if err != nil {
@@ -96,7 +115,19 @@ func NEWDefaultFNDConfiguration() *FNDConfiguration {
 		Notify: FNDNotificationConfiguration{
 			Conf:    make(map[string]FNDNotificationConfigurationMap),
 			Apprise: NewDefaultAppriseConfig(),
-		}}
+		},
+		Logging: NewDefaultLoggingConfiguration(),
+	}
+}
+
+// NewDefaultLoggingConfiguration creates a default logging configuration
+func NewDefaultLoggingConfiguration() FNDLoggingConfiguration {
+	return FNDLoggingConfiguration{
+		MaxEntries:    DEFAULT_MAX_LOG_ENTRIES,
+		LogLevel:      DEFAULT_LOG_LEVEL,
+		EnableFile:    true,
+		EnableConsole: true,
+	}
 }
 
 func NEWDefaultFNDNotificationConfigurationMap() FNDNotificationConfigurationMap {
@@ -224,6 +255,6 @@ func (fConf *FNDFrigateConfiguration) activateCameras(activeList []string) {
 		buffer.Active = true
 		fConf.Cameras[c] = buffer
 	}
-	
+
 	LogInfo("CAMERA", "Camera activation updated", fmt.Sprintf("Active cameras: %v", activeList))
 }
