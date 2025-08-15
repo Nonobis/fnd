@@ -108,12 +108,6 @@
                         </span>
                         <span>Apply Settings</span>
                     </button>
-                    <button class="button is-light is-medium is-rounded" type="button" onclick="testLogging()">
-                        <span class="icon">
-                            <i class="fas fa-flask"></i>
-                        </span>
-                        <span>Test Logging</span>
-                    </button>
                 </div>
             </div>
 
@@ -256,26 +250,6 @@
 </style>
 
 <script>
-function testLogging() {
-    fetch('/api/logs/test', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            action: 'test_all_levels'
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        showNotification('Test log entries created successfully', 'success');
-    })
-    .catch(error => {
-        console.error('Error creating test logs:', error);
-        showNotification('Failed to create test logs', 'danger');
-    });
-}
-
 function showNotification(message, type) {
     const notification = document.createElement('div');
     notification.className = `notification is-${type}`;

@@ -824,15 +824,6 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 	})
 
 	// Additional API endpoints for log settings
-	r.POST("/api/logs/test", func(c *gin.Context) {
-		LogDebug("TEST", "Debug level test message", "This is a debug level test")
-		LogInfo("TEST", "Info level test message", "This is an info level test")
-		LogWarn("TEST", "Warning level test message", "This is a warning level test")
-		LogError("TEST", "Error level test message", "This is an error level test")
-
-		c.JSON(200, gin.H{"message": "Test log entries created"})
-	})
-
 	r.GET("/api/logs/stats", func(c *gin.Context) {
 		logger := GetLogger()
 		if logger == nil {

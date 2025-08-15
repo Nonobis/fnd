@@ -134,12 +134,6 @@
                                 </span>
                                 <span>Apply Settings</span>
                             </button>
-                            <button class="button is-light is-medium is-rounded" type="button" onclick="testLogging()">
-                                <span class="icon">
-                                    <i class="fas fa-flask"></i>
-                                </span>
-                                <span>Test Logging</span>
-                            </button>
                             <button class="button is-danger is-light is-medium is-rounded" type="button" onclick="clearAllLogs()">
                                 <span class="icon">
                                     <i class="fas fa-trash-alt"></i>
@@ -336,27 +330,6 @@
 </style>
 
 <script>
-function testLogging() {
-    // Send test log entries at different levels
-    fetch('/api/logs/test', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            action: 'test_all_levels'
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        showNotification('Test log entries created successfully', 'success');
-    })
-    .catch(error => {
-        console.error('Error creating test logs:', error);
-        showNotification('Failed to create test logs', 'danger');
-    });
-}
-
 function clearAllLogs() {
     if (confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
         fetch('/api/logs/clear', {
