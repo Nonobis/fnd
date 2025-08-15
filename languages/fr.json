@@ -25,5 +25,10 @@
   "timeout": "Délai d'expiration (sec)",
   "format": "Format",
   "language_changed": "Langue modifiée",
-  "select_language": "Sélectionner la langue"
+  "select_language": "Sélectionner la langue",
+  "mqtt_auth": "Authentification MQTT",
+  "mqtt_anonymous": "Connexion anonyme",
+  "mqtt_username": "Nom d'utilisateur",
+  "mqtt_password": "Mot de passe",
+  "mqtt_auth_mode": "Mode d'authentification"
 }

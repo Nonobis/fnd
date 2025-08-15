@@ -8,9 +8,6 @@ ap_attach
 ap_config
 ap_plugin
 fnd*.tar
-fnd.exe
-fnd.exe
+**/fnd.exe
 **/fnd_conf/**
-fnd.exe
-__debug_bin.exe
-fnd.exe
+**/__debug_bin.*

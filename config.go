@@ -18,6 +18,9 @@ type FNDFrigateConfiguration struct {
 	Port           string
 	MqttServer     string
 	MqttPort       string
+	MqttUsername   string
+	MqttPassword   string
+	MqttAnonymous  bool
 	Cooldown       int
 	Cameras        map[string]CameraConfig
 	Language       string
@@ -77,6 +80,9 @@ func NEWDefaultFNDConfiguration() *FNDConfiguration {
 			Port:           "5000",
 			MqttServer:     "mqtt-server",
 			MqttPort:       "1883",
+			MqttUsername:   "",
+			MqttPassword:   "",
+			MqttAnonymous:  true,
 			Cooldown:       60,
 			Cameras:        make(map[string]CameraConfig),
 			Language:       "en",

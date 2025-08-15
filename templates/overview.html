@@ -1,57 +1,111 @@
 <div hx-get="/htmx/overview.html" hx-trigger="every 2s" hx-swap="outerHTML">
-
-
-    <div class="columns">
-        <div class="column is-narrow">
-            <h3 class="title is-3">Status</h3>
-
-
-            <table class="table is-bordered">
-                <tbody>
-
-                    {{ range .NotificationStatus}}
-                    <tr>
-                        <th>{{ .Name }}</th>
-                        <td class="{{if .Good}}is-success{{else}}is-danger{{end}}">{{ .Message }}</td>
-                    </tr>
-                    {{ end }}
-
-                </tbody>
-            </table>
-
-            <div class="control">
-                <button class="button is-link" hx-get="/htmx/testnotification" hx-target="#testnotification_ok"
-                    hx-swap="innerHTML">{{index
-                    .TranslatedText 6}}</button>
-                <div id="testnotification_ok"></div>
+    <div class="overview-container">
+        <!-- Header Section -->
+        <div class="overview-header">
+            <div class="overview-header-content">
+                <div class="overview-header-text">
+                    <h1 class="overview-title">{{index .TranslatedText 1}}</h1>
+                    <p class="overview-subtitle">Real-time monitoring dashboard</p>
+                </div>
+                <div class="overview-header-actions">
+                    <button class="overview-test-button" hx-get="/htmx/testnotification" 
+                            hx-target="#testnotification_ok" hx-swap="innerHTML">
+                        <span class="icon">
+                            <i class="fas fa-bell"></i>
+                        </span>
+                        <span class="button-text">{{index .TranslatedText 6}}</span>
+                    </button>
+                    <div id="testnotification_ok" class="test-notification-result"></div>
+                </div>
             </div>
-
-
-
         </div>
-        <div class="column box">
-            <h3 class="title is-3">{{index .TranslatedText 5}}</h3>
 
-
-            <table class="table is-bordered">
-                <tbody>
-
-                    {{ range .WebNotifications}}
-                    <tr>
-                        <th>
-                            {{ .N.Caption }}
-                            <p>{{ .N.Date }}</p>
-                        </th>
-                        <td> <img alt="" src="data:image/png;base64,{{ .Jepg_encoded}}" /></td>
-                    </tr>
-                    {{ end }}
-
-                </tbody>
-            </table>
-
-
+        <!-- Status Cards Section -->
+        <div class="status-section">
+            <h2 class="section-title">
+                <span class="section-icon">
+                    <i class="fas fa-heartbeat"></i>
+                </span>
+                <span class="section-text">System Status</span>
+            </h2>
+            
+            <div class="status-grid">
+                {{ range .NotificationStatus}}
+                <div class="status-card {{if .Good}}status-success{{else}}status-error{{end}}">
+                    <div class="status-card-header">
+                        <span class="status-name">{{ .Name }}</span>
+                        <span class="status-indicator {{if .Good}}has-background-success{{else}}has-background-danger{{end}}"></span>
+                    </div>
+                    <div class="status-card-body">
+                        <p class="status-message">{{ .Message }}</p>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
         </div>
+
+        <!-- Recent Notifications Section -->
+        {{ if .WebNotificationsEnabled }}
+        <div class="notifications-section">
+            <h2 class="section-title">
+                <span class="section-icon">
+                    <i class="fas fa-history"></i>
+                </span>
+                <span class="section-text">{{index .TranslatedText 5}}</span>
+            </h2>
+            
+            {{ if .WebNotifications }}
+            <div class="notifications-grid">
+                {{ range .WebNotifications}}
+                {{ if .N.Caption }}
+                <div class="notification-card">
+                    <div class="notification-image">
+                        <figure class="image">
+                            <img src="data:image/png;base64,{{ .Jepg_encoded}}" alt="Notification snapshot" />
+                        </figure>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-header">
+                            <h3 class="notification-title">{{ .N.Caption }}</h3>
+                            <span class="notification-badge">
+                                <span class="icon">
+                                    <i class="fas fa-camera"></i>
+                                </span>
+                            </span>
+                        </div>
+                        <div class="notification-meta">
+                            <span class="icon-text">
+                                <span class="icon">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                                <span class="notification-date">{{ .N.Date }}</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+                {{ end }}
+            </div>
+            {{ else }}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-bell-slash"></i>
+                </div>
+                <h3 class="empty-state-title">No recent notifications</h3>
+                <p class="empty-state-message">When notifications are received, they will appear here.</p>
+            </div>
+            {{ end }}
+        </div>
+        {{ else }}
+        <div class="notifications-section">
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 class="empty-state-title">Web Notifications Disabled</h3>
+                <p class="empty-state-message">Enable web notifications in the settings to view recent events here.</p>
+            </div>
+        </div>
+        {{ end }}
     </div>
-
-
 </div>

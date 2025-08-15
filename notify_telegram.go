@@ -75,6 +75,21 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 		t.Execute(c.Writer, tel.generatePayload(false))
 	})
 
+	tel.webServer.r.POST("/htmx/telegram/toggle", func(c *gin.Context) {
+		// Toggle the enabled status
+		if tel.config.Map["enabled"] == "true" {
+			tel.config.Map["enabled"] = "false"
+			tel.lastStatusMessage = "disabled"
+		} else {
+			tel.config.Map["enabled"] = "true"
+			tel.lastStatusMessage = "enabled"
+		}
+
+		// Return updated page
+		t := template.Must(template.ParseFS(templateFS, "templates/telegram.html"))
+		t.Execute(c.Writer, tel.generatePayload(false))
+	})
+
 	tel.webServer.r.POST("/htmx/telegram.html", func(c *gin.Context) {
 
 		lastToken := tel.config.Map["token"]

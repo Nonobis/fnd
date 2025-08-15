@@ -25,5 +25,10 @@
   "timeout": "Timeout (sec)",
   "format": "Format",
   "language_changed": "Language changed",
-  "select_language": "Select language"
+  "select_language": "Select language",
+  "mqtt_auth": "MQTT Authentication",
+  "mqtt_anonymous": "Anonymous connection",
+  "mqtt_username": "Username",
+  "mqtt_password": "Password",
+  "mqtt_auth_mode": "Authentication Mode"
 }

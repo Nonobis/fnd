@@ -66,6 +66,21 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 		t.Execute(c.Writer, gotify.generatePayload(false))
 	})
 
+	gotify.webServer.r.POST("/htmx/gotify/toggle", func(c *gin.Context) {
+		// Toggle the enabled status
+		if gotify.config.Map["enabled"] == "true" {
+			gotify.config.Map["enabled"] = "false"
+			gotify.lastStatusMessage = "disabled"
+		} else {
+			gotify.config.Map["enabled"] = "true"
+			gotify.lastStatusMessage = "enabled"
+		}
+
+		// Return updated page
+		t := template.Must(template.ParseFS(templateFS, "templates/gotify.html"))
+		t.Execute(c.Writer, gotify.generatePayload(false))
+	})
+
 	gotify.webServer.r.POST("/htmx/gotify.html", func(c *gin.Context) {
 		gotify.config.Map["enabled"] = "false"
 		c.MultipartForm()

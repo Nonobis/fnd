@@ -40,6 +40,11 @@ func (web *FNDWebNotificationSink) setup(conf FNDNotificationConfigurationMap, a
 }
 
 func (web *FNDWebNotificationSink) sendNotification(n FNDNotification) error {
+	// Check if web notifications are enabled
+	if web.config.Map["enabled"] != "true" {
+		return nil
+	}
+
 	if web.webServer == nil {
 		return nil
 	}
@@ -57,6 +62,19 @@ func (web *FNDWebNotificationSink) registerWebServer(webServer *FNDWebServer) {
 	web.webServer = webServer
 
 	web.webServer.r.GET("/htmx/web.html", func(c *gin.Context) {
+		t := template.Must(template.ParseFS(templateFS, "templates/web.html"))
+		t.Execute(c.Writer, web.generatePayload(false))
+	})
+
+	web.webServer.r.POST("/htmx/web/toggle", func(c *gin.Context) {
+		// Toggle the enabled status
+		if web.config.Map["enabled"] == "true" {
+			web.config.Map["enabled"] = "false"
+		} else {
+			web.config.Map["enabled"] = "true"
+		}
+
+		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/web.html"))
 		t.Execute(c.Writer, web.generatePayload(false))
 	})

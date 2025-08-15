@@ -72,6 +72,15 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 		t.Execute(c.Writer, apprise.generatePayload(false))
 	})
 
+	apprise.webServer.r.POST("/htmx/apprise/toggle", func(c *gin.Context) {
+		// Toggle the enabled status
+		apprise.appriseConfig.Enabled = !apprise.appriseConfig.Enabled
+
+		// Return updated page
+		t := template.Must(template.ParseFS(templateFS, "templates/apprise.html"))
+		t.Execute(c.Writer, apprise.generatePayload(false))
+	})
+
 	apprise.webServer.r.POST("/htmx/apprise.html", func(c *gin.Context) {
 		apprise.appriseConfig.Enabled = false
 		c.MultipartForm()

@@ -39,13 +39,14 @@ type FNDNotificationSinkStatus struct {
 }
 
 type OverviewPayload struct {
-	WebNotifications   []FNDWebNotification
-	NotificationStatus map[string]FNDNotificationSinkStatus
-	Version            string
-	TranslatedText     []string
-	ActiveLanguage     int
-	SupportedLanguages []Language
-	CurrentLanguage    Language
+	WebNotifications        []FNDWebNotification
+	NotificationStatus      map[string]FNDNotificationSinkStatus
+	Version                 string
+	TranslatedText          []string
+	ActiveLanguage          int
+	SupportedLanguages      []Language
+	CurrentLanguage         Language
+	WebNotificationsEnabled bool
 }
 
 type NotificationPayload struct {
@@ -131,6 +132,14 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 			web.translation.lookupToken("mqtt_server"),
 			web.translation.lookupToken("mqtt_port"),
 			web.translation.lookupToken("apply"),
+			"", // 5 - Reserved
+			"", // 6 - Reserved
+			"", // 7 - Reserved
+			web.translation.lookupToken("mqtt_auth"),
+			web.translation.lookupToken("mqtt_anonymous"),
+			web.translation.lookupToken("mqtt_username"),
+			web.translation.lookupToken("mqtt_password"),
+			web.translation.lookupToken("mqtt_auth_mode"),
 		}
 
 		t := template.Must(template.ParseFS(templateFS, "templates/frigate.html"))
@@ -313,6 +322,14 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 			web.translation.lookupToken("mqtt_server"),
 			web.translation.lookupToken("mqtt_port"),
 			web.translation.lookupToken("apply"),
+			"", // 5 - Reserved
+			"", // 6 - Reserved
+			"", // 7 - Reserved
+			web.translation.lookupToken("mqtt_auth"),
+			web.translation.lookupToken("mqtt_anonymous"),
+			web.translation.lookupToken("mqtt_username"),
+			web.translation.lookupToken("mqtt_password"),
+			web.translation.lookupToken("mqtt_auth_mode"),
 		}
 
 		c.MultipartForm()
@@ -338,6 +355,22 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 			if key == "mqttport" {
 				if value[0] != "" {
 					conf.MqttPort = value[0]
+				}
+				continue
+			}
+			if key == "mqttauth" {
+				conf.MqttAnonymous = (value[0] == "anonymous")
+				continue
+			}
+			if key == "mqttusername" {
+				if value[0] != "" {
+					conf.MqttUsername = value[0]
+				}
+				continue
+			}
+			if key == "mqttpassword" {
+				if value[0] != "" {
+					conf.MqttPassword = value[0]
 				}
 				continue
 			}
@@ -481,6 +514,10 @@ func (web *FNDWebServer) addNotification(n FNDNotification) {
 
 func (web *FNDWebServer) addNotificationSinkStatus(n FNDNotificationSinkStatus) {
 	web.OverviewPayload.NotificationStatus[n.Name] = n
+}
+
+func (web *FNDWebServer) setWebNotificationsEnabled(enabled bool) {
+	web.OverviewPayload.WebNotificationsEnabled = enabled
 }
 
 func (web *FNDWebServer) sendTestNotification() {

@@ -78,18 +78,44 @@ func (m *FNDNotificationManager) registerNotificationSinks(sink FNDNotificationS
 
 func (m *FNDNotificationManager) notifyAll(n FNDNotification) {
 	for _, v := range m.sinks {
-		err := v.sendNotification(n)
-		if err != nil {
-			fmt.Println(err.Error())
+		// Check if the sink is enabled before sending notification
+		if m.isSinkEnabled(v) {
+			err := v.sendNotification(n)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 		}
 	}
 }
 
+// Check if a notification sink is enabled
+func (m *FNDNotificationManager) isSinkEnabled(sink FNDNotificationSink) bool {
+	config := sink.getConfiguration()
+	enabled, exists := config.Map["enabled"]
+	return exists && enabled == "true"
+}
+
 func (m *FNDNotificationManager) getStatusAll() {
 
+	// Always add Frigate status - it will show "Configuration required" if not configured
 	m.web.addNotificationSinkStatus(m.frigateConn.getStatus())
+
+	// Add MQTT status as a separate block
+	m.web.addNotificationSinkStatus(m.frigateConn.getMqttStatus())
+
+	// Check if Web service is enabled and update the overview payload
+	webSink, exists := m.sinks["Web"]
+	if exists {
+		m.web.setWebNotificationsEnabled(m.isSinkEnabled(webSink))
+	} else {
+		m.web.setWebNotificationsEnabled(false)
+	}
+
 	for _, v := range m.sinks {
-		m.web.addNotificationSinkStatus(v.getStatus())
+		// Only add status for enabled sinks to overview
+		if m.isSinkEnabled(v) {
+			m.web.addNotificationSinkStatus(v.getStatus())
+		}
 	}
 }
 

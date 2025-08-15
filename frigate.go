@@ -75,6 +75,17 @@ func setupFNDFrigateConnection(conf *FNDFrigateConfiguration) (*FNDFrigateConnec
 	opts.AddBroker(connection.mqttServerAddress)
 	opts.SetClientID(CLIENTID)
 
+	// Set authentication if not anonymous
+	if !conf.MqttAnonymous && conf.MqttUsername != "" {
+		opts.SetUsername(conf.MqttUsername)
+		if conf.MqttPassword != "" {
+			opts.SetPassword(conf.MqttPassword)
+		}
+		fmt.Printf("MQTT: Using authentication for user %s\n", conf.MqttUsername)
+	} else {
+		fmt.Println("MQTT: Using anonymous connection")
+	}
+
 	opts.SetOrderMatters(false)       // Allow out of order messages (use this option unless in order delivery is essential)
 	opts.ConnectTimeout = time.Second // Minimal delays on connect
 	opts.WriteTimeout = time.Second   // Minimal delays on writes
@@ -134,12 +145,87 @@ func (connection *FNDFrigateConnection) Disconnect() {
 // FNDNotificationSinkStatus hier bissl missbraucht
 func (connection *FNDFrigateConnection) getStatus() FNDNotificationSinkStatus {
 	var s FNDNotificationSinkStatus
-	if connection.client.IsConnected() {
-		s.Message = "OK"
-	} else {
-		s.Message = "Init"
-	}
-	s.Good = connection.client.IsConnected()
 	s.Name = "Frigate"
+
+	// Check if configuration is valid (not default values)
+	if !connection.isConfigurationValid() {
+		s.Good = false
+		s.Message = "Configuration required"
+		return s
+	}
+
+	// Check connection status
+	if connection.client.IsConnected() {
+		s.Message = "Connected"
+		s.Good = true
+	} else {
+		s.Message = "Disconnected"
+		s.Good = false
+	}
+
 	return s
+}
+
+// Check if Frigate configuration contains valid (non-default) values
+func (connection *FNDFrigateConnection) isConfigurationValid() bool {
+	conf := connection.eventManager.fConf
+
+	// Check if configuration values are not the default placeholder values or empty
+	if conf.Host == "" || conf.Host == "frigate" ||
+		conf.MqttServer == "" || conf.MqttServer == "mqtt-server" ||
+		conf.Port == "" || conf.MqttPort == "" {
+		return false
+	}
+
+	// Additional check: ensure ports are reasonable
+	if conf.Port == "5000" && conf.MqttPort == "1883" &&
+		(conf.Host == "frigate" || conf.MqttServer == "mqtt-server") {
+		return false
+	}
+
+	return true
+}
+
+// Get MQTT-specific status for overview display
+func (connection *FNDFrigateConnection) getMqttStatus() FNDNotificationSinkStatus {
+	var s FNDNotificationSinkStatus
+	s.Name = "MQTT"
+
+	// Check if MQTT configuration is valid
+	if !connection.isMqttConfigurationValid() {
+		s.Good = false
+		s.Message = "Configuration required"
+		return s
+	}
+
+	// Check connection status
+	if connection.client.IsConnected() {
+		s.Message = "Connected"
+		s.Good = true
+	} else {
+		s.Message = "Disconnected"
+		s.Good = false
+	}
+
+	return s
+}
+
+// Check if MQTT configuration specifically is valid
+func (connection *FNDFrigateConnection) isMqttConfigurationValid() bool {
+	conf := connection.eventManager.fConf
+
+	// Check basic MQTT configuration
+	if conf.MqttServer == "" || conf.MqttServer == "mqtt-server" ||
+		conf.MqttPort == "" {
+		return false
+	}
+
+	// Check authentication configuration
+	if !conf.MqttAnonymous {
+		if conf.MqttUsername == "" {
+			return false
+		}
+	}
+
+	return true
 }
