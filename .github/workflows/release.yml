@@ -3,6 +3,7 @@ name: Release
 on:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main, master ]
 
@@ -96,7 +97,7 @@ jobs:
           type=ref,event=branch
           type=ref,event=pr
           type=raw,value=${{ steps.new_version.outputs.new_version }},enable=${{ steps.new_version.outputs.should_release == 'true' }}
-          type=raw,value=latest,enable=${{ steps.new_version.outputs.should_release == 'true' }}
+          type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && steps.new_version.outputs.should_release == 'true' }}
         labels: |
           org.opencontainers.image.title=FND
           org.opencontainers.image.description=Frigate Notification Daemon
@@ -198,6 +199,7 @@ jobs:
 
     - name: Create GitHub Release
       if: steps.new_version.outputs.should_release == 'true'
+      id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
