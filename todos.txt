@@ -13,8 +13,8 @@
 - Add Machine learning system for facial recognizion with stockage of facial image for better accurancy. Find a self hosted system for facial recognition easily integrable
 - Add LLM request for determining action done on event for better message
 - Add UI for managing Image/Face with a First Name / Last Name
-- implement Cooldown in overview
-- Add page for personlising template of notification. (Wysiwig editor ?? compatible differetent notification system )
+✅ implement Cooldown in overview
+- Add system for personalising template of notification. (Wysiwig editor ?? compatible differetent notification system )
 - Per Camera settings:
     - Notification Message
     - Object filter

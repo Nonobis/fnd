@@ -50,6 +50,14 @@ type OverviewPayload struct {
 	SupportedLanguages      []Language
 	CurrentLanguage         Language
 	WebNotificationsEnabled bool
+	CooldownInfo            CooldownInfo
+}
+
+type CooldownInfo struct {
+	CooldownPeriod    int  // Cooldown period in seconds
+	IsActive          bool // Whether cooldown is currently active
+	SecondsRemaining  int  // Seconds remaining until next notification allowed
+	LastNotification  string // Time of last notification (formatted)
 }
 
 type LogStats struct {
@@ -116,7 +124,15 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 			web.translation.lookupToken("notifications"),
 			web.translation.lookupToken("last_notify"),
 			web.translation.lookupToken("test_notification"),
+			web.translation.lookupToken("cooldown_status"),
+			web.translation.lookupToken("cooldown_active"),
+			web.translation.lookupToken("cooldown_ready"),
+			web.translation.lookupToken("next_notification_in"),
+			web.translation.lookupToken("seconds"),
 		}
+
+		// Update cooldown information
+		web.OverviewPayload.CooldownInfo = getCooldownInfo(web.frigateEvent)
 
 		t := template.Must(template.ParseFS(templateFS,
 			"templates/index.html",
@@ -136,6 +152,9 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 	})
 
 	r.GET("/htmx/overview.html", func(c *gin.Context) {
+		// Update cooldown information for live updates
+		web.OverviewPayload.CooldownInfo = getCooldownInfo(web.frigateEvent)
+		
 		t := template.Must(template.ParseFS(templateFS, "templates/overview.html"))
 		t.Execute(c.Writer, web.OverviewPayload)
 	})
@@ -779,6 +798,47 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 	})
 
 	return &web
+}
+
+// getCooldownInfo calculates the current cooldown status
+func getCooldownInfo(frigateEvent *FNDFrigateEventManager) CooldownInfo {
+	if frigateEvent == nil {
+		return CooldownInfo{
+			CooldownPeriod:   60,
+			IsActive:         false,
+			SecondsRemaining: 0,
+			LastNotification: "Never",
+		}
+	}
+	
+	frigateEvent.m.Lock()
+	lastNotification := frigateEvent.lastNotificationSent
+	frigateEvent.m.Unlock()
+	
+	cooldownPeriod := frigateEvent.fConf.Cooldown
+	elapsed := time.Since(lastNotification)
+	elapsedSeconds := int(elapsed.Seconds())
+	
+	isActive := elapsedSeconds < cooldownPeriod
+	secondsRemaining := 0
+	if isActive {
+		secondsRemaining = cooldownPeriod - elapsedSeconds
+	}
+	
+	// Format last notification time
+	var lastNotificationStr string
+	if lastNotification.IsZero() || time.Since(lastNotification) > 24*time.Hour {
+		lastNotificationStr = "Never"
+	} else {
+		lastNotificationStr = lastNotification.Format("15:04:05")
+	}
+	
+	return CooldownInfo{
+		CooldownPeriod:   cooldownPeriod,
+		IsActive:         isActive,
+		SecondsRemaining: secondsRemaining,
+		LastNotification: lastNotificationStr,
+	}
 }
 
 // getLogStats returns current logging statistics
