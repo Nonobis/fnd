@@ -56,7 +56,7 @@ func main() {
 	}
 	LogInfo("FRIGATE", "Frigate connection established successfully", "")
 
-	web := setupBasicRoutes("0.0.0.0:7777", &conf.Frigate, conf)
+	web := setupBasicRoutes("0.0.0.0:7777", &conf.Frigate, conf, configuration_path)
 	LogInfo("WEB", "Web server initialized", "Address: 0.0.0.0:7777")
 
 	notify := NewFNDNotificationManager(conf.Notify)

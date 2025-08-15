@@ -74,6 +74,9 @@ func (web *FNDWebNotificationSink) registerWebServer(webServer *FNDWebServer) {
 			web.config.Map["enabled"] = "true"
 		}
 
+		// Save configuration to disk immediately
+		web.webServer.saveConfiguration()
+
 		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/web.html"))
 		_ = t.Execute(c.Writer, web.generatePayload(false))
@@ -90,6 +93,9 @@ func (web *FNDWebNotificationSink) registerWebServer(webServer *FNDWebServer) {
 		}
 
 		LogInfo("WEB", "Configuration updated", fmt.Sprintf("Enabled: %s", web.config.Map["enabled"]))
+
+		// Save configuration to disk immediately
+		web.webServer.saveConfiguration()
 
 		t := template.Must(template.ParseFS(templateFS, "templates/web.html"))
 		_ = t.Execute(c.Writer, web.generatePayload(true))

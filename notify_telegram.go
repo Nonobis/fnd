@@ -85,6 +85,9 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 			tel.lastStatusMessage = "enabled"
 		}
 
+		// Save configuration to disk immediately
+		tel.webServer.saveConfiguration()
+
 		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/telegram.html"))
 		_ = t.Execute(c.Writer, tel.generatePayload(false))
@@ -141,6 +144,9 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 				}
 			}
 		}
+
+		// Save configuration to disk immediately
+		tel.webServer.saveConfiguration()
 
 		t := template.Must(template.ParseFS(templateFS, "templates/telegram.html"))
 		_ = t.Execute(c.Writer, tel.generatePayload(true))

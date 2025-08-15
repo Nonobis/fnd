@@ -77,6 +77,12 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 		// Toggle the enabled status
 		apprise.appriseConfig.Enabled = !apprise.appriseConfig.Enabled
 
+		// Synchronize back to legacy format for compatibility
+		apprise.updateConfig()
+
+		// Save configuration to disk immediately
+		apprise.webServer.saveConfiguration()
+
 		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/apprise.html"))
 		_ = t.Execute(c.Writer, apprise.generatePayload(false))
@@ -122,6 +128,9 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 
 		// Synchronize back to legacy format for compatibility
 		apprise.updateConfig()
+
+		// Save configuration to disk immediately
+		apprise.webServer.saveConfiguration()
 
 		t := template.Must(template.ParseFS(templateFS, "templates/apprise.html"))
 		_ = t.Execute(c.Writer, apprise.generatePayload(true))

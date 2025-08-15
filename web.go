@@ -25,6 +25,7 @@ type FNDWebServer struct {
 	notifyIndex     int
 	frigateConf     *FNDFrigateConfiguration
 	globalConf      *FNDConfiguration
+	configPath      string
 	translation     *Translation
 	frigateEvent    *FNDFrigateEventManager
 }
@@ -89,7 +90,18 @@ var templateFS embed.FS
 //go:embed static
 var staticFS embed.FS
 
-func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FNDConfiguration) *FNDWebServer {
+// saveConfiguration saves the current configuration to disk
+func (web *FNDWebServer) saveConfiguration() error {
+	err := web.globalConf.WriteToFile(web.configPath)
+	if err != nil {
+		LogError("WEB", "Failed to save configuration file", err.Error())
+		return err
+	}
+	LogInfo("WEB", "Configuration saved successfully", web.configPath)
+	return nil
+}
+
+func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FNDConfiguration, configPath string) *FNDWebServer {
 	r := gin.Default()
 
 	var web FNDWebServer
@@ -103,6 +115,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 
 	web.frigateConf = conf
 	web.globalConf = globalConf
+	web.configPath = configPath
 	web.r = r
 	web.translation = setupTranslation()
 	err := web.translation.setLanguage(web.frigateConf.Language)
@@ -221,6 +234,10 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		}
 
 		web.frigateConf.Language = lang
+
+		// Save configuration to disk immediately
+		web.saveConfiguration()
+
 		LogInfo("WEB", "Language changed successfully", fmt.Sprintf("Language: %s", lang))
 		// Update the payload with new language data
 		web.OverviewPayload.ActiveLanguage = web.translation.currentIndex
@@ -413,9 +430,12 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 			}
 		}
 
+		// Save configuration to disk immediately
+		web.saveConfiguration()
+
 		LogInfo("WEB", "Frigate configuration updated successfully", "")
 		t := template.Must(template.ParseFS(templateFS, "templates/frigate.html"))
-		t.Execute(c.Writer, FrigateTemplatePayload{
+		_ = t.Execute(c.Writer, FrigateTemplatePayload{
 			ShowStatus:     true,
 			Color:          "is-primary",
 			StatusMessage:  "OK",
@@ -453,10 +473,14 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		}
 
 		conf.activateCameras(onList)
+		
+		// Save configuration to disk immediately
+		web.saveConfiguration()
+
 		LogInfo("WEB", "Notification settings updated successfully", fmt.Sprintf("Cooldown: %ds", conf.Cooldown))
 
 		t := template.Must(template.ParseFS(templateFS, "templates/notifications.html"))
-		t.Execute(c.Writer, NotificationPayload{
+		_ = t.Execute(c.Writer, NotificationPayload{
 			ShowStatus:     true,
 			Color:          "is-primary",
 			StatusMessage:  "OK",
@@ -740,6 +764,9 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		// Update configuration in memory and logger
 		web.globalConf.Logging = newConfig
 		logger.UpdateConfiguration(&newConfig)
+
+		// Save configuration to disk immediately
+		web.saveConfiguration()
 
 		LogInfo("WEB", "Log settings updated successfully", fmt.Sprintf("MaxEntries: %d, LogLevel: %d, EnableFile: %t, EnableConsole: %t",
 			newConfig.MaxEntries, newConfig.LogLevel, newConfig.EnableFile, newConfig.EnableConsole))

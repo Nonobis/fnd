@@ -76,6 +76,9 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 			gotify.lastStatusMessage = "enabled"
 		}
 
+		// Save configuration to disk immediately
+		gotify.webServer.saveConfiguration()
+
 		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/gotify.html"))
 		_ = t.Execute(c.Writer, gotify.generatePayload(false))
@@ -116,6 +119,9 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 		
 		LogInfo("GOTIFY", "Configuration updated", fmt.Sprintf("Enabled: %s, ServerURL: %s", 
 			gotify.config.Map["enabled"], gotify.config.Map["serverurl"]))
+
+		// Save configuration to disk immediately
+		gotify.webServer.saveConfiguration()
 
 		t := template.Must(template.ParseFS(templateFS, "templates/gotify.html"))
 		_ = t.Execute(c.Writer, gotify.generatePayload(true))
