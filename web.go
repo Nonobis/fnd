@@ -108,7 +108,7 @@ func (web *FNDWebServer) saveConfigurationWithNotifications(notifyManager *FNDNo
 	if notifyManager != nil {
 		web.globalConf.Notify = notifyManager.getConfigAll()
 	}
-	
+
 	err := web.globalConf.WriteToFile(web.configPath)
 	if err != nil {
 		LogError("WEB", "Failed to save configuration file", err.Error())
@@ -189,7 +189,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 	r.GET("/htmx/overview.html", func(c *gin.Context) {
 		// Update cooldown information for live updates
 		web.OverviewPayload.CooldownInfo = getCooldownInfo(web.frigateEvent)
-		
+
 		t := template.Must(template.ParseFS(templateFS, "templates/overview.html"))
 		t.Execute(c.Writer, web.OverviewPayload)
 	})
@@ -495,7 +495,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		}
 
 		conf.activateCameras(onList)
-		
+
 		// Save configuration to disk immediately
 		web.saveConfiguration()
 
@@ -876,21 +876,21 @@ func getCooldownInfo(frigateEvent *FNDFrigateEventManager) CooldownInfo {
 			LastNotification: "Never",
 		}
 	}
-	
+
 	frigateEvent.m.Lock()
 	lastNotification := frigateEvent.lastNotificationSent
 	frigateEvent.m.Unlock()
-	
+
 	cooldownPeriod := frigateEvent.fConf.Cooldown
 	elapsed := time.Since(lastNotification)
 	elapsedSeconds := int(elapsed.Seconds())
-	
+
 	isActive := elapsedSeconds < cooldownPeriod
 	secondsRemaining := 0
 	if isActive {
 		secondsRemaining = cooldownPeriod - elapsedSeconds
 	}
-	
+
 	// Format last notification time
 	var lastNotificationStr string
 	if lastNotification.IsZero() || time.Since(lastNotification) > 24*time.Hour {
@@ -898,7 +898,7 @@ func getCooldownInfo(frigateEvent *FNDFrigateEventManager) CooldownInfo {
 	} else {
 		lastNotificationStr = lastNotification.Format("15:04:05")
 	}
-	
+
 	return CooldownInfo{
 		CooldownPeriod:   cooldownPeriod,
 		IsActive:         isActive,

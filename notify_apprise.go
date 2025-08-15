@@ -168,16 +168,24 @@ func (apprise *FNDAppriseNotificationSink) generatePayload(postReq bool) Apprise
 }
 
 func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) error {
+	LogInfo("APPRISE", "Starting notification send", fmt.Sprintf("Enabled: %t, ConfigID: %s, ServerURL: %s", 
+		apprise.appriseConfig.Enabled, apprise.appriseConfig.ConfigID, apprise.appriseConfig.ServerURL))
+	
 	if !apprise.appriseConfig.Enabled {
 		apprise.lastStatusMessage = "disabled"
+		LogInfo("APPRISE", "Notification skipped", "Service is disabled")
 		return nil
 	}
 	if apprise.appriseConfig.ConfigID == "" {
 		apprise.lastStatusMessage = "Configuration ID is empty!"
+		LogError("APPRISE", "Notification failed", "Configuration ID is empty")
 		return errors.New("Configuration ID is empty!")
 	}
 
 	url := apprise.appriseConfig.ServerURL + "/notify/" + apprise.appriseConfig.ConfigID
+	LogInfo("APPRISE", "Preparing multipart request", fmt.Sprintf("URL: %s, ImageSize: %d bytes, HasVideo: %t", 
+		url, len(n.JpegData), n.HasVideo))
+	
 	var requestBody bytes.Buffer
 	var err error
 	writer := multipart.NewWriter(&requestBody)
@@ -188,44 +196,58 @@ func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) e
 		body += "\n🎥 Video: " + n.VideoURL
 	}
 
+	LogInfo("APPRISE", "Setting message body", fmt.Sprintf("Body: %s", body))
+
 	err = writer.WriteField("body", body)
 	if err != nil {
+		LogError("APPRISE", "Failed to write body field", err.Error())
 		return err
 	}
 
 	// Attach image
+	LogInfo("APPRISE", "Attaching image", fmt.Sprintf("Filename: Screenshot.jpeg, Size: %d bytes", len(n.JpegData)))
 	jpedDataReader := bytes.NewReader(n.JpegData)
 	fileWriter, err := writer.CreateFormFile("attach", "Screenshot.jpeg")
 	if err != nil {
+		LogError("APPRISE", "Failed to create image form file", err.Error())
 		return err
 	}
 
 	_, err = io.Copy(fileWriter, jpedDataReader)
 	if err != nil {
+		LogError("APPRISE", "Failed to copy image data", err.Error())
 		return err
 	}
 
 	// Attach video if we have video data
 	if n.HasVideo && len(n.VideoData) > 0 {
+		LogInfo("APPRISE", "Attaching video", fmt.Sprintf("Filename: clip.mp4, Size: %d bytes", len(n.VideoData)))
 		videoDataReader := bytes.NewReader(n.VideoData)
 		videoWriter, err := writer.CreateFormFile("attach", "clip.mp4")
 		if err != nil {
+			LogError("APPRISE", "Failed to create video form file", err.Error())
 			return err
 		}
 
 		_, err = io.Copy(videoWriter, videoDataReader)
 		if err != nil {
+			LogError("APPRISE", "Failed to copy video data", err.Error())
 			return err
 		}
 	}
 
 	err = writer.Close()
 	if err != nil {
+		LogError("APPRISE", "Failed to close multipart writer", err.Error())
 		return err
 	}
 
+	LogInfo("APPRISE", "Sending HTTP request", fmt.Sprintf("URL: %s, Method: POST, ContentType: %s, Timeout: %ds", 
+		url, writer.FormDataContentType(), apprise.appriseConfig.Timeout))
+
 	req, err := http.NewRequest("POST", url, &requestBody)
 	if err != nil {
+		LogError("APPRISE", "Failed to create HTTP request", err.Error())
 		return err
 	}
 
@@ -236,18 +258,24 @@ func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) e
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		LogError("APPRISE", "HTTP request failed", fmt.Sprintf("Error: %s, URL: %s", err.Error(), url))
 		return err
 	}
 	defer resp.Body.Close()
 
+	LogInfo("APPRISE", "HTTP response received", fmt.Sprintf("Status: %d", resp.StatusCode))
+
 	if resp.StatusCode != 200 {
 		apprise.lastStatusMessage = "Invalid return value"
+		LogError("APPRISE", "HTTP error response", fmt.Sprintf("Status: %d", resp.StatusCode))
 		return nil
 	}
 	if n.HasVideo && len(n.VideoData) > 0 {
 		apprise.lastStatusMessage = "Online (with video)"
+		LogInfo("APPRISE", "Notification sent successfully", "With video attachment")
 	} else {
 		apprise.lastStatusMessage = "Online"
+		LogInfo("APPRISE", "Notification sent successfully", "Image only")
 	}
 	return nil
 }

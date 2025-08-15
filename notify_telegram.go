@@ -192,25 +192,35 @@ func (tel *FNDTelegramNotificationSink) generatePayload(postReq bool) TelegramTe
 }
 
 func (tel *FNDTelegramNotificationSink) sendNotification(n FNDNotification) error {
+	LogInfo("TELEGRAM", "Starting notification send", fmt.Sprintf("Enabled: %s, HasToken: %t, BotRunning: %t, ChatID: %d", 
+		tel.config.Map["enabled"], tel.config.Map["token"] != "", tel.botRunning, tel.chatid))
+	
 	if tel.config.Map["enabled"] != "true" {
 		tel.lastStatusMessage = "disabled"
+		LogInfo("TELEGRAM", "Notification skipped", "Service is disabled")
 		return nil
 	}
 	if tel.config.Map["token"] == "" {
 		tel.lastStatusMessage = "Bot token is empty!"
+		LogError("TELEGRAM", "Notification failed", "Bot token is empty")
 		return errors.New("Bot token is empty!")
 	}
 	if !tel.botRunning {
 		tel.lastStatusMessage = "Bot is not running!"
+		LogError("TELEGRAM", "Notification failed", "Bot is not running")
 		return errors.New("Bot is not running!")
 	}
 	if tel.chatid == 0 {
 		tel.lastStatusMessage = "Chat ID empty!"
+		LogError("TELEGRAM", "Notification failed", "Chat ID is empty")
 		return errors.New("Chat ID empty!")
 	}
 
 	// If we have video data, send video instead of photo
 	if n.HasVideo && len(n.VideoData) > 0 {
+		LogInfo("TELEGRAM", "Sending video notification", fmt.Sprintf("ChatID: %d, VideoSize: %d bytes, Caption: %s", 
+			tel.chatid, len(n.VideoData), n.Caption))
+		
 		videoParams := &bot.SendVideoParams{
 			ChatID:  tel.chatid,
 			Video:   &models.InputFileUpload{Filename: "clip.mp4", Data: bytes.NewReader(n.VideoData)},
@@ -220,9 +230,11 @@ func (tel *FNDTelegramNotificationSink) sendNotification(n FNDNotification) erro
 		_, err := tel.bot.SendVideo(tel.ctx, videoParams)
 		if err != nil {
 			tel.lastStatusMessage = err.Error()
+			LogError("TELEGRAM", "Video send failed", fmt.Sprintf("Error: %s, ChatID: %d", err.Error(), tel.chatid))
 			return err
 		}
 		tel.lastStatusMessage = "Online (video sent)"
+		LogInfo("TELEGRAM", "Video notification sent successfully", fmt.Sprintf("ChatID: %d", tel.chatid))
 		return nil
 	}
 
@@ -231,6 +243,9 @@ func (tel *FNDTelegramNotificationSink) sendNotification(n FNDNotification) erro
 	if n.HasVideo && n.VideoURL != "" {
 		caption += "\n🎥 Video: " + n.VideoURL
 	}
+
+	LogInfo("TELEGRAM", "Sending photo notification", fmt.Sprintf("ChatID: %d, ImageSize: %d bytes, Caption: %s", 
+		tel.chatid, len(n.JpegData), caption))
 
 	params := &bot.SendPhotoParams{
 		ChatID:  tel.chatid,
@@ -241,9 +256,11 @@ func (tel *FNDTelegramNotificationSink) sendNotification(n FNDNotification) erro
 	_, err := tel.bot.SendPhoto(tel.ctx, params)
 	if err != nil {
 		tel.lastStatusMessage = err.Error()
+		LogError("TELEGRAM", "Photo send failed", fmt.Sprintf("Error: %s, ChatID: %d", err.Error(), tel.chatid))
 		return err
 	}
 	tel.lastStatusMessage = "Online"
+	LogInfo("TELEGRAM", "Photo notification sent successfully", fmt.Sprintf("ChatID: %d", tel.chatid))
 	return nil
 }
 
