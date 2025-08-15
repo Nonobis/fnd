@@ -61,8 +61,34 @@ type FNDNotificationConfigurationMap struct {
 }
 
 type FNDNotificationConfiguration struct {
-	Conf    map[string]FNDNotificationConfigurationMap
-	Apprise AppriseConfig `json:"apprise"`
+	Conf      map[string]FNDNotificationConfigurationMap
+	Apprise   AppriseConfig         `json:"apprise"`
+	Templates NotificationTemplates `json:"templates"`
+}
+
+// NotificationTemplates represents customizable notification templates
+type NotificationTemplates struct {
+	Global     NotificationTemplate            `json:"global"`
+	PerService map[string]NotificationTemplate `json:"perService"`
+}
+
+// NotificationTemplate represents a single notification template
+type NotificationTemplate struct {
+	Title   string `json:"title"`
+	Message string `json:"message"`
+}
+
+// TemplateVariables represents available variables for templates
+type TemplateVariables struct {
+	Camera      string
+	Object      string
+	Date        string
+	Time        string
+	VideoURL    string
+	HasVideo    bool
+	EventID     string
+	HasSnapshot bool
+	SnapshotURL string
 }
 
 // Logging configuration constants
@@ -115,6 +141,13 @@ func NEWDefaultFNDConfiguration() *FNDConfiguration {
 		Notify: FNDNotificationConfiguration{
 			Conf:    make(map[string]FNDNotificationConfigurationMap),
 			Apprise: NewDefaultAppriseConfig(),
+			Templates: NotificationTemplates{
+				Global: NotificationTemplate{
+					Title:   "New Event",
+					Message: "A new event has occurred: {{.Object}} at {{.Camera}} on {{.Date}} {{.Time}}{{if .HasVideo}}\n🎥 Video: {{.VideoURL}}{{end}}{{if .HasSnapshot}}\n📸 Snapshot attached{{end}}",
+				},
+				PerService: make(map[string]NotificationTemplate),
+			},
 		},
 		Logging: NewDefaultLoggingConfiguration(),
 	}

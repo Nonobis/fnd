@@ -115,6 +115,12 @@
                         </span>
                         <span>{{index .TranslatedText 3}}</span>
                     </button>
+                    <button type="button" class="button is-info is-medium is-rounded ml-3" onclick="showTemplates()">
+                        <span class="icon">
+                            <i class="fas fa-edit"></i>
+                        </span>
+                        <span>Templates</span>
+                    </button>
                 </div>
 
                 {{ if .ShowStatus }}
@@ -175,4 +181,65 @@
             </div>
         </div>
     </div>
+
+    <!-- Templates Modal -->
+    <div id="templates-modal" class="modal">
+        <div class="modal-background" onclick="hideTemplates()"></div>
+        <div class="modal-card" style="width: 90%; max-width: 1200px;">
+            <header class="modal-card-head">
+                <p class="modal-card-title">
+                    <span class="icon-text">
+                        <span class="icon">
+                            <i class="fas fa-edit"></i>
+                        </span>
+                        <span>Notification Templates</span>
+                    </span>
+                </p>
+                <button class="delete" aria-label="close" onclick="hideTemplates()"></button>
+            </header>
+            <section class="modal-card-body" id="templates-content">
+                <!-- Content will be loaded here -->
+            </section>
+        </div>
+    </div>
 </div>
+
+<script>
+function showTemplates() {
+    fetch('/htmx/notification_templates.html')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('templates-content').innerHTML = html;
+            document.getElementById('templates-modal').classList.add('is-active');
+        })
+        .catch(error => {
+            console.error('Error loading templates:', error);
+            showNotification('Error loading templates', 'danger');
+        });
+}
+
+function hideTemplates() {
+    document.getElementById('templates-modal').classList.remove('is-active');
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `notification is-${type}`;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '1001';
+    notification.innerHTML = `
+        <button class="delete" onclick="this.parentElement.remove()"></button>
+        ${message}
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+</script>

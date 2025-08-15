@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -11,6 +12,7 @@ type FNDNotification struct {
 	VideoURL  string
 	Date      string
 	Caption   string
+	Title     string
 	HasVideo  bool
 }
 
@@ -32,12 +34,16 @@ type FNDNotificationManager struct {
 	//for status
 	web         *FNDWebServer
 	frigateConn *FNDFrigateConnection
+
+	//template processor
+	templateProcessor *TemplateProcessor
 }
 
 func NewFNDNotificationManager(conf FNDNotificationConfiguration) *FNDNotificationManager {
 	return &FNDNotificationManager{
-		conf:  conf,
-		sinks: make(map[string]FNDNotificationSink),
+		conf:              conf,
+		sinks:             make(map[string]FNDNotificationSink),
+		templateProcessor: NewTemplateProcessor(&conf.Templates),
 	}
 
 }
@@ -83,12 +89,41 @@ func (m *FNDNotificationManager) notifyAll(n FNDNotification) {
 		// Check if the sink is enabled before sending notification
 		if m.isSinkEnabled(v) {
 			enabledCount++
-			err := v.sendNotification(n)
+
+			// Process template if available
+			processedN := n
+			if m.templateProcessor != nil {
+				// Extract camera and object from caption (fallback format)
+				camera := "unknown"
+				object := "unknown"
+				if n.Caption != "" {
+					// Try to parse "camera: X object: Y" format
+					if len(n.Caption) > 8 && n.Caption[:8] == "camera: " {
+						parts := strings.Split(n.Caption, " object: ")
+						if len(parts) == 2 {
+							camera = parts[0][8:] // Remove "camera: " prefix
+							object = parts[1]
+						}
+					}
+				}
+
+				variables := CreateTemplateVariables(n, camera, object, "")
+				title, message, err := m.templateProcessor.ProcessTemplate(v.getName(), variables)
+				if err != nil {
+					LogWarn("NOTIFY", "Template processing failed, using default", fmt.Sprintf("Sink: %s, Error: %s", v.getName(), err.Error()))
+				} else {
+					processedN.Caption = message
+					// Store title for services that support it
+					processedN.Title = title
+				}
+			}
+
+			err := v.sendNotification(processedN)
 			if err != nil {
 				LogError("NOTIFY", "Failed to send notification", fmt.Sprintf("Sink: %s, Error: %s", v.getName(), err.Error()))
 				fmt.Println(err.Error())
 			} else {
-				LogInfo("NOTIFY", "Notification sent successfully", fmt.Sprintf("Sink: %s, Caption: %s", v.getName(), n.Caption))
+				LogInfo("NOTIFY", "Notification sent successfully", fmt.Sprintf("Sink: %s, Caption: %s", v.getName(), processedN.Caption))
 			}
 		}
 	}
@@ -180,4 +215,10 @@ func (m *FNDNotificationManager) sendLiveSnapshot(camera string, api *FNDFrigate
 	m.getStatusAll()
 
 	return nil
+}
+
+// updateTemplates updates the template processor with new templates
+func (m *FNDNotificationManager) updateTemplates(templates *NotificationTemplates) {
+	m.templateProcessor = NewTemplateProcessor(templates)
+	LogInfo("NOTIFY", "Templates updated", "Template processor refreshed")
 }
