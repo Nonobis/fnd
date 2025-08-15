@@ -1,8 +1,8 @@
 ✅ Hide Notification system Token in all configuration page. (value not displayed)
 ✅ Add test button for each notification system
 ✅ In notification page, if notification system is disabled, textbox entry are disabled.
-- Cooldown in overview
-- Add page for personlising template of notification. (Wysiwig editor ?? compatible with notification system )
+- implement Cooldown in overview
+- Add page for personlising template of notification. (Wysiwig editor ?? compatible differetent notification system )
 ✅ on overview page, better ui
 ✅ make a better layout for ui
 ✅ Snapshot support for all notification system (/snapshot or /live sends a live picture)
@@ -12,8 +12,8 @@
 - Add Machine learning system for facial recognizion with stockage of facial image for better accurancy. Find a self hosted system for facial recognition easily integrable
 - Add LLM request for determining action done on event for better message
 - Add UI for managing Image/Face with a First Name / Last Name
-- Add logs on event receive, logs must be displayed in live in ui (with moder ui like other page)
-- Add logs in application (save as file)
+✅ Add logs in application (save as file ?)
+✅ Add logs on all action of application, logs must be displayed in live in ui (with modern ui like other page)
 - Per Camera settings:
     - Notification Message
     - Object filter

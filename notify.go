@@ -60,6 +60,7 @@ func (m *FNDNotificationManager) setupNotificationSinks(c chan FNDNotification, 
 func (m *FNDNotificationManager) registerNotificationSinks(sink FNDNotificationSink) {
 	_, avail := m.sinks[sink.getName()]
 	if avail {
+		LogWarn("NOTIFY", "Sink already registered", fmt.Sprintf("Sink: %s", sink.getName()))
 		fmt.Println("Sink: ", sink.getName(), " is already registered")
 		return
 	}
@@ -67,24 +68,33 @@ func (m *FNDNotificationManager) registerNotificationSinks(sink FNDNotificationS
 	data, avail := m.conf.Conf[sink.getName()]
 	err := sink.setup(data, avail)
 	if err != nil {
+		LogError("NOTIFY", "Sink setup failed", fmt.Sprintf("Sink: %s, Error: %s", sink.getName(), err.Error()))
 		fmt.Println("Sink:", sink.getName(), " setup failed: ", err.Error())
 		return
 	}
 
 	m.sinks[sink.getName()] = sink
-
+	LogInfo("NOTIFY", "Notification sink registered", fmt.Sprintf("Sink: %s", sink.getName()))
 	fmt.Println("Registered: ", sink.getName())
 }
 
 func (m *FNDNotificationManager) notifyAll(n FNDNotification) {
+	enabledCount := 0
 	for _, v := range m.sinks {
 		// Check if the sink is enabled before sending notification
 		if m.isSinkEnabled(v) {
+			enabledCount++
 			err := v.sendNotification(n)
 			if err != nil {
+				LogError("NOTIFY", "Failed to send notification", fmt.Sprintf("Sink: %s, Error: %s", v.getName(), err.Error()))
 				fmt.Println(err.Error())
+			} else {
+				LogInfo("NOTIFY", "Notification sent successfully", fmt.Sprintf("Sink: %s, Caption: %s", v.getName(), n.Caption))
 			}
 		}
+	}
+	if enabledCount == 0 {
+		LogWarn("NOTIFY", "No enabled notification sinks", "Notification not sent")
 	}
 }
 

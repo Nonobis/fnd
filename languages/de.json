@@ -25,5 +25,18 @@
   "timeout": "Timeout (Sek)",
   "format": "Format",
   "language_changed": "Sprache geändert",
-  "select_language": "Sprache auswählen"
+  "select_language": "Sprache auswählen",
+  "logs": "Protokolle",
+  "log_level": "Stufe",
+  "log_component": "Komponente",
+  "log_message": "Nachricht",
+  "log_timestamp": "Zeitstempel",
+  "log_details": "Details",
+  "clear_logs": "Protokolle löschen",
+  "download_logs": "Protokolle herunterladen",
+  "auto_refresh": "Automatische Aktualisierung",
+  "filter_level": "Nach Stufe filtern",
+  "filter_component": "Nach Komponente filtern",
+  "all_levels": "Alle Stufen",
+  "all_components": "Alle Komponenten"
 }

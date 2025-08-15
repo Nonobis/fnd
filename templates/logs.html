@@ -1,0 +1,491 @@
+<div class="logs-container">
+    <!-- Logs Header -->
+    <div class="section">
+        <div class="container">
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item">
+                        <h2 class="title is-3">
+                            <span class="icon">
+                                <i class="fas fa-scroll"></i>
+                            </span>
+                            {{index .TranslatedText 0}}
+                        </h2>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+                        <div class="field is-grouped">
+                            <div class="control">
+                                <button class="button is-info" id="auto-refresh-toggle" onclick="toggleAutoRefresh()">
+                                    <span class="icon">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </span>
+                                    <span>{{index .TranslatedText 8}}</span>
+                                </button>
+                            </div>
+                            <div class="control">
+                                <button class="button is-light" onclick="downloadLogs()">
+                                    <span class="icon">
+                                        <i class="fas fa-download"></i>
+                                    </span>
+                                    <span>{{index .TranslatedText 7}}</span>
+                                </button>
+                            </div>
+                            <div class="control">
+                                <button class="button is-warning" onclick="clearLogs()">
+                                    <span class="icon">
+                                        <i class="fas fa-trash"></i>
+                                    </span>
+                                    <span>{{index .TranslatedText 6}}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="section pt-0">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-4">
+                    <div class="field">
+                        <label class="label">{{index .TranslatedText 9}}</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select id="level-filter" onchange="applyFilters()">
+                                    <option value="">{{index .TranslatedText 11}}</option>
+                                    <option value="DEBUG">DEBUG</option>
+                                    <option value="INFO">INFO</option>
+                                    <option value="WARN">WARN</option>
+                                    <option value="ERROR">ERROR</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-4">
+                    <div class="field">
+                        <label class="label">{{index .TranslatedText 10}}</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select id="component-filter" onchange="applyFilters()">
+                                    <option value="">{{index .TranslatedText 12}}</option>
+                                    {{range .Components}}
+                                    <option value="{{.}}">{{.}}</option>
+                                    {{end}}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-4">
+                    <div class="field">
+                        <label class="label">Search</label>
+                        <div class="control has-icons-left">
+                            <input class="input" type="text" id="search-filter" placeholder="Search logs..." oninput="applyFilters()">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-search"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="section pt-0">
+        <div class="container">
+            <div class="box" style="max-height: 70vh; overflow-y: auto;">
+                <div id="logs-content">
+                    <table class="table is-fullwidth is-striped is-hoverable logs-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 150px;">{{index .TranslatedText 4}}</th>
+                                <th style="width: 80px;">{{index .TranslatedText 1}}</th>
+                                <th style="width: 120px;">{{index .TranslatedText 2}}</th>
+                                <th>{{index .TranslatedText 3}}</th>
+                                <th style="width: 60px;">{{index .TranslatedText 5}}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-tbody">
+                            {{range .Logs}}
+                            <tr class="log-entry" data-level="{{.Level}}" data-component="{{.Component}}" data-timestamp="{{.Timestamp.Format "2006-01-02 15:04:05"}}">
+                                <td class="timestamp">{{.Timestamp.Format "15:04:05 02/01"}}</td>
+                                <td>
+                                    <span class="tag log-level-{{.Level}}">{{.Level}}</span>
+                                </td>
+                                <td class="component">{{.Component}}</td>
+                                <td class="message">{{.Message}}</td>
+                                <td class="details-cell">
+                                    {{if .Details}}
+                                    <button class="button is-small is-light" onclick="showDetails('{{.ID}}')">
+                                        <span class="icon is-small">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
+                                    </button>
+                                    <div id="details-{{.ID}}" class="details-content" style="display: none;">
+                                        <div class="box mt-2">
+                                            <pre>{{.Details}}</pre>
+                                        </div>
+                                    </div>
+                                    {{end}}
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                    {{if not .Logs}}
+                    <div class="has-text-centered py-6">
+                        <span class="icon is-large has-text-grey-light">
+                            <i class="fas fa-inbox fa-3x"></i>
+                        </span>
+                        <p class="has-text-grey">No logs available</p>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Updates Indicator -->
+    <div id="live-indicator" class="notification is-info is-light is-hidden" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+        <button class="delete" onclick="hideLiveIndicator()"></button>
+        <span class="icon">
+            <i class="fas fa-wifi"></i>
+        </span>
+        <strong>Live updates active</strong>
+    </div>
+</div>
+
+<style>
+.logs-container {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.logs-table {
+    font-size: 0.9rem;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.logs-table thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.logs-table tbody tr:hover {
+    background-color: #f1f3f4;
+    cursor: pointer;
+}
+
+.log-level-DEBUG {
+    background-color: #6c757d;
+    color: white;
+}
+
+.log-level-INFO {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.log-level-WARN {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.log-level-ERROR {
+    background-color: #dc3545;
+    color: white;
+}
+
+.timestamp {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.component {
+    font-weight: 600;
+    color: #495057;
+}
+
+.message {
+    word-break: break-word;
+}
+
+.details-content pre {
+    background: #f8f9fa;
+    padding: 0.75rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.details-cell {
+    text-align: center;
+}
+
+.auto-refresh-active {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Hide scrollbar for better aesthetics */
+.box::-webkit-scrollbar {
+    width: 6px;
+}
+
+.box::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.box::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.box::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+
+<script>
+let autoRefreshInterval;
+let eventSource;
+let isAutoRefreshActive = false;
+
+function toggleAutoRefresh() {
+    const button = document.getElementById('auto-refresh-toggle');
+    const indicator = document.getElementById('live-indicator');
+    
+    if (isAutoRefreshActive) {
+        // Stop auto refresh
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+        }
+        if (eventSource) {
+            eventSource.close();
+        }
+        isAutoRefreshActive = false;
+        button.classList.remove('is-primary', 'auto-refresh-active');
+        button.classList.add('is-info');
+        indicator.classList.add('is-hidden');
+    } else {
+        // Start auto refresh
+        startLiveUpdates();
+        isAutoRefreshActive = true;
+        button.classList.remove('is-info');
+        button.classList.add('is-primary', 'auto-refresh-active');
+        indicator.classList.remove('is-hidden');
+    }
+}
+
+function startLiveUpdates() {
+    // Start Server-Sent Events for live updates
+    eventSource = new EventSource('/api/logs/stream');
+    
+    eventSource.onmessage = function(event) {
+        const logEntry = JSON.parse(event.data);
+        addLogEntry(logEntry);
+    };
+    
+    eventSource.onerror = function(event) {
+        console.error('SSE error:', event);
+        // Fallback to polling if SSE fails
+        if (!autoRefreshInterval) {
+            autoRefreshInterval = setInterval(refreshLogs, 5000);
+        }
+    };
+}
+
+function addLogEntry(logEntry) {
+    const tbody = document.getElementById('logs-tbody');
+    const row = createLogRow(logEntry);
+    tbody.insertBefore(row, tbody.firstChild);
+    
+    // Remove old entries if too many
+    while (tbody.children.length > 1000) {
+        tbody.removeChild(tbody.lastChild);
+    }
+    
+    // Apply current filters
+    applyFilters();
+}
+
+function createLogRow(log) {
+    const row = document.createElement('tr');
+    row.className = 'log-entry';
+    row.setAttribute('data-level', log.level);
+    row.setAttribute('data-component', log.component);
+    row.setAttribute('data-timestamp', log.timestamp);
+    
+    const timestamp = new Date(log.timestamp);
+    const timeStr = timestamp.toLocaleTimeString() + ' ' + timestamp.toLocaleDateString().slice(0, 5);
+    
+    row.innerHTML = `
+        <td class="timestamp">${timeStr}</td>
+        <td><span class="tag log-level-${log.level}">${log.level}</span></td>
+        <td class="component">${log.component}</td>
+        <td class="message">${log.message}</td>
+        <td class="details-cell">
+            ${log.details ? `
+                <button class="button is-small is-light" onclick="showDetails('${log.id}')">
+                    <span class="icon is-small">
+                        <i class="fas fa-info-circle"></i>
+                    </span>
+                </button>
+                <div id="details-${log.id}" class="details-content" style="display: none;">
+                    <div class="box mt-2">
+                        <pre>${log.details}</pre>
+                    </div>
+                </div>
+            ` : ''}
+        </td>
+    `;
+    
+    return row;
+}
+
+function refreshLogs() {
+    fetch('/api/logs/recent')
+        .then(response => response.json())
+        .then(data => {
+            updateLogsTable(data.logs);
+        })
+        .catch(error => {
+            console.error('Error fetching logs:', error);
+        });
+}
+
+function updateLogsTable(logs) {
+    const tbody = document.getElementById('logs-tbody');
+    tbody.innerHTML = '';
+    
+    logs.forEach(log => {
+        const row = createLogRow(log);
+        tbody.appendChild(row);
+    });
+    
+    applyFilters();
+}
+
+function applyFilters() {
+    const levelFilter = document.getElementById('level-filter').value;
+    const componentFilter = document.getElementById('component-filter').value;
+    const searchFilter = document.getElementById('search-filter').value.toLowerCase();
+    
+    const rows = document.querySelectorAll('.log-entry');
+    
+    rows.forEach(row => {
+        const level = row.getAttribute('data-level');
+        const component = row.getAttribute('data-component');
+        const message = row.querySelector('.message').textContent.toLowerCase();
+        
+        let showRow = true;
+        
+        if (levelFilter && level !== levelFilter) {
+            showRow = false;
+        }
+        
+        if (componentFilter && component !== componentFilter) {
+            showRow = false;
+        }
+        
+        if (searchFilter && !message.includes(searchFilter) && !component.toLowerCase().includes(searchFilter)) {
+            showRow = false;
+        }
+        
+        row.style.display = showRow ? '' : 'none';
+    });
+}
+
+function showDetails(logId) {
+    const detailsDiv = document.getElementById('details-' + logId);
+    if (detailsDiv.style.display === 'none') {
+        detailsDiv.style.display = 'block';
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+}
+
+function clearLogs() {
+    if (confirm('Are you sure you want to clear all logs?')) {
+        fetch('/api/logs/clear', { method: 'POST' })
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('logs-tbody').innerHTML = '';
+                    showNotification('Logs cleared successfully', 'success');
+                } else {
+                    showNotification('Failed to clear logs', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error clearing logs:', error);
+                showNotification('Error clearing logs', 'danger');
+            });
+    }
+}
+
+function downloadLogs() {
+    window.open('/api/logs/download', '_blank');
+}
+
+function hideLiveIndicator() {
+    document.getElementById('live-indicator').classList.add('is-hidden');
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `notification is-${type}`;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '1001';
+    notification.innerHTML = `
+        <button class="delete" onclick="this.parentElement.remove()"></button>
+        ${message}
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    // Load initial logs
+    refreshLogs();
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (eventSource) {
+        eventSource.close();
+    }
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+});
+</script>

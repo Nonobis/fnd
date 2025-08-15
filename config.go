@@ -67,8 +67,10 @@ type FNDNotificationConfiguration struct {
 func LoadFNDConf(filename string) *FNDConfiguration {
 	conf, err := NewFNDConfigurationFromFile(filename)
 	if err != nil {
-		//TODO: Logging
+		LogWarn("CONFIG", "No configuration found, using default", err.Error())
 		fmt.Println("No Configuration found. Using default.")
+	} else {
+		LogInfo("CONFIG", "Configuration loaded successfully", fmt.Sprintf("File: %s", filename))
 	}
 	return conf
 }
@@ -172,9 +174,11 @@ func (conf *FNDConfiguration) WriteToFile(filename string) error {
 	err := os.WriteFile(filename, file, 0644)
 
 	if err != nil {
+		LogError("CONFIG", "Failed to write configuration file", err.Error())
 		return err
 	}
 
+	LogInfo("CONFIG", "Configuration file written successfully", fmt.Sprintf("File: %s", filename))
 	return nil
 }
 
@@ -188,6 +192,7 @@ func (fConf *FNDFrigateConfiguration) checkOrAddCamera(name string) CameraConfig
 		return cam
 	}
 
+	LogInfo("CAMERA", "New camera discovered", fmt.Sprintf("Camera: %s", name))
 	cam.Name = name
 	cam.Active = false
 
@@ -200,6 +205,7 @@ func (fConf *FNDFrigateConfiguration) activateCameras(activeList []string) {
 	fConf.m.Lock()
 	defer fConf.m.Unlock()
 
+	// Deactivate all cameras first
 	for k := range fConf.Cameras {
 		buffer, avail := fConf.Cameras[k]
 		if !avail {
@@ -209,6 +215,7 @@ func (fConf *FNDFrigateConfiguration) activateCameras(activeList []string) {
 		fConf.Cameras[k] = buffer
 	}
 
+	// Activate selected cameras
 	for _, c := range activeList {
 		buffer, avail := fConf.Cameras[c]
 		if !avail {
@@ -217,4 +224,6 @@ func (fConf *FNDFrigateConfiguration) activateCameras(activeList []string) {
 		buffer.Active = true
 		fConf.Cameras[c] = buffer
 	}
+	
+	LogInfo("CAMERA", "Camera activation updated", fmt.Sprintf("Active cameras: %v", activeList))
 }

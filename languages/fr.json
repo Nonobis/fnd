@@ -30,5 +30,18 @@
   "mqtt_anonymous": "Connexion anonyme",
   "mqtt_username": "Nom d'utilisateur",
   "mqtt_password": "Mot de passe",
-  "mqtt_auth_mode": "Mode d'authentification"
+  "mqtt_auth_mode": "Mode d'authentification",
+  "logs": "Journaux",
+  "log_level": "Niveau",
+  "log_component": "Composant",
+  "log_message": "Message",
+  "log_timestamp": "Horodatage",
+  "log_details": "Détails",
+  "clear_logs": "Effacer les journaux",
+  "download_logs": "Télécharger les journaux",
+  "auto_refresh": "Actualisation automatique",
+  "filter_level": "Filtrer par niveau",
+  "filter_component": "Filtrer par composant",
+  "all_levels": "Tous les niveaux",
+  "all_components": "Tous les composants"
 }

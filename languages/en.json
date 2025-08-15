@@ -30,5 +30,18 @@
   "mqtt_anonymous": "Anonymous connection",
   "mqtt_username": "Username",
   "mqtt_password": "Password",
-  "mqtt_auth_mode": "Authentication Mode"
+  "mqtt_auth_mode": "Authentication Mode",
+  "logs": "Logs",
+  "log_level": "Level",
+  "log_component": "Component",
+  "log_message": "Message",
+  "log_timestamp": "Timestamp",
+  "log_details": "Details",
+  "clear_logs": "Clear Logs",
+  "download_logs": "Download Logs",
+  "auto_refresh": "Auto Refresh",
+  "filter_level": "Filter by Level",
+  "filter_component": "Filter by Component",
+  "all_levels": "All Levels",
+  "all_components": "All Components"
 }

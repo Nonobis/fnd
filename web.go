@@ -4,10 +4,12 @@ import (
 	"context"
 	"embed"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -86,7 +88,10 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 	web.frigateConf = conf
 	web.r = r
 	web.translation = setupTranslation()
-	web.translation.setLanguage(web.frigateConf.Language)
+	err := web.translation.setLanguage(web.frigateConf.Language)
+	if err != nil {
+		LogWarn("WEB", "Failed to set initial language", err.Error())
+	}
 
 	r.GET("/", func(c *gin.Context) {
 
@@ -150,7 +155,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 		})
 	})
 	r.GET("/htmx/testnotification", func(c *gin.Context) {
-
+		LogInfo("WEB", "Test notification requested", "")
 		web.sendTestNotification()
 
 		t := template.Must(template.ParseFS(templateFS, "templates/generic_ok.html"))
@@ -176,9 +181,11 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 	r.POST("/htmx/language.html", func(c *gin.Context) {
 
 		lang := c.Query("lang")
+		LogInfo("WEB", "Language change requested", fmt.Sprintf("New language: %s", lang))
 
 		err := web.translation.setLanguage(lang)
 		if err != nil {
+			LogError("WEB", "Failed to change language", err.Error())
 			errorTemplate := `<div class="notification is-danger is-light">{{.}}</div>`
 			t := template.Must(template.New("error").Parse(errorTemplate))
 			t.Execute(c.Writer, err.Error())
@@ -186,6 +193,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 		}
 
 		web.frigateConf.Language = lang
+		LogInfo("WEB", "Language changed successfully", fmt.Sprintf("Language: %s", lang))
 		// Update the payload with new language data
 		web.OverviewPayload.ActiveLanguage = web.translation.currentIndex
 		web.OverviewPayload.CurrentLanguage = web.translation.getCurrentLanguage()
@@ -316,6 +324,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 	})
 
 	r.POST("/htmx/frigate.html", func(c *gin.Context) {
+		LogInfo("WEB", "Frigate configuration update requested", "")
 		text := []string{
 			web.translation.lookupToken("frigate_host"),
 			web.translation.lookupToken("frigate_port"),
@@ -376,6 +385,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 			}
 		}
 
+		LogInfo("WEB", "Frigate configuration updated successfully", "")
 		t := template.Must(template.ParseFS(templateFS, "templates/frigate.html"))
 		t.Execute(c.Writer, FrigateTemplatePayload{
 			ShowStatus:     true,
@@ -387,6 +397,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 	})
 
 	r.POST("/htmx/notifications.html", func(c *gin.Context) {
+		LogInfo("WEB", "Notification settings update requested", "")
 
 		text := []string{
 			web.translation.lookupToken("notifications"),
@@ -414,6 +425,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 		}
 
 		conf.activateCameras(onList)
+		LogInfo("WEB", "Notification settings updated successfully", fmt.Sprintf("Cooldown: %ds", conf.Cooldown))
 
 		t := template.Must(template.ParseFS(templateFS, "templates/notifications.html"))
 		t.Execute(c.Writer, NotificationPayload{
@@ -476,12 +488,156 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration) *FNDWebServer 
 		})
 	})
 
+	// Logs routes
+	r.GET("/htmx/logs.html", func(c *gin.Context) {
+		logger := GetLogger()
+		if logger == nil {
+			c.JSON(500, gin.H{"error": "Logger not initialized"})
+			return
+		}
+
+		logs := logger.GetRecentLogs(100)
+		components := make(map[string]bool)
+		for _, log := range logs {
+			components[log.Component] = true
+		}
+
+		var componentList []string
+		for component := range components {
+			componentList = append(componentList, component)
+		}
+
+		translatedText := []string{
+			web.translation.lookupToken("logs"),
+			web.translation.lookupToken("log_level"),
+			web.translation.lookupToken("log_component"),
+			web.translation.lookupToken("log_message"),
+			web.translation.lookupToken("log_timestamp"),
+			web.translation.lookupToken("log_details"),
+			web.translation.lookupToken("clear_logs"),
+			web.translation.lookupToken("download_logs"),
+			web.translation.lookupToken("auto_refresh"),
+			web.translation.lookupToken("filter_level"),
+			web.translation.lookupToken("filter_component"),
+			web.translation.lookupToken("all_levels"),
+			web.translation.lookupToken("all_components"),
+		}
+
+		t := template.Must(template.ParseFS(templateFS, "templates/logs.html"))
+		t.Execute(c.Writer, struct {
+			Logs           []LogEntry
+			Components     []string
+			TranslatedText []string
+		}{
+			Logs:           logs,
+			Components:     componentList,
+			TranslatedText: translatedText,
+		})
+	})
+
+	// API routes for logs
+	r.GET("/api/logs/recent", func(c *gin.Context) {
+		logger := GetLogger()
+		if logger == nil {
+			c.JSON(500, gin.H{"error": "Logger not initialized"})
+			return
+		}
+
+		limit := 100
+		if limitStr := c.Query("limit"); limitStr != "" {
+			if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+				limit = l
+			}
+		}
+
+		logs := logger.GetRecentLogs(limit)
+		c.JSON(200, gin.H{"logs": logs})
+	})
+
+	r.GET("/api/logs/stream", func(c *gin.Context) {
+		logger := GetLogger()
+		if logger == nil {
+			c.JSON(500, gin.H{"error": "Logger not initialized"})
+			return
+		}
+
+		// Set headers for Server-Sent Events
+		c.Header("Content-Type", "text/event-stream")
+		c.Header("Cache-Control", "no-cache")
+		c.Header("Connection", "keep-alive")
+		c.Header("Access-Control-Allow-Origin", "*")
+
+		// Subscribe to live updates
+		clientID := fmt.Sprintf("client_%d", time.Now().UnixNano())
+		logChannel := logger.Subscribe(clientID)
+		defer logger.Unsubscribe(clientID)
+
+		// Send initial ping
+		c.Writer.WriteString("data: {\"type\":\"ping\"}\n\n")
+		c.Writer.(http.Flusher).Flush()
+
+		// Stream logs
+		for {
+			select {
+			case logEntry, ok := <-logChannel:
+				if !ok {
+					return
+				}
+				data, _ := json.Marshal(logEntry)
+				c.Writer.WriteString(fmt.Sprintf("data: %s\n\n", string(data)))
+				c.Writer.(http.Flusher).Flush()
+			case <-c.Request.Context().Done():
+				return
+			}
+		}
+	})
+
+	r.POST("/api/logs/clear", func(c *gin.Context) {
+		logger := GetLogger()
+		if logger == nil {
+			c.JSON(500, gin.H{"error": "Logger not initialized"})
+			return
+		}
+
+		// Clear in-memory logs (we keep the file for safety)
+		logger.mutex.Lock()
+		logger.entries = make([]LogEntry, 0, MAX_LOG_ENTRIES)
+		logger.mutex.Unlock()
+
+		LogInfo("WEB", "Logs cleared via web interface", "")
+		c.JSON(200, gin.H{"message": "Logs cleared successfully"})
+	})
+
+	r.GET("/api/logs/download", func(c *gin.Context) {
+		logger := GetLogger()
+		if logger == nil {
+			c.JSON(500, gin.H{"error": "Logger not initialized"})
+			return
+		}
+
+		// Read the log file
+		data, err := os.ReadFile(logger.filePath)
+		if err != nil {
+			LogError("WEB", "Failed to read log file for download", err.Error())
+			c.JSON(500, gin.H{"error": "Failed to read log file"})
+			return
+		}
+
+		LogInfo("WEB", "Log file downloaded", "")
+		filename := fmt.Sprintf("fnd-logs-%s.log", time.Now().Format("2006-01-02-15-04-05"))
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+		c.Header("Content-Type", "application/octet-stream")
+		c.Data(200, "application/octet-stream", data)
+	})
+
 	return &web
 }
 
 func (web *FNDWebServer) run(frigateEvent *FNDFrigateEventManager) {
 	web.frigateEvent = frigateEvent
+	LogInfo("WEB", "Starting web server", "Address: " + web.srv.Addr)
 	if err := web.srv.ListenAndServe(); err != nil {
+		LogError("WEB", "Web server error", err.Error())
 		fmt.Println(err.Error())
 	}
 }
