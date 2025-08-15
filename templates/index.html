@@ -10,6 +10,32 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="/static/htmx.min.js"></script>
     <script>
+        // Global function for mobile menu toggle
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('navigation-section');
+            const hamburger = document.getElementById('hamburger-toggle');
+            const body = document.body;
+            const main = document.querySelector('.app-main');
+            
+            if (window.innerWidth <= 768) {
+                // Mobile behavior
+                sidebar.classList.toggle('mobile-menu-open');
+                hamburger.classList.toggle('active');
+                body.classList.toggle('menu-open');
+            } else {
+                // Desktop behavior - collapse/expand
+                sidebar.classList.toggle('collapsed');
+                hamburger.classList.toggle('active');
+                if (main) {
+                    main.classList.toggle('sidebar-collapsed');
+                }
+                
+                // Store preference in localStorage
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('sidebar-collapsed', isCollapsed.toString());
+            }
+        }
+
         // Wait for DOM to be ready
         document.addEventListener('DOMContentLoaded', function() {
             // Listen for language change event and update UI sections
@@ -32,6 +58,81 @@
                     swap: 'innerHTML'
                 });
             });
+
+            // Close mobile menu when clicking on a menu item
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.menu-link') && window.innerWidth <= 768) {
+                    const sidebar = document.getElementById('navigation-section');
+                    const hamburger = document.getElementById('hamburger-toggle');
+                    const body = document.body;
+                    
+                    sidebar.classList.remove('mobile-menu-open');
+                    hamburger.classList.remove('active');
+                    body.classList.remove('menu-open');
+                }
+            });
+
+            // Close mobile menu when clicking outside
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth <= 768) {
+                    const sidebar = document.getElementById('navigation-section');
+                    const hamburger = document.getElementById('hamburger-toggle');
+                    const body = document.body;
+                    
+                    if (!sidebar.contains(e.target) && !hamburger.contains(e.target) && sidebar.classList.contains('mobile-menu-open')) {
+                        sidebar.classList.remove('mobile-menu-open');
+                        hamburger.classList.remove('active');
+                        body.classList.remove('menu-open');
+                    }
+                }
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                const sidebar = document.getElementById('navigation-section');
+                const hamburger = document.getElementById('hamburger-toggle');
+                const body = document.body;
+                const main = document.querySelector('.app-main');
+                
+                if (window.innerWidth > 768) {
+                    // Clean up mobile states
+                    sidebar.classList.remove('mobile-menu-open');
+                    body.classList.remove('menu-open');
+                    
+                    // Restore desktop collapsed state from localStorage
+                    const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+                    if (isCollapsed) {
+                        sidebar.classList.add('collapsed');
+                        hamburger.classList.add('active');
+                        if (main) {
+                            main.classList.add('sidebar-collapsed');
+                        }
+                    }
+                } else {
+                    // Clean up desktop states
+                    sidebar.classList.remove('collapsed');
+                    if (main) {
+                        main.classList.remove('sidebar-collapsed');
+                    }
+                }
+            });
+
+            // Initialize sidebar state on page load
+            if (window.innerWidth > 768) {
+                const sidebar = document.getElementById('navigation-section');
+                const hamburger = document.getElementById('hamburger-toggle');
+                const main = document.querySelector('.app-main');
+                
+                // Restore collapsed state from localStorage
+                const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+                if (isCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    hamburger.classList.add('active');
+                    if (main) {
+                        main.classList.add('sidebar-collapsed');
+                    }
+                }
+            }
         });
     </script>
 </head>
@@ -122,110 +223,7 @@
         </div>
     </div>
 
-    <!-- Menu Toggle Script -->
-    <script>
-        function toggleMobileMenu() {
-            const sidebar = document.getElementById('navigation-section');
-            const hamburger = document.getElementById('hamburger-toggle');
-            const body = document.body;
-            const main = document.querySelector('.app-main');
-            
-            if (window.innerWidth <= 768) {
-                // Mobile behavior
-                sidebar.classList.toggle('mobile-menu-open');
-                hamburger.classList.toggle('active');
-                body.classList.toggle('menu-open');
-            } else {
-                // Desktop behavior - collapse/expand
-                sidebar.classList.toggle('collapsed');
-                hamburger.classList.toggle('active');
-                if (main) {
-                    main.classList.toggle('sidebar-collapsed');
-                }
-                
-                // Store preference in localStorage
-                const isCollapsed = sidebar.classList.contains('collapsed');
-                localStorage.setItem('sidebar-collapsed', isCollapsed.toString());
-            }
-        }
 
-        // Close mobile menu when clicking on a menu item
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.menu-link') && window.innerWidth <= 768) {
-                const sidebar = document.getElementById('navigation-section');
-                const hamburger = document.getElementById('hamburger-toggle');
-                const body = document.body;
-                
-                sidebar.classList.remove('mobile-menu-open');
-                hamburger.classList.remove('active');
-                body.classList.remove('menu-open');
-            }
-        });
-
-        // Close mobile menu when clicking outside
-        document.addEventListener('click', function(e) {
-            if (window.innerWidth <= 768) {
-                const sidebar = document.getElementById('navigation-section');
-                const hamburger = document.getElementById('hamburger-toggle');
-                const body = document.body;
-                
-                if (!sidebar.contains(e.target) && !hamburger.contains(e.target) && sidebar.classList.contains('mobile-menu-open')) {
-                    sidebar.classList.remove('mobile-menu-open');
-                    hamburger.classList.remove('active');
-                    body.classList.remove('menu-open');
-                }
-            }
-        });
-
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            const sidebar = document.getElementById('navigation-section');
-            const hamburger = document.getElementById('hamburger-toggle');
-            const body = document.body;
-            const main = document.querySelector('.app-main');
-            
-            if (window.innerWidth > 768) {
-                // Clean up mobile states
-                sidebar.classList.remove('mobile-menu-open');
-                body.classList.remove('menu-open');
-                
-                // Restore desktop collapsed state from localStorage
-                const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-                if (isCollapsed) {
-                    sidebar.classList.add('collapsed');
-                    hamburger.classList.add('active');
-                    if (main) {
-                        main.classList.add('sidebar-collapsed');
-                    }
-                }
-            } else {
-                // Clean up desktop states
-                sidebar.classList.remove('collapsed');
-                if (main) {
-                    main.classList.remove('sidebar-collapsed');
-                }
-            }
-        });
-
-        // Initialize sidebar state on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            if (window.innerWidth > 768) {
-                const sidebar = document.getElementById('navigation-section');
-                const hamburger = document.getElementById('hamburger-toggle');
-                const main = document.querySelector('.app-main');
-                
-                // Restore collapsed state from localStorage
-                const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-                if (isCollapsed) {
-                    sidebar.classList.add('collapsed');
-                    hamburger.classList.add('active');
-                    if (main) {
-                        main.classList.add('sidebar-collapsed');
-                    }
-                }
-            }
-        });
-    </script>
 
 </body>
 
