@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type FNDConfiguration struct {
@@ -34,8 +35,28 @@ type FNDFrigateConfiguration struct {
 }
 
 type CameraConfig struct {
-	Name   string
-	Active bool
+	Name           string
+	Active         bool
+	ObjectFilter   ObjectFilterConfig
+	TimeSchedule   TimeScheduleConfig
+}
+
+// ObjectFilterConfig defines which objects to include/exclude for a camera
+type ObjectFilterConfig struct {
+	Enabled     bool     `json:"enabled"`
+	Mode        string   `json:"mode"` // "include" or "exclude"
+	Objects     []string `json:"objects"`
+	MinScore    float32  `json:"minScore"`
+	MaxScore    float32  `json:"maxScore"`
+}
+
+// TimeScheduleConfig defines when notifications should be sent for a camera
+type TimeScheduleConfig struct {
+	Enabled     bool                `json:"enabled"`
+	Days        []time.Weekday      `json:"days"`
+	StartTime   string              `json:"startTime"`   // Format: "HH:MM"
+	EndTime     string              `json:"endTime"`     // Format: "HH:MM"
+	TimeZone    string              `json:"timeZone"`
 }
 
 // Apprise configuration constants
@@ -147,6 +168,28 @@ func NewDefaultAppriseConfig() AppriseConfig {
 	}
 }
 
+// NewDefaultObjectFilterConfig creates a default object filter configuration
+func NewDefaultObjectFilterConfig() ObjectFilterConfig {
+	return ObjectFilterConfig{
+		Enabled:  false,
+		Mode:     "include",
+		Objects:  []string{},
+		MinScore: 0.0,
+		MaxScore: 1.0,
+	}
+}
+
+// NewDefaultTimeScheduleConfig creates a default time schedule configuration
+func NewDefaultTimeScheduleConfig() TimeScheduleConfig {
+	return TimeScheduleConfig{
+		Enabled:   false,
+		Days:      []time.Weekday{time.Monday, time.Tuesday, time.Wednesday, time.Thursday, time.Friday, time.Saturday, time.Sunday},
+		StartTime: "00:00",
+		EndTime:   "23:59",
+		TimeZone:  "UTC",
+	}
+}
+
 // ToMap converts AppriseConfig to a map for backward compatibility
 func (ac *AppriseConfig) ToMap() map[string]string {
 	return map[string]string{
@@ -226,6 +269,8 @@ func (fConf *FNDFrigateConfiguration) checkOrAddCamera(name string) CameraConfig
 	LogInfo("CAMERA", "New camera discovered", fmt.Sprintf("Camera: %s", name))
 	cam.Name = name
 	cam.Active = false
+	cam.ObjectFilter = NewDefaultObjectFilterConfig()
+	cam.TimeSchedule = NewDefaultTimeScheduleConfig()
 
 	fConf.Cameras[cam.Name] = cam
 
@@ -257,4 +302,90 @@ func (fConf *FNDFrigateConfiguration) activateCameras(activeList []string) {
 	}
 
 	LogInfo("CAMERA", "Camera activation updated", fmt.Sprintf("Active cameras: %v", activeList))
+}
+
+// ShouldProcessEvent checks if an event should be processed based on camera settings
+func (fConf *FNDFrigateConfiguration) ShouldProcessEvent(cameraName, objectLabel string, score float32) bool {
+	camera := fConf.checkOrAddCamera(cameraName)
+	
+	// Check if camera is active
+	if !camera.Active {
+		return false
+	}
+	
+	// Check object filter
+	if camera.ObjectFilter.Enabled {
+		if !fConf.isObjectAllowed(camera.ObjectFilter, objectLabel, score) {
+			return false
+		}
+	}
+	
+	// Check time schedule
+	if camera.TimeSchedule.Enabled {
+		if !fConf.isTimeAllowed(camera.TimeSchedule) {
+			return false
+		}
+	}
+	
+	return true
+}
+
+// isObjectAllowed checks if an object should be allowed based on filter settings
+func (fConf *FNDFrigateConfiguration) isObjectAllowed(filter ObjectFilterConfig, objectLabel string, score float32) bool {
+	// Check score range
+	if score < filter.MinScore || score > filter.MaxScore {
+		return false
+	}
+	
+	// Check if object is in the filter list
+	objectInList := false
+	for _, obj := range filter.Objects {
+		if obj == objectLabel {
+			objectInList = true
+			break
+		}
+	}
+	
+	// Apply mode logic
+	if filter.Mode == "include" {
+		return objectInList
+	} else { // exclude mode
+		return !objectInList
+	}
+}
+
+// isTimeAllowed checks if the current time is within the allowed schedule
+func (fConf *FNDFrigateConfiguration) isTimeAllowed(schedule TimeScheduleConfig) bool {
+	now := time.Now()
+	
+	// Check if current day is allowed
+	dayAllowed := false
+	for _, day := range schedule.Days {
+		if now.Weekday() == day {
+			dayAllowed = true
+			break
+		}
+	}
+	if !dayAllowed {
+		return false
+	}
+	
+	// Parse start and end times
+	startTime, err := time.Parse("15:04", schedule.StartTime)
+	if err != nil {
+		LogWarn("CAMERA", "Invalid start time format", fmt.Sprintf("Time: %s, Error: %s", schedule.StartTime, err.Error()))
+		return false
+	}
+	
+	endTime, err := time.Parse("15:04", schedule.EndTime)
+	if err != nil {
+		LogWarn("CAMERA", "Invalid end time format", fmt.Sprintf("Time: %s, Error: %s", schedule.EndTime, err.Error()))
+		return false
+	}
+	
+	// Get current time in the same format
+	currentTime := time.Date(2000, 1, 1, now.Hour(), now.Minute(), 0, 0, time.UTC)
+	
+	// Check if current time is within the allowed range
+	return currentTime.After(startTime) && currentTime.Before(endTime)
 }

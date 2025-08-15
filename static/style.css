@@ -882,6 +882,98 @@ input:checked + .slider-large:before {
     color: #721c24;
 }
 
+/* Camera Settings Grid */
+.camera-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+.camera-settings-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.camera-settings-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    border-color: hsl(204, 86%, 53%);
+}
+
+.camera-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid hsl(0, 0%, 96%);
+}
+
+.camera-settings-header .title {
+    margin-bottom: 0;
+    color: hsl(0, 0%, 21%);
+}
+
+.settings-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: hsl(0, 0%, 98%);
+    border-radius: 12px;
+    border-left: 4px solid hsl(204, 86%, 53%);
+}
+
+.settings-section:last-child {
+    margin-bottom: 0;
+}
+
+.settings-section .title {
+    margin-bottom: 1rem;
+    color: hsl(0, 0%, 21%);
+}
+
+.settings-section .field {
+    margin-bottom: 1rem;
+}
+
+.settings-section .field:last-child {
+    margin-bottom: 0;
+}
+
+/* Checkbox styling for days of week */
+.settings-section .control .checkbox {
+    display: inline-block;
+    margin-right: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.settings-section .control .checkbox input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+/* Time input styling */
+.settings-section input[type="time"] {
+    font-family: monospace;
+    font-size: 1.1rem;
+}
+
+/* Score range styling */
+.settings-section input[type="number"] {
+    font-family: monospace;
+    font-size: 1.1rem;
+}
+
+/* Object list textarea styling */
+.settings-section textarea {
+    font-family: monospace;
+    font-size: 0.9rem;
+    min-height: 80px;
+}
+
 /* Custom Toggle Switch for Camera Cards */
 .switch {
     position: relative;

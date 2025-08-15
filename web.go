@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,8 +28,6 @@ type FNDWebServer struct {
 	frigateEvent    *FNDFrigateEventManager
 }
 
-
-
 type FNDNotificationSinkStatus struct {
 	Name    string
 	Good    bool
@@ -36,13 +35,13 @@ type FNDNotificationSinkStatus struct {
 }
 
 type OverviewPayload struct {
-	NotificationStatus      map[string]FNDNotificationSinkStatus
-	Version                 string
-	TranslatedText          []string
-	ActiveLanguage          int
-	SupportedLanguages      []Language
-	CurrentLanguage         Language
-	CooldownInfo            CooldownInfo
+	NotificationStatus map[string]FNDNotificationSinkStatus
+	Version            string
+	TranslatedText     []string
+	ActiveLanguage     int
+	SupportedLanguages []Language
+	CurrentLanguage    Language
+	CooldownInfo       CooldownInfo
 }
 
 type CooldownInfo struct {
@@ -65,6 +64,21 @@ type NotificationPayload struct {
 	StatusMessage  string
 	Conf           *FNDFrigateConfiguration
 	TranslatedText []string
+}
+
+type CameraSettingsPayload struct {
+	ShowStatus     bool
+	Color          string
+	StatusMessage  string
+	Conf           *FNDFrigateConfiguration
+	TranslatedText []string
+	CameraData     map[string]CameraTemplateData
+}
+
+type CameraTemplateData struct {
+	Config         CameraConfig
+	TranslatedText []string
+	ActiveDays     map[int]bool // Pre-processed active days for template
 }
 
 type FrigateTemplatePayload struct {
@@ -227,6 +241,98 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 			ShowStatus:     false,
 			Conf:           conf,
 			TranslatedText: text,
+		})
+	})
+
+	r.GET("/camera-settings", func(c *gin.Context) {
+		text := []string{
+			web.translation.lookupToken("camera_settings"),
+			web.translation.lookupToken("object_filter"),
+			web.translation.lookupToken("time_schedule"),
+			web.translation.lookupToken("apply"),
+			web.translation.lookupToken("enable_object_filtering"),
+			web.translation.lookupToken("filter_mode"),
+			web.translation.lookupToken("include_only_these_objects"),
+			web.translation.lookupToken("exclude_these_objects"),
+			web.translation.lookupToken("objects"),
+			web.translation.lookupToken("enter_object_names"),
+			web.translation.lookupToken("minimum_score"),
+			web.translation.lookupToken("maximum_score"),
+			web.translation.lookupToken("enable_time_scheduling"),
+			web.translation.lookupToken("active_days"),
+			web.translation.lookupToken("start_time"),
+			web.translation.lookupToken("end_time"),
+			web.translation.lookupToken("time_zone"),
+		}
+
+		// Pre-process camera data for template
+		cameraData := make(map[string]CameraTemplateData)
+		for name, config := range conf.Cameras {
+			// Create map of active days for template
+			activeDays := make(map[int]bool)
+			for _, day := range config.TimeSchedule.Days {
+				activeDays[int(day)] = true
+			}
+
+			cameraData[name] = CameraTemplateData{
+				Config:         config,
+				TranslatedText: text,
+				ActiveDays:     activeDays,
+			}
+		}
+
+		t := template.Must(template.ParseFS(templateFS, "templates/camera_settings.html"))
+		t.Execute(c.Writer, CameraSettingsPayload{
+			ShowStatus:     false,
+			Conf:           conf,
+			TranslatedText: text,
+			CameraData:     cameraData,
+		})
+	})
+
+	r.GET("/htmx/camera-settings.html", func(c *gin.Context) {
+		text := []string{
+			web.translation.lookupToken("camera_settings"),
+			web.translation.lookupToken("object_filter"),
+			web.translation.lookupToken("time_schedule"),
+			web.translation.lookupToken("apply"),
+			web.translation.lookupToken("enable_object_filtering"),
+			web.translation.lookupToken("filter_mode"),
+			web.translation.lookupToken("include_only_these_objects"),
+			web.translation.lookupToken("exclude_these_objects"),
+			web.translation.lookupToken("objects"),
+			web.translation.lookupToken("enter_object_names"),
+			web.translation.lookupToken("minimum_score"),
+			web.translation.lookupToken("maximum_score"),
+			web.translation.lookupToken("enable_time_scheduling"),
+			web.translation.lookupToken("active_days"),
+			web.translation.lookupToken("start_time"),
+			web.translation.lookupToken("end_time"),
+			web.translation.lookupToken("time_zone"),
+		}
+
+		// Pre-process camera data for template
+		cameraData := make(map[string]CameraTemplateData)
+		for name, config := range conf.Cameras {
+			// Create map of active days for template
+			activeDays := make(map[int]bool)
+			for _, day := range config.TimeSchedule.Days {
+				activeDays[int(day)] = true
+			}
+
+			cameraData[name] = CameraTemplateData{
+				Config:         config,
+				TranslatedText: text,
+				ActiveDays:     activeDays,
+			}
+		}
+
+		t := template.Must(template.ParseFS(templateFS, "templates/camera_settings.html"))
+		t.Execute(c.Writer, CameraSettingsPayload{
+			ShowStatus:     false,
+			Conf:           conf,
+			TranslatedText: text,
+			CameraData:     cameraData,
 		})
 	})
 
@@ -497,6 +603,149 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 			StatusMessage:  "OK",
 			Conf:           conf,
 			TranslatedText: text,
+		})
+	})
+
+	r.POST("/camera-settings", func(c *gin.Context) {
+		LogInfo("WEB", "Camera settings update requested", "")
+
+		text := []string{
+			web.translation.lookupToken("camera_settings"),
+			web.translation.lookupToken("object_filter"),
+			web.translation.lookupToken("time_schedule"),
+			web.translation.lookupToken("apply"),
+			web.translation.lookupToken("enable_object_filtering"),
+			web.translation.lookupToken("filter_mode"),
+			web.translation.lookupToken("include_only_these_objects"),
+			web.translation.lookupToken("exclude_these_objects"),
+			web.translation.lookupToken("objects"),
+			web.translation.lookupToken("enter_object_names"),
+			web.translation.lookupToken("minimum_score"),
+			web.translation.lookupToken("maximum_score"),
+			web.translation.lookupToken("enable_time_scheduling"),
+			web.translation.lookupToken("active_days"),
+			web.translation.lookupToken("start_time"),
+			web.translation.lookupToken("end_time"),
+			web.translation.lookupToken("time_zone"),
+		}
+
+		// Parse form data
+		c.MultipartForm()
+
+		// Process camera settings
+		for key, value := range c.Request.PostForm {
+			if len(value) == 0 {
+				continue
+			}
+
+			// Parse camera name and setting type from key
+			// Format: camera_{name}_{setting}
+			if strings.HasPrefix(key, "camera_") {
+				parts := strings.Split(key, "_")
+				if len(parts) >= 3 {
+					cameraName := parts[1]
+					settingType := parts[2]
+
+					// Get or create camera config
+					camera := conf.checkOrAddCamera(cameraName)
+
+					switch settingType {
+					case "active":
+						camera.Active = value[0] == "on"
+					case "object":
+						if len(parts) >= 5 {
+							subSetting := parts[4]
+							switch subSetting {
+							case "filter":
+								if parts[3] == "enabled" {
+									camera.ObjectFilter.Enabled = value[0] == "on"
+								} else if parts[3] == "mode" {
+									camera.ObjectFilter.Mode = value[0]
+								} else if parts[3] == "objects" {
+									// Parse comma-separated objects
+									objectsStr := strings.TrimSuffix(value[0], ",")
+									if objectsStr != "" {
+										camera.ObjectFilter.Objects = strings.Split(objectsStr, ",")
+										// Trim whitespace from each object
+										for i, obj := range camera.ObjectFilter.Objects {
+											camera.ObjectFilter.Objects[i] = strings.TrimSpace(obj)
+										}
+									} else {
+										camera.ObjectFilter.Objects = []string{}
+									}
+								} else if parts[3] == "min" && parts[4] == "score" {
+									if score, err := strconv.ParseFloat(value[0], 32); err == nil {
+										camera.ObjectFilter.MinScore = float32(score)
+									}
+								} else if parts[3] == "max" && parts[4] == "score" {
+									if score, err := strconv.ParseFloat(value[0], 32); err == nil {
+										camera.ObjectFilter.MaxScore = float32(score)
+									}
+								}
+							}
+						}
+					case "time":
+						if len(parts) >= 5 {
+							subSetting := parts[4]
+							switch subSetting {
+							case "schedule":
+								if parts[3] == "enabled" {
+									camera.TimeSchedule.Enabled = value[0] == "on"
+								} else if parts[3] == "start" {
+									camera.TimeSchedule.StartTime = value[0]
+								} else if parts[3] == "end" {
+									camera.TimeSchedule.EndTime = value[0]
+								} else if parts[3] == "timezone" {
+									camera.TimeSchedule.TimeZone = value[0]
+								} else if parts[3] == "days" {
+									// Handle multiple day selections
+									var days []time.Weekday
+									for _, dayStr := range value {
+										if day, err := strconv.Atoi(dayStr); err == nil {
+											days = append(days, time.Weekday(day))
+										}
+									}
+									camera.TimeSchedule.Days = days
+								}
+							}
+						}
+					}
+
+					// Update camera in configuration
+					conf.Cameras[cameraName] = camera
+				}
+			}
+		}
+
+		// Save configuration to disk immediately
+		web.saveConfiguration()
+
+		LogInfo("WEB", "Camera settings updated successfully", "")
+
+		// Pre-process camera data for template
+		cameraData := make(map[string]CameraTemplateData)
+		for name, config := range conf.Cameras {
+			// Create map of active days for template
+			activeDays := make(map[int]bool)
+			for _, day := range config.TimeSchedule.Days {
+				activeDays[int(day)] = true
+			}
+
+			cameraData[name] = CameraTemplateData{
+				Config:         config,
+				TranslatedText: text,
+				ActiveDays:     activeDays,
+			}
+		}
+
+		t := template.Must(template.ParseFS(templateFS, "templates/camera_settings.html"))
+		_ = t.Execute(c.Writer, CameraSettingsPayload{
+			ShowStatus:     true,
+			Color:          "is-success",
+			StatusMessage:  "Camera settings saved successfully",
+			Conf:           conf,
+			TranslatedText: text,
+			CameraData:     cameraData,
 		})
 	})
 
@@ -847,8 +1096,6 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 	r.POST("/api/test/apprise", func(c *gin.Context) {
 		web.sendTestNotificationToSink("Apprise", c)
 	})
-
-
 
 	return &web
 }

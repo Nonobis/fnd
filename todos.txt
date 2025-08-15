@@ -11,6 +11,7 @@
 * Redesign the UI to be **more modern, beautiful, and responsive**.
 * Implement **cooldown** in the Overview page.
 * Add a **Test** button for each notification system on its settings page.
+* Implement **per-camera settings** with object filtering and time scheduling capabilities.
 
 ---
 
@@ -25,8 +26,4 @@
 
 ---
 
-## 🎯 Per-Camera Settings
 
-* Custom notification message.
-* Object filtering.
-* Time scheduling.

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Settings - FND</title>
+    <link rel="stylesheet" href="/static/bulma.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="/static/htmx.min.js"></script>
+</head>
+<body>
+    {{template "navigation.html" .}}
+
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-8">
+                    <div class="content">
+                        <h1 class="title is-2">
+                            <span class="icon-text">
+                                <span class="icon">
+                                    <i class="fas fa-video"></i>
+                                </span>
+                                <span>{{index .TranslatedText 0}}</span>
+                            </span>
+                        </h1>
+                        <p class="subtitle is-5">Configure object filtering and time scheduling for each camera</p>
+                    </div>
+
+                    <form method="POST" action="/camera-settings">
+                        {{ if .Conf.Cameras }}
+                        <div class="camera-settings-grid">
+                            {{ range $name, $cameraData := .CameraData}}
+                            <div class="camera-settings-card">
+                                <div class="camera-settings-header">
+                                    <h3 class="title is-4">{{ $name }}</h3>
+                                    <div class="camera-toggle">
+                                        <label class="switch">
+                                            <input type="checkbox" name="camera_{{ $name }}_active" {{if $cameraData.Config.Active}}checked{{end}}>
+                                            <span class="slider"></span>
+                                        </label>
+                                        <span class="toggle-label">{{if $cameraData.Config.Active}}Active{{else}}Inactive{{end}}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Object Filter Settings -->
+                                <div class="settings-section">
+                                    <h4 class="title is-5">
+                                        <span class="icon-text">
+                                            <span class="icon">
+                                                <i class="fas fa-filter"></i>
+                                            </span>
+                                            <span>{{index .TranslatedText 1}}</span>
+                                        </span>
+                                    </h4>
+                                    
+                                    <div class="field">
+                                        <label class="checkbox">
+                                            <input type="checkbox" name="camera_{{ $name }}_object_filter_enabled" {{if $cameraData.Config.ObjectFilter.Enabled}}checked{{end}}>
+                                            {{index $cameraData.TranslatedText 4}}
+                                        </label>
+                                    </div>
+
+                                    <div class="field" id="object-filter-{{ $name }}" {{if not $cameraData.Config.ObjectFilter.Enabled}}style="display: none;"{{end}}>
+                                        <label class="label">{{index $cameraData.TranslatedText 5}}</label>
+                                        <div class="control">
+                                            <div class="select">
+                                                <select name="camera_{{ $name }}_object_filter_mode">
+                                                    <option value="include" {{if eq $cameraData.Config.ObjectFilter.Mode "include"}}selected{{end}}>{{index $cameraData.TranslatedText 6}}</option>
+                                                    <option value="exclude" {{if eq $cameraData.Config.ObjectFilter.Mode "exclude"}}selected{{end}}>{{index $cameraData.TranslatedText 7}}</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="field" id="object-list-{{ $name }}" {{if not $cameraData.Config.ObjectFilter.Enabled}}style="display: none;"{{end}}>
+                                        <label class="label">{{index $cameraData.TranslatedText 8}}</label>
+                                        <div class="control">
+                                            <textarea class="textarea" name="camera_{{ $name }}_object_filter_objects" placeholder="{{index $cameraData.TranslatedText 9}}">{{range $cameraData.Config.ObjectFilter.Objects}}{{.}},{{end}}</textarea>
+                                        </div>
+                                        <p class="help">Enter object names separated by commas</p>
+                                    </div>
+
+                                    <div class="columns" id="score-range-{{ $name }}" {{if not $cameraData.Config.ObjectFilter.Enabled}}style="display: none;"{{end}}>
+                                        <div class="column">
+                                            <div class="field">
+                                                <label class="label">{{index $cameraData.TranslatedText 10}}</label>
+                                                <div class="control">
+                                                    <input class="input" type="number" name="camera_{{ $name }}_object_filter_min_score" value="{{$cameraData.Config.ObjectFilter.MinScore}}" min="0" max="1" step="0.1">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column">
+                                            <div class="field">
+                                                <label class="label">{{index $cameraData.TranslatedText 11}}</label>
+                                                <div class="control">
+                                                    <input class="input" type="number" name="camera_{{ $name }}_object_filter_max_score" value="{{$cameraData.Config.ObjectFilter.MaxScore}}" min="0" max="1" step="0.1">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Time Schedule Settings -->
+                                <div class="settings-section">
+                                    <h4 class="title is-5">
+                                        <span class="icon-text">
+                                            <span class="icon">
+                                                <i class="fas fa-clock"></i>
+                                            </span>
+                                            <span>{{index .TranslatedText 2}}</span>
+                                        </span>
+                                    </h4>
+                                    
+                                    <div class="field">
+                                        <label class="checkbox">
+                                            <input type="checkbox" name="camera_{{ $name }}_time_schedule_enabled" {{if $cameraData.Config.TimeSchedule.Enabled}}checked{{end}}>
+                                            {{index $cameraData.TranslatedText 12}}
+                                        </label>
+                                    </div>
+
+                                    <div class="field" id="time-schedule-{{ $name }}" {{if not $cameraData.Config.TimeSchedule.Enabled}}style="display: none;"{{end}}>
+                                        <label class="label">{{index $cameraData.TranslatedText 13}}</label>
+                                        <div class="control">
+                                            <label class="checkbox">
+                                                <input type="checkbox" name="camera_{{ $name }}_time_schedule_days" value="1" {{if index $cameraData.ActiveDays 1}}checked{{end}}> Monday
+                                            </label>
+                                            <label class="checkbox">
+                                                <input type="checkbox" name="camera_{{ $name }}_time_schedule_days" value="2" {{if index $cameraData.ActiveDays 2}}checked{{end}}> Tuesday
+                                            </label>
+                                            <label class="checkbox">
+                                                <input type="checkbox" name="camera_{{ $name }}_time_schedule_days" value="3" {{if index $cameraData.ActiveDays 3}}checked{{end}}> Wednesday
+                                            </label>
+                                            <label class="checkbox">
+                                                <input type="checkbox" name="camera_{{ $name }}_time_schedule_days" value="4" {{if index $cameraData.ActiveDays 4}}checked{{end}}> Thursday
+                                            </label>
+                                            <label class="checkbox">
+                                                <input type="checkbox" name="camera_{{ $name }}_time_schedule_days" value="5" {{if index $cameraData.ActiveDays 5}}checked{{end}}> Friday
+                                            </label>
+                                            <label class="checkbox">
+                                                <input type="checkbox" name="camera_{{ $name }}_time_schedule_days" value="6" {{if index $cameraData.ActiveDays 6}}checked{{end}}> Saturday
+                                            </label>
+                                            <label class="checkbox">
+                                                <input type="checkbox" name="camera_{{ $name }}_time_schedule_days" value="0" {{if index $cameraData.ActiveDays 0}}checked{{end}}> Sunday
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="columns" id="time-range-{{ $name }}" {{if not $cameraData.Config.TimeSchedule.Enabled}}style="display: none;"{{end}}>
+                                        <div class="column">
+                                            <div class="field">
+                                                <label class="label">{{index $cameraData.TranslatedText 15}}</label>
+                                                <div class="control">
+                                                    <input class="input" type="time" name="camera_{{ $name }}_time_schedule_start" value="{{$cameraData.Config.TimeSchedule.StartTime}}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="column">
+                                            <div class="field">
+                                                <label class="label">{{index $cameraData.TranslatedText 16}}</label>
+                                                <div class="control">
+                                                    <input class="input" type="time" name="camera_{{ $name }}_time_schedule_end" value="{{$cameraData.Config.TimeSchedule.EndTime}}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="field" id="timezone-{{ $name }}" {{if not $cameraData.Config.TimeSchedule.Enabled}}style="display: none;"{{end}}>
+                                        <label class="label">{{index $cameraData.TranslatedText 17}}</label>
+                                        <div class="control">
+                                            <div class="select">
+                                                <select name="camera_{{ $name }}_time_schedule_timezone">
+                                                    <option value="UTC" {{if eq $cameraData.Config.TimeSchedule.TimeZone "UTC"}}selected{{end}}>UTC</option>
+                                                    <option value="Europe/Paris" {{if eq $cameraData.Config.TimeSchedule.TimeZone "Europe/Paris"}}selected{{end}}>Europe/Paris</option>
+                                                    <option value="America/New_York" {{if eq $cameraData.Config.TimeSchedule.TimeZone "America/New_York"}}selected{{end}}>America/New_York</option>
+                                                    <option value="Asia/Tokyo" {{if eq $cameraData.Config.TimeSchedule.TimeZone "Asia/Tokyo"}}selected{{end}}>Asia/Tokyo</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {{ end }}
+                        </div>
+                        {{ else }}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-video-slash"></i>
+                            </div>
+                            <h3 class="empty-state-title">No cameras found</h3>
+                            <p class="empty-state-message">Please configure your Frigate server first to see available cameras.</p>
+                        </div>
+                        {{ end }}
+
+                        <div class="form-actions mt-5">
+                            <button class="button is-primary is-medium is-rounded">
+                                <span class="icon">
+                                    <i class="fas fa-save"></i>
+                                </span>
+                                <span>{{index .TranslatedText 3}}</span>
+                            </button>
+                        </div>
+
+                        {{ if .ShowStatus }}
+                        <div class="status-message mt-4">
+                            <div class="notification {{.Color}} is-light">
+                                <span class="icon">
+                                    <i class="fas {{ if eq .Color "is-success"}}fa-check-circle{{ else }}fa-exclamation-triangle{{ end }}"></i>
+                                </span>
+                                <span>{{.StatusMessage}}</span>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </form>
+                </div>
+
+                <!-- Help Section -->
+                <div class="column is-4">
+                    <div class="help-card">
+                        <div class="help-card-header">
+                            <h3 class="title is-5">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-question-circle"></i>
+                                    </span>
+                                    <span>Help & Information</span>
+                                </span>
+                            </h3>
+                        </div>
+                        <div class="help-card-body">
+                            <div class="help-item">
+                                <h4 class="help-title">
+                                    <span class="icon">
+                                        <i class="fas fa-filter"></i>
+                                    </span>
+                                    Object Filtering
+                                </h4>
+                                <p>Configure which objects should trigger notifications for each camera. You can include only specific objects or exclude unwanted ones.</p>
+                            </div>
+                            <div class="help-item">
+                                <h4 class="help-title">
+                                    <span class="icon">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
+                                    Time Scheduling
+                                </h4>
+                                <p>Set specific times and days when notifications should be sent for each camera. Useful for reducing false alarms during certain hours.</p>
+                            </div>
+                            <div class="help-item">
+                                <h4 class="help-title">
+                                    <span class="icon">
+                                        <i class="fas fa-percentage"></i>
+                                    </span>
+                                    Score Range
+                                </h4>
+                                <p>Set minimum and maximum confidence scores for object detection. Higher scores mean more confident detections.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Toggle visibility of object filter settings
+        document.querySelectorAll('input[name$="_object_filter_enabled"]').forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                const cameraName = this.name.replace('camera_', '').replace('_object_filter_enabled', '');
+                const filterSection = document.getElementById('object-filter-' + cameraName);
+                const objectList = document.getElementById('object-list-' + cameraName);
+                const scoreRange = document.getElementById('score-range-' + cameraName);
+                
+                if (this.checked) {
+                    filterSection.style.display = 'block';
+                    objectList.style.display = 'block';
+                    scoreRange.style.display = 'block';
+                } else {
+                    filterSection.style.display = 'none';
+                    objectList.style.display = 'none';
+                    scoreRange.style.display = 'none';
+                }
+            });
+        });
+
+        // Toggle visibility of time schedule settings
+        document.querySelectorAll('input[name$="_time_schedule_enabled"]').forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                const cameraName = this.name.replace('camera_', '').replace('_time_schedule_enabled', '');
+                const scheduleSection = document.getElementById('time-schedule-' + cameraName);
+                const timeRange = document.getElementById('time-range-' + cameraName);
+                const timezone = document.getElementById('timezone-' + cameraName);
+                
+                if (this.checked) {
+                    scheduleSection.style.display = 'block';
+                    timeRange.style.display = 'block';
+                    timezone.style.display = 'block';
+                } else {
+                    scheduleSection.style.display = 'none';
+                    timeRange.style.display = 'none';
+                    timezone.style.display = 'none';
+                }
+            });
+        });
+
+        // Toggle camera active status
+        document.querySelectorAll('input[name$="_active"]').forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                const label = this.parentElement.nextElementSibling;
+                if (this.checked) {
+                    label.textContent = 'Active';
+                } else {
+                    label.textContent = 'Inactive';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

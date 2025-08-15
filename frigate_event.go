@@ -60,14 +60,14 @@ func (e *FNDFrigateEventManager) addNewEventMessage(msg eventMessage) error {
 }
 
 func (e *FNDFrigateEventManager) shouldSendNotification(msg eventMessage) bool {
-	if !e.fConf.checkOrAddCamera(msg.Before.Camera).Active {
+	// Check if event should be processed based on camera settings
+	if !e.fConf.ShouldProcessEvent(msg.Before.Camera, msg.Before.Label, msg.Before.Score) {
 		return false
 	}
 
+	// Check global cooldown
 	diff := time.Since(e.lastNotificationSent)
-
 	return diff.Seconds() > float64(e.fConf.Cooldown)
-
 }
 
 func (e *FNDFrigateEventManager) prepareNotification(msg eventMessage) error {
