@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -69,59 +70,70 @@ func (apprise *FNDAppriseNotificationSink) registerWebServer(webServer *FNDWebSe
 
 	apprise.webServer.r.GET("/htmx/apprise.html", func(c *gin.Context) {
 		t := template.Must(template.ParseFS(templateFS, "templates/apprise.html"))
-		t.Execute(c.Writer, apprise.generatePayload(false))
+		_ = t.Execute(c.Writer, apprise.generatePayload(false))
 	})
 
-	apprise.webServer.r.POST("/htmx/apprise.html", func(c *gin.Context) {
-		apprise.appriseConfig.Enabled = false
-		c.MultipartForm()
-		for key, value := range c.Request.PostForm {
-			if key == "appriseConfigID" {
-				if value[0] == "" {
-					continue
-				}
-				apprise.appriseConfig.ConfigID = value[0]
-				continue
-			}
-			if key == "serverURL" {
-				if value[0] == "" {
-					continue
-				}
-				apprise.appriseConfig.ServerURL = value[0]
-				continue
-			}
-			if key == "timeout" {
-				if value[0] == "" {
-					continue
-				}
-				if timeout, err := strconv.Atoi(value[0]); err == nil && timeout > 0 && timeout <= 300 {
-					apprise.appriseConfig.Timeout = timeout
-				}
-				continue
-			}
-			if key == "format" {
-				if value[0] == "" {
-					continue
-				}
-				if value[0] == "text" || value[0] == "markdown" || value[0] == "html" {
-					apprise.appriseConfig.Format = value[0]
-				}
-				continue
-			}
-			if key == "active" {
-				if value[0] == "" {
-					continue
-				}
-				apprise.appriseConfig.Enabled = true
-				continue
-			}
-		}
+	apprise.webServer.r.POST("/htmx/apprise/toggle", func(c *gin.Context) {
+		// Toggle the enabled status
+		apprise.appriseConfig.Enabled = !apprise.appriseConfig.Enabled
 
 		// Synchronize back to legacy format for compatibility
 		apprise.updateConfig()
 
+		// Save configuration to disk immediately
+		apprise.webServer.saveConfigurationWithNotifications(apprise.webServer.notifyManager)
+
+		// Return updated page
 		t := template.Must(template.ParseFS(templateFS, "templates/apprise.html"))
-		t.Execute(c.Writer, apprise.generatePayload(true))
+		_ = t.Execute(c.Writer, apprise.generatePayload(false))
+	})
+
+	apprise.webServer.r.POST("/htmx/apprise.html", func(c *gin.Context) {
+		c.MultipartForm()
+		for key, value := range c.Request.PostForm {
+			if key == "appriseConfigID" {
+				if value[0] != "" {
+					apprise.appriseConfig.ConfigID = value[0]
+				}
+				continue
+			}
+			if key == "serverURL" {
+				if value[0] != "" {
+					apprise.appriseConfig.ServerURL = value[0]
+				}
+				continue
+			}
+			if key == "timeout" {
+				if value[0] != "" {
+					if timeout, err := strconv.Atoi(value[0]); err == nil && timeout > 0 && timeout <= 300 {
+						apprise.appriseConfig.Timeout = timeout
+					}
+				}
+				continue
+			}
+			if key == "format" {
+				if value[0] != "" {
+					if value[0] == "text" || value[0] == "markdown" || value[0] == "html" {
+						apprise.appriseConfig.Format = value[0]
+					}
+				}
+				continue
+			}
+			// Apprise doesn't have an active checkbox in the form
+			// The active state is managed by the separate toggle button
+		}
+
+		LogInfo("APPRISE", "Configuration updated", fmt.Sprintf("Enabled: %t, ConfigID: %s, ServerURL: %s",
+			apprise.appriseConfig.Enabled, apprise.appriseConfig.ConfigID, apprise.appriseConfig.ServerURL))
+
+		// Synchronize back to legacy format for compatibility
+		apprise.updateConfig()
+
+		// Save configuration to disk immediately
+		apprise.webServer.saveConfigurationWithNotifications(apprise.webServer.notifyManager)
+
+		t := template.Must(template.ParseFS(templateFS, "templates/apprise.html"))
+		_ = t.Execute(c.Writer, apprise.generatePayload(true))
 	})
 
 }
@@ -170,13 +182,19 @@ func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) e
 	var err error
 	writer := multipart.NewWriter(&requestBody)
 
-	err = writer.WriteField("body", n.Caption+"   "+n.Date)
+	// Add video URL to caption if available
+	body := n.Caption + "   " + n.Date
+	if n.HasVideo && n.VideoURL != "" {
+		body += "\n🎥 Video: " + n.VideoURL
+	}
+
+	err = writer.WriteField("body", body)
 	if err != nil {
 		return err
 	}
 
+	// Attach image
 	jpedDataReader := bytes.NewReader(n.JpegData)
-
 	fileWriter, err := writer.CreateFormFile("attach", "Screenshot.jpeg")
 	if err != nil {
 		return err
@@ -185,6 +203,20 @@ func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) e
 	_, err = io.Copy(fileWriter, jpedDataReader)
 	if err != nil {
 		return err
+	}
+
+	// Attach video if we have video data
+	if n.HasVideo && len(n.VideoData) > 0 {
+		videoDataReader := bytes.NewReader(n.VideoData)
+		videoWriter, err := writer.CreateFormFile("attach", "clip.mp4")
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(videoWriter, videoDataReader)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = writer.Close()
@@ -212,7 +244,11 @@ func (apprise *FNDAppriseNotificationSink) sendNotification(n FNDNotification) e
 		apprise.lastStatusMessage = "Invalid return value"
 		return nil
 	}
-	apprise.lastStatusMessage = "Online"
+	if n.HasVideo && len(n.VideoData) > 0 {
+		apprise.lastStatusMessage = "Online (with video)"
+	} else {
+		apprise.lastStatusMessage = "Online"
+	}
 	return nil
 }
 

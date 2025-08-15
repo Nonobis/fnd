@@ -1,76 +1,263 @@
-<div id="apprise-settings">
-    <div class="columns">
-
-
-        <div class="column is-narrow">
-            <h3 class="title is-3">Apprise</h3>
-            <form hx-post="/htmx/apprise.html" hx-target="#apprise-settings" hx-swap="outerHTML">
-                <label class="label">{{index .TranslatedText 0}}</label>
-                <div class="field">
-                    <div class="control">
-                        <label class="checkbox">
-                            <input type="checkbox" name="active" {{if .Active}}checked{{end}}>
-                            {{index .TranslatedText 0}}
-                        </label>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">{{index .TranslatedText 1}}</label>
-                    <div class="control">
-                        <input class="input" type="text" name="appriseConfigID" placeholder="{{ .AppriseConfigID }}">
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">{{index .TranslatedText 4}}</label>
-                    <div class="control">
-                        <input class="input" type="text" name="serverURL" placeholder="{{ .ServerURL }}">
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">{{index .TranslatedText 5}}</label>
-                    <div class="control">
-                        <input class="input" type="number" name="timeout" placeholder="{{ .Timeout }}" min="1" max="300">
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">{{index .TranslatedText 6}}</label>
-                    <div class="control">
-                        <div class="select">
-                            <select name="format">
-                                <option value="text" {{if eq .Format "text"}}selected{{end}}>Text</option>
-                                <option value="markdown" {{if eq .Format "markdown"}}selected{{end}}>Markdown</option>
-                                <option value="html" {{if eq .Format "html"}}selected{{end}}>HTML</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="control">
-                    <button class="button is-link">{{index .TranslatedText 3}}</button>
-                </div>
-
-                <br>
-                {{ if .ShowStatus }}<span class="tag {{.Color}} is-normal">{{.StatusMessage}}</span>{{end}}
-
-            </form>
-
-        </div>
-
-        <div class="column is-narrow">
-            <ol>
-                <li>{{index .TranslatedText 2}}</li>
-            </ol>
-
-
-
-
-        </div>
-
-
-
+<div id="apprise-settings" class="settings-container">
+    <!-- Header Section -->
+    <div class="settings-header">
+        <h1 class="title is-2">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fas fa-broadcast-tower"></i>
+                </span>
+                <span>Apprise</span>
+            </span>
+        </h1>
+        <p class="subtitle is-6">Configure Apprise notification service</p>
     </div>
+
+    <!-- Service Toggle Section -->
+    <div class="service-toggle-section {{if .Active}}is-enabled{{else}}is-disabled{{end}}">
+        <div class="service-toggle-title">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fas fa-broadcast-tower"></i>
+                </span>
+                <span>Apprise Service</span>
+            </span>
+        </div>
+        <button class="service-toggle-button {{if .Active}}is-enabled{{else}}is-disabled{{end}}" 
+                hx-post="/htmx/apprise/toggle" 
+                hx-target="#apprise-settings"
+                hx-swap="outerHTML">
+            <span class="icon">
+                <i class="fas {{if .Active}}fa-toggle-on{{else}}fa-toggle-off{{end}}"></i>
+            </span>
+            <span>{{if .Active}}Service Enabled{{else}}Service Disabled{{end}}</span>
+        </button>
+        <div class="service-status-indicator {{if .Active}}is-enabled{{else}}is-disabled{{end}}">
+            <span class="icon">
+                <i class="fas {{if .Active}}fa-check-circle{{else}}fa-times-circle{{end}}"></i>
+            </span>
+            <span>{{if .Active}}Notifications will be sent via Apprise{{else}}Apprise notifications are disabled{{end}}</span>
+        </div>
+    </div>
+
+    <div class="columns">
+        <!-- Configuration Form -->
+        <div class="column is-8">
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h2 class="title is-4">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-cog"></i>
+                            </span>
+                            <span>Service Configuration</span>
+                        </span>
+                    </h2>
+                </div>
+                <div class="settings-card-body">
+                    <form hx-post="/htmx/apprise.html" hx-target="#apprise-settings" hx-swap="outerHTML" id="apprise-form">
+                        <div class="form-grid">
+
+                            <div class="form-group">
+                                <label class="label">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-key"></i>
+                                        </span>
+                                        <span>{{index .TranslatedText 1}}</span>
+                                    </span>
+                                </label>
+                                <div class="control has-icons-left has-icons-right">
+                                    <input class="input is-medium apprise-field" type="password" name="appriseConfigID" placeholder="••••••••••••••••••••••••••••••••••••••••" {{if not .Active}}disabled{{end}} id="apprise-config">
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-key"></i>
+                                    </span>
+                                    <span class="icon is-small is-right toggle-password" onclick="toggleTokenVisibility('apprise-config', this)">
+                                        <i class="fas fa-eye"></i>
+                                    </span>
+                                </div>
+                                <p class="help">
+                                    {{if .AppriseConfigID}}
+                                    <span class="has-text-success">
+                                        <i class="fas fa-check-circle"></i> Config ID is set
+                                    </span>
+                                    {{else}}
+                                    <span class="has-text-grey">Enter your Apprise Configuration ID</span>
+                                    {{end}}
+                                </p>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="label">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-server"></i>
+                                        </span>
+                                        <span>{{index .TranslatedText 4}}</span>
+                                    </span>
+                                </label>
+                                <div class="control has-icons-left">
+                                    <input class="input is-medium apprise-field" type="text" name="serverURL" placeholder="{{ .ServerURL }}" {{if not .Active}}disabled{{end}}>
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-server"></i>
+                                    </span>
+                                </div>
+                                <p class="help">URL of your Apprise server instance</p>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="label">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-clock"></i>
+                                        </span>
+                                        <span>{{index .TranslatedText 5}}</span>
+                                    </span>
+                                </label>
+                                <div class="control has-icons-left">
+                                    <input class="input is-medium apprise-field" type="number" name="timeout" placeholder="{{ .Timeout }}" min="1" max="300" {{if not .Active}}disabled{{end}}>
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
+                                </div>
+                                <p class="help">Request timeout in seconds (1-300)</p>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="label">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-code"></i>
+                                        </span>
+                                        <span>{{index .TranslatedText 6}}</span>
+                                    </span>
+                                </label>
+                                <div class="control has-icons-left">
+                                    <div class="select is-medium is-fullwidth">
+                                        <select name="format" class="apprise-field" {{if not .Active}}disabled{{end}}>
+                                            <option value="text" {{if eq .Format "text"}}selected{{end}}>Text</option>
+                                            <option value="markdown" {{if eq .Format "markdown"}}selected{{end}}>Markdown</option>
+                                            <option value="html" {{if eq .Format "html"}}selected{{end}}>HTML</option>
+                                        </select>
+                                    </div>
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-code"></i>
+                                    </span>
+                                </div>
+                                <p class="help">Message format for notifications</p>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="button is-primary is-medium is-rounded apprise-field" {{if not .Active}}disabled{{end}}>
+                                <span class="icon">
+                                    <i class="fas fa-save"></i>
+                                </span>
+                                <span>{{index .TranslatedText 3}}</span>
+                            </button>
+                            <button type="button" class="button is-info is-medium is-rounded apprise-field" {{if not .Active}}disabled{{end}} 
+                                    hx-post="/api/test/apprise" 
+                                    hx-target="#test-result-apprise" 
+                                    hx-indicator="#test-loading-apprise">
+                                <span class="icon">
+                                    <i class="fas fa-paper-plane"></i>
+                                </span>
+                                <span>Test Notification</span>
+                            </button>
+                        </div>
+
+                        <!-- Test Result Area -->
+                        <div id="test-result-apprise" class="mt-3"></div>
+                        <div id="test-loading-apprise" class="has-text-centered mt-3" style="display: none;">
+                            <span class="icon">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                            <span>Sending test notification...</span>
+                        </div>
+
+                        {{ if .ShowStatus }}
+                        <div class="status-message mt-4">
+                            <div class="notification {{.Color}} is-light">
+                                <span class="icon">
+                                    <i class="fas {{ if eq .Color "is-success"}}fa-check-circle{{ else }}fa-exclamation-triangle{{ end }}"></i>
+                                </span>
+                                <span>{{.StatusMessage}}</span>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="column is-4">
+            <div class="help-card">
+                <div class="help-card-header">
+                    <h3 class="title is-5">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-question-circle"></i>
+                            </span>
+                            <span>Setup Guide</span>
+                        </span>
+                    </h3>
+                </div>
+                <div class="help-card-body">
+                    <div class="setup-steps">
+                        {{index .TranslatedText 2}}
+                    </div>
+
+                    <div class="notification is-info is-light mt-4">
+                        <strong>💡 Quick Setup:</strong>
+                        <ol class="mt-2">
+                            <li>Deploy Apprise API server</li>
+                            <li>Create a new configuration</li>
+                            <li>Add your notification services</li>
+                            <li>Copy the configuration ID here</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        function toggleAppriseFields() {
+            const isActive = document.getElementById('apprise-active').checked;
+            const fields = document.querySelectorAll('.apprise-field');
+            const toggleLabel = document.querySelector('.toggle-label');
+            
+            fields.forEach(field => {
+                field.disabled = !isActive;
+                if (isActive) {
+                    field.classList.remove('is-disabled');
+                } else {
+                    field.classList.add('is-disabled');
+                }
+            });
+            
+            toggleLabel.textContent = isActive ? 'Enabled' : 'Disabled';
+        }
+
+        function toggleTokenVisibility(inputId, iconElement) {
+            const input = document.getElementById(inputId);
+            const icon = iconElement.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Initialize the fields state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleAppriseFields();
+        });
+    </script>
 </div>

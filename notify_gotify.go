@@ -63,48 +63,68 @@ func (gotify *FNDGotifyNotificationSink) registerWebServer(webServer *FNDWebServ
 
 	gotify.webServer.r.GET("/htmx/gotify.html", func(c *gin.Context) {
 		t := template.Must(template.ParseFS(templateFS, "templates/gotify.html"))
-		t.Execute(c.Writer, gotify.generatePayload(false))
+		_ = t.Execute(c.Writer, gotify.generatePayload(false))
+	})
+
+	gotify.webServer.r.POST("/htmx/gotify/toggle", func(c *gin.Context) {
+		// Toggle the enabled status
+		if gotify.config.Map["enabled"] == "true" {
+			gotify.config.Map["enabled"] = "false"
+			gotify.lastStatusMessage = "disabled"
+		} else {
+			gotify.config.Map["enabled"] = "true"
+			gotify.lastStatusMessage = "enabled"
+		}
+
+		// Save configuration to disk immediately
+		gotify.webServer.saveConfigurationWithNotifications(gotify.webServer.notifyManager)
+
+		// Return updated page
+		t := template.Must(template.ParseFS(templateFS, "templates/gotify.html"))
+		_ = t.Execute(c.Writer, gotify.generatePayload(false))
 	})
 
 	gotify.webServer.r.POST("/htmx/gotify.html", func(c *gin.Context) {
-		gotify.config.Map["enabled"] = "false"
 		c.MultipartForm()
+		
+		// Keep the current enabled state by default (variable kept for future use)
+		_ = gotify.config.Map["enabled"]
+		
+		// Process form fields
 		for key, value := range c.Request.PostForm {
 			if key == "serverurl" {
-				if value[0] == "" {
-					continue
+				if value[0] != "" {
+					gotify.config.Map["serverurl"] = value[0]
 				}
-				gotify.config.Map["serverurl"] = value[0]
 				continue
 			}
 			if key == "apptoken" {
-				if value[0] == "" {
-					continue
+				if value[0] != "" {
+					gotify.config.Map["apptoken"] = value[0]
 				}
-				gotify.config.Map["apptoken"] = value[0]
 				continue
 			}
 			if key == "priority" {
-				if value[0] == "" {
-					continue
-				}
-				// Validate priority is between 0-10
-				if priority, err := strconv.Atoi(value[0]); err == nil && priority >= 0 && priority <= 10 {
-					gotify.config.Map["priority"] = value[0]
+				if value[0] != "" {
+					// Validate priority is between 0-10
+					if priority, err := strconv.Atoi(value[0]); err == nil && priority >= 0 && priority <= 10 {
+						gotify.config.Map["priority"] = value[0]
+					}
 				}
 				continue
 			}
-			if key == "active" {
-				if value[0] == "" {
-					continue
-				}
-				gotify.config.Map["enabled"] = "true"
-				continue
-			}
+			// Gotify doesn't have an active checkbox in the form
+			// The active state is managed by the separate toggle button
 		}
+		
+		LogInfo("GOTIFY", "Configuration updated", fmt.Sprintf("Enabled: %s, ServerURL: %s", 
+			gotify.config.Map["enabled"], gotify.config.Map["serverurl"]))
+
+		// Save configuration to disk immediately
+		gotify.webServer.saveConfigurationWithNotifications(gotify.webServer.notifyManager)
 
 		t := template.Must(template.ParseFS(templateFS, "templates/gotify.html"))
-		t.Execute(c.Writer, gotify.generatePayload(true))
+		_ = t.Execute(c.Writer, gotify.generatePayload(true))
 	})
 }
 
@@ -168,10 +188,15 @@ func (gotify *FNDGotifyNotificationSink) sendNotification(n FNDNotification) err
 		}
 	}
 
-	// Create the message
+	// Create the message with optional video link
+	messageText := fmt.Sprintf("%s\n\n%s", n.Caption, n.Date)
+	if n.HasVideo && n.VideoURL != "" {
+		messageText += "\n\n🎥 Video: " + n.VideoURL
+	}
+
 	message := GotifyMessage{
 		Title:    "FND Notification",
-		Message:  fmt.Sprintf("%s\n\n%s", n.Caption, n.Date),
+		Message:  messageText,
 		Priority: priority,
 	}
 

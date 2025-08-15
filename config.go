@@ -11,16 +11,24 @@ import (
 type FNDConfiguration struct {
 	Frigate FNDFrigateConfiguration
 	Notify  FNDNotificationConfiguration
+	Logging FNDLoggingConfiguration
 }
 
 type FNDFrigateConfiguration struct {
-	Host       string
-	Port       string
-	MqttServer string
-	MqttPort   string
-	Cooldown   int
-	Cameras    map[string]CameraConfig
-	Language   string
+	Host           string
+	Port           string
+	MqttServer     string
+	MqttPort       string
+	MqttUsername   string
+	MqttPassword   string
+	MqttAnonymous  bool
+	Cooldown       int
+	Cameras        map[string]CameraConfig
+	Language       string
+	VideoEnabled   bool
+	VideoUrlOnly   bool
+	MaxVideoSizeMB int
+	ExternalURL    string
 
 	m sync.Mutex
 }
@@ -57,11 +65,31 @@ type FNDNotificationConfiguration struct {
 	Apprise AppriseConfig `json:"apprise"`
 }
 
+// Logging configuration constants
+const (
+	LOG_LEVEL_DEBUG_VALUE = 0
+	LOG_LEVEL_INFO_VALUE  = 1
+	LOG_LEVEL_WARN_VALUE  = 2
+	LOG_LEVEL_ERROR_VALUE = 3
+
+	DEFAULT_MAX_LOG_ENTRIES = 1000
+	DEFAULT_LOG_LEVEL       = LOG_LEVEL_INFO_VALUE
+)
+
+type FNDLoggingConfiguration struct {
+	MaxEntries    int  `json:"maxEntries"`
+	LogLevel      int  `json:"logLevel"`
+	EnableFile    bool `json:"enableFile"`
+	EnableConsole bool `json:"enableConsole"`
+}
+
 func LoadFNDConf(filename string) *FNDConfiguration {
 	conf, err := NewFNDConfigurationFromFile(filename)
 	if err != nil {
-		//TODO: Logging
+		LogWarn("CONFIG", "No configuration found, using default", err.Error())
 		fmt.Println("No Configuration found. Using default.")
+	} else {
+		LogInfo("CONFIG", "Configuration loaded successfully", fmt.Sprintf("File: %s", filename))
 	}
 	return conf
 }
@@ -69,18 +97,37 @@ func LoadFNDConf(filename string) *FNDConfiguration {
 func NEWDefaultFNDConfiguration() *FNDConfiguration {
 	return &FNDConfiguration{
 		Frigate: FNDFrigateConfiguration{
-			Host:       "frigate",
-			Port:       "5000",
-			MqttServer: "mqtt-server",
-			MqttPort:   "1883",
-			Cooldown:   60,
-			Cameras:    make(map[string]CameraConfig),
-			Language:   "en",
+			Host:           "frigate",
+			Port:           "5000",
+			MqttServer:     "mqtt-server",
+			MqttPort:       "1883",
+			MqttUsername:   "",
+			MqttPassword:   "",
+			MqttAnonymous:  true,
+			Cooldown:       60,
+			Cameras:        make(map[string]CameraConfig),
+			Language:       "en",
+			VideoEnabled:   true,
+			VideoUrlOnly:   false,
+			MaxVideoSizeMB: 10,
+			ExternalURL:    "",
 		},
 		Notify: FNDNotificationConfiguration{
 			Conf:    make(map[string]FNDNotificationConfigurationMap),
 			Apprise: NewDefaultAppriseConfig(),
-		}}
+		},
+		Logging: NewDefaultLoggingConfiguration(),
+	}
+}
+
+// NewDefaultLoggingConfiguration creates a default logging configuration
+func NewDefaultLoggingConfiguration() FNDLoggingConfiguration {
+	return FNDLoggingConfiguration{
+		MaxEntries:    DEFAULT_MAX_LOG_ENTRIES,
+		LogLevel:      DEFAULT_LOG_LEVEL,
+		EnableFile:    true,
+		EnableConsole: true,
+	}
 }
 
 func NEWDefaultFNDNotificationConfigurationMap() FNDNotificationConfigurationMap {
@@ -158,9 +205,11 @@ func (conf *FNDConfiguration) WriteToFile(filename string) error {
 	err := os.WriteFile(filename, file, 0644)
 
 	if err != nil {
+		LogError("CONFIG", "Failed to write configuration file", err.Error())
 		return err
 	}
 
+	LogInfo("CONFIG", "Configuration file written successfully", fmt.Sprintf("File: %s", filename))
 	return nil
 }
 
@@ -174,6 +223,7 @@ func (fConf *FNDFrigateConfiguration) checkOrAddCamera(name string) CameraConfig
 		return cam
 	}
 
+	LogInfo("CAMERA", "New camera discovered", fmt.Sprintf("Camera: %s", name))
 	cam.Name = name
 	cam.Active = false
 
@@ -186,6 +236,7 @@ func (fConf *FNDFrigateConfiguration) activateCameras(activeList []string) {
 	fConf.m.Lock()
 	defer fConf.m.Unlock()
 
+	// Deactivate all cameras first
 	for k := range fConf.Cameras {
 		buffer, avail := fConf.Cameras[k]
 		if !avail {
@@ -195,6 +246,7 @@ func (fConf *FNDFrigateConfiguration) activateCameras(activeList []string) {
 		fConf.Cameras[k] = buffer
 	}
 
+	// Activate selected cameras
 	for _, c := range activeList {
 		buffer, avail := fConf.Cameras[c]
 		if !avail {
@@ -203,4 +255,6 @@ func (fConf *FNDFrigateConfiguration) activateCameras(activeList []string) {
 		buffer.Active = true
 		fConf.Cameras[c] = buffer
 	}
+
+	LogInfo("CAMERA", "Camera activation updated", fmt.Sprintf("Active cameras: %v", activeList))
 }

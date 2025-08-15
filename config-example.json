@@ -6,7 +6,11 @@
     "MqttPort": "1883",
     "Cooldown": 60,
     "Cameras": {},
-    "Language": "en"
+    "Language": "en",
+    "VideoEnabled": true,
+    "VideoUrlOnly": false,
+    "MaxVideoSizeMB": 10,
+    "ExternalURL": "https://votre-domaine.com/frigate"
   },
   "Notify": {
     "Conf": {

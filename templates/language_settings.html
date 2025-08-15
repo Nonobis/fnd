@@ -1,62 +1,125 @@
-<div id="language-settings">
+<div id="language-settings" class="settings-container">
+    <!-- Header Section -->
+    <div class="settings-header">
+        <div class="columns is-vcentered">
+            <div class="column">
+                <h1 class="title is-2">
+                    <span class="icon-text">
+                        <span class="icon">
+                            <i class="fas fa-language"></i>
+                        </span>
+                        <span>Language Settings</span>
+                    </span>
+                </h1>
+                <p class="subtitle is-6">Configure interface language and regional preferences</p>
+            </div>
+            <div class="column is-narrow">
+                <div class="current-language-badge">
+                    <span class="tag is-primary is-large">
+                        <span class="icon">
+                            <span>{{ .CurrentLanguage.Flag }}</span>
+                        </span>
+                        <span>{{ .CurrentLanguage.Name }}</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="columns">
-        
-        <div class="column is-narrow">
-            <h3 class="title is-3">Language Settings</h3>
-            
-            <div class="box">
-                <h4 class="title is-4">Current Language</h4>
-                <div class="field">
-                    <div class="control">
-                        <div class="tags has-addons">
-                            <span class="tag is-dark">{{ .CurrentLanguage.Flag }}</span>
-                            <span class="tag is-primary">{{ .CurrentLanguage.Name }}</span>
+        <!-- Language Selection -->
+        <div class="column is-8">
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h2 class="title is-4">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-globe"></i>
+                            </span>
+                            <span>Available Languages</span>
+                        </span>
+                    </h2>
+                    <p class="subtitle is-6">Choose your preferred interface language</p>
+                </div>
+                <div class="settings-card-body">
+                    <div class="language-grid">
+                        {{ range .SupportedLanguages }}
+                        <div class="language-card {{if eq .Code $.CurrentLanguage.Code}}is-active{{end}}">
+                            <button class="language-button {{if eq .Code $.CurrentLanguage.Code}}is-current{{else}}is-available{{end}}"
+                                    hx-post="/htmx/language.html?lang={{ .Code }}"
+                                    hx-target="#lang-info"
+                                    {{if eq .Code $.CurrentLanguage.Code}}disabled{{end}}>
+                                <div class="language-flag">
+                                    {{ .Flag }}
+                                </div>
+                                <div class="language-info">
+                                    <h4 class="language-name">{{ .Name }}</h4>
+                                    <p class="language-code">{{ .Code }}</p>
+                                </div>
+                                <div class="language-status">
+                                    {{if eq .Code $.CurrentLanguage.Code}}
+                                    <span class="icon has-text-success">
+                                        <i class="fas fa-check-circle"></i>
+                                    </span>
+                                    {{else}}
+                                    <span class="icon has-text-grey-light">
+                                        <i class="fas fa-circle"></i>
+                                    </span>
+                                    {{end}}
+                                </div>
+                            </button>
                         </div>
+                        {{ end }}
                     </div>
-                </div>
-            </div>
 
-            <div class="box">
-                <h4 class="title is-4">Available Languages</h4>
-                {{ range .SupportedLanguages }}
-                <div class="field">
-                    <div class="control">
-                        <button class="button is-fullwidth {{if eq .Code $.CurrentLanguage.Code}}is-primary{{else}}is-light{{end}}"
-                                hx-post="/htmx/language.html?lang={{ .Code }}"
-                                hx-target="#lang-info"
-                                {{if eq .Code $.CurrentLanguage.Code}}disabled{{end}}>
-                            <span class="icon">
-                                <span>{{ .Flag }}</span>
-                            </span>
-                            <span>{{ .Name }} ({{ .Code }})</span>
-                            {{if eq .Code $.CurrentLanguage.Code}}
-                            <span class="icon">
-                                <span>✓</span>
-                            </span>
-                            {{end}}
-                        </button>
-                    </div>
-                </div>
-                {{ end }}
-            </div>
-
-            <div id="lang-info"></div>
-
-        </div>
-
-        <div class="column is-narrow">
-            <div class="content">
-                <h4>Language Information</h4>
-                <p><strong>Current:</strong> {{ .CurrentLanguage.Name }}</p>
-                <p><strong>Code:</strong> {{ .CurrentLanguage.Code }}</p>
-                <p><strong>Available languages:</strong> {{ len .SupportedLanguages }}</p>
-                
-                <div class="notification is-info is-light">
-                    <strong>Note:</strong> Language changes are applied immediately and affect the entire interface.
-                    The configuration is automatically saved.
+                    <div id="lang-info" class="mt-4"></div>
                 </div>
             </div>
         </div>
 
+        <!-- Information Section -->
+        <div class="column is-4">
+            <div class="help-card">
+                <div class="help-card-header">
+                    <h3 class="title is-5">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-info-circle"></i>
+                            </span>
+                            <span>Language Information</span>
+                        </span>
+                    </h3>
+                </div>
+                <div class="help-card-body">
+                    <div class="help-item">
+                        <h4 class="help-title">
+                            <span class="icon">
+                                <i class="fas fa-flag"></i>
+                            </span>
+                            <span>Current Language</span>
+                        </h4>
+                        <p class="help-text">{{ .CurrentLanguage.Name }} ({{ .CurrentLanguage.Code }})</p>
+                    </div>
+
+                    <div class="help-item">
+                        <h4 class="help-title">
+                            <span class="icon">
+                                <i class="fas fa-list"></i>
+                            </span>
+                            <span>Available Options</span>
+                        </h4>
+                        <p class="help-text">{{ len .SupportedLanguages }} languages supported</p>
+                    </div>
+
+                    <div class="notification is-info is-light">
+                        <strong>💡 Note:</strong> Language changes are applied immediately and affect the entire interface. The configuration is automatically saved.
+                    </div>
+
+                    <div class="notification is-success is-light">
+                        <strong>🔄 Instant Apply:</strong> No restart required - changes take effect immediately throughout the interface.
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

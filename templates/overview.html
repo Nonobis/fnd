@@ -1,57 +1,334 @@
 <div hx-get="/htmx/overview.html" hx-trigger="every 2s" hx-swap="outerHTML">
-
-
-    <div class="columns">
-        <div class="column is-narrow">
-            <h3 class="title is-3">Status</h3>
-
-
-            <table class="table is-bordered">
-                <tbody>
-
-                    {{ range .NotificationStatus}}
-                    <tr>
-                        <th>{{ .Name }}</th>
-                        <td class="{{if .Good}}is-success{{else}}is-danger{{end}}">{{ .Message }}</td>
-                    </tr>
-                    {{ end }}
-
-                </tbody>
-            </table>
-
-            <div class="control">
-                <button class="button is-link" hx-get="/htmx/testnotification" hx-target="#testnotification_ok"
-                    hx-swap="innerHTML">{{index
-                    .TranslatedText 6}}</button>
-                <div id="testnotification_ok"></div>
+    <div class="overview-container">
+        <!-- Header Section -->
+        <div class="overview-header">
+            <div class="overview-header-content">
+                <div class="overview-header-text">
+                    <h1 class="overview-title">{{index .TranslatedText 1}}</h1>
+                    <p class="overview-subtitle">Real-time monitoring dashboard</p>
+                </div>
+                <div class="overview-header-actions">
+                    <button class="overview-test-button" hx-get="/htmx/testnotification" 
+                            hx-target="#testnotification_ok" hx-swap="innerHTML">
+                        <span class="icon">
+                            <i class="fas fa-bell"></i>
+                        </span>
+                        <span class="button-text">{{index .TranslatedText 6}}</span>
+                    </button>
+                    <div id="testnotification_ok" class="test-notification-result"></div>
+                </div>
             </div>
-
-
-
         </div>
-        <div class="column box">
-            <h3 class="title is-3">{{index .TranslatedText 5}}</h3>
 
-
-            <table class="table is-bordered">
-                <tbody>
-
-                    {{ range .WebNotifications}}
-                    <tr>
-                        <th>
-                            {{ .N.Caption }}
-                            <p>{{ .N.Date }}</p>
-                        </th>
-                        <td> <img alt="" src="data:image/png;base64,{{ .Jepg_encoded}}" /></td>
-                    </tr>
-                    {{ end }}
-
-                </tbody>
-            </table>
-
-
+        <!-- Status Cards Section -->
+        <div class="status-section">
+            <h2 class="section-title">
+                <span class="section-icon">
+                    <i class="fas fa-heartbeat"></i>
+                </span>
+                <span class="section-text">System Status</span>
+            </h2>
+            
+            <div class="status-grid">
+                {{ range .NotificationStatus}}
+                <div class="status-card {{if .Good}}status-success{{else}}status-error{{end}}">
+                    <div class="status-card-header">
+                        <span class="status-name">{{ .Name }}</span>
+                        <span class="status-indicator {{if .Good}}has-background-success{{else}}has-background-danger{{end}}"></span>
+                    </div>
+                    <div class="status-card-body">
+                        <p class="status-message">{{ .Message }}</p>
+                    </div>
+                </div>
+                {{ end }}
+                
+                <!-- Cooldown Status Card -->
+                <div class="status-card cooldown-card {{if .CooldownInfo.IsActive}}status-cooldown-active{{else}}status-cooldown-ready{{end}}">
+                    <div class="status-card-header">
+                        <span class="status-name">
+                            <span class="icon">
+                                <i class="fas fa-clock"></i>
+                            </span>
+                            {{index .TranslatedText 7}}
+                        </span>
+                        <span class="status-indicator cooldown-indicator {{if .CooldownInfo.IsActive}}cooldown-active{{else}}cooldown-ready{{end}}">
+                            {{if .CooldownInfo.IsActive}}
+                                <span class="cooldown-timer" data-seconds="{{.CooldownInfo.SecondsRemaining}}">
+                                    {{.CooldownInfo.SecondsRemaining}}s
+                                </span>
+                            {{else}}
+                                <i class="fas fa-check"></i>
+                            {{end}}
+                        </span>
+                    </div>
+                    <div class="status-card-body">
+                        <div class="cooldown-details">
+                            {{if .CooldownInfo.IsActive}}
+                                <p class="cooldown-message">
+                                    <strong>{{index .TranslatedText 8}}</strong> - {{index .TranslatedText 10}} {{.CooldownInfo.SecondsRemaining}} {{index .TranslatedText 11}}
+                                </p>
+                                <div class="cooldown-progress">
+                                    <div class="cooldown-progress-bar" data-total="{{.CooldownInfo.CooldownPeriod}}" data-remaining="{{.CooldownInfo.SecondsRemaining}}"></div>
+                                </div>
+                            {{else}}
+                                <p class="cooldown-message">
+                                    <strong>{{index .TranslatedText 9}}</strong> - Notifications can be sent
+                                </p>
+                            {{end}}
+                            <div class="cooldown-meta">
+                                <span class="cooldown-period">Period: {{.CooldownInfo.CooldownPeriod}}s</span>
+                                <span class="cooldown-last">Last: {{.CooldownInfo.LastNotification}}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- Recent Notifications Section -->
+        {{ if .WebNotificationsEnabled }}
+        <div class="notifications-section">
+            <h2 class="section-title">
+                <span class="section-icon">
+                    <i class="fas fa-history"></i>
+                </span>
+                <span class="section-text">{{index .TranslatedText 5}}</span>
+            </h2>
+            
+            {{ if .WebNotifications }}
+            <div class="notifications-grid">
+                {{ range .WebNotifications}}
+                {{ if .N.Caption }}
+                <div class="notification-card">
+                    <div class="notification-image">
+                        <figure class="image">
+                            <img src="data:image/png;base64,{{ .Jepg_encoded}}" alt="Notification snapshot" />
+                        </figure>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-header">
+                            <h3 class="notification-title">{{ .N.Caption }}</h3>
+                            <span class="notification-badge">
+                                <span class="icon">
+                                    <i class="fas fa-camera"></i>
+                                </span>
+                            </span>
+                        </div>
+                        <div class="notification-meta">
+                            <span class="icon-text">
+                                <span class="icon">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                                <span class="notification-date">{{ .N.Date }}</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+                {{ end }}
+            </div>
+            {{ else }}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-bell-slash"></i>
+                </div>
+                <h3 class="empty-state-title">No recent notifications</h3>
+                <p class="empty-state-message">When notifications are received, they will appear here.</p>
+            </div>
+            {{ end }}
+        </div>
+        {{ else }}
+        <div class="notifications-section">
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 class="empty-state-title">Web Notifications Disabled</h3>
+                <p class="empty-state-message">Enable web notifications in the settings to view recent events here.</p>
+            </div>
+        </div>
+        {{ end }}
     </div>
-
-
 </div>
+
+<style>
+/* Cooldown Card Specific Styles */
+.cooldown-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.status-cooldown-active {
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%);
+    border-left: 4px solid #ff9800;
+}
+
+.status-cooldown-ready {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(139, 195, 74, 0.1) 100%);
+    border-left: 4px solid #4caf50;
+}
+
+.cooldown-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.cooldown-indicator.cooldown-active {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    color: white;
+    animation: pulse-orange 2s infinite;
+}
+
+.cooldown-indicator.cooldown-ready {
+    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+    color: white;
+}
+
+.cooldown-timer {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.cooldown-details {
+    margin-top: 0.75rem;
+}
+
+.cooldown-message {
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+.cooldown-progress {
+    width: 100%;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.cooldown-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4caf50 0%, #8bc34a 50%, #ff9800 100%);
+    border-radius: 3px;
+    transition: width 1s ease-in-out;
+    position: relative;
+}
+
+.cooldown-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+    animation: shimmer 2s infinite;
+}
+
+.cooldown-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+.cooldown-period,
+.cooldown-last {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+}
+
+@keyframes pulse-orange {
+    0% { 
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.7);
+    }
+    70% { 
+        box-shadow: 0 0 0 10px rgba(255, 152, 0, 0);
+    }
+    100% { 
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0);
+    }
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .cooldown-meta {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .cooldown-period,
+    .cooldown-last {
+        text-align: center;
+    }
+}
+</style>
+
+<script>
+// Live countdown timer for cooldown
+function updateCooldownTimers() {
+    const timers = document.querySelectorAll('.cooldown-timer');
+    timers.forEach(timer => {
+        let seconds = parseInt(timer.getAttribute('data-seconds'));
+        if (seconds > 0) {
+            seconds--;
+            timer.setAttribute('data-seconds', seconds);
+            timer.textContent = seconds + 's';
+            
+            // Update progress bar if exists
+            const progressBar = timer.closest('.status-card').querySelector('.cooldown-progress-bar');
+            if (progressBar) {
+                const totalPeriod = parseInt(progressBar.getAttribute('data-total'));
+                const progress = ((totalPeriod - seconds) / totalPeriod) * 100;
+                progressBar.style.width = Math.max(0, Math.min(100, progress)) + '%';
+            }
+            
+            // If countdown reaches 0, trigger a refresh
+            if (seconds === 0) {
+                // The HTMX auto-refresh will handle the update
+                timer.closest('.cooldown-indicator').classList.remove('cooldown-active');
+                timer.closest('.cooldown-indicator').classList.add('cooldown-ready');
+                timer.innerHTML = '<i class="fas fa-check"></i>';
+            }
+        }
+    });
+}
+
+// Update timers every second
+setInterval(updateCooldownTimers, 1000);
+
+// Initialize progress bars on page load
+function initializeCooldownProgress() {
+    const progressBars = document.querySelectorAll('.cooldown-progress-bar');
+    progressBars.forEach(bar => {
+        const total = parseInt(bar.getAttribute('data-total'));
+        const remaining = parseInt(bar.getAttribute('data-remaining'));
+        if (total && remaining !== null) {
+            const progress = ((total - remaining) / total) * 100;
+            bar.style.width = Math.max(0, Math.min(100, progress)) + '%';
+        }
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCooldownProgress();
+    updateCooldownTimers();
+});
+</script>

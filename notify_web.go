@@ -40,6 +40,11 @@ func (web *FNDWebNotificationSink) setup(conf FNDNotificationConfigurationMap, a
 }
 
 func (web *FNDWebNotificationSink) sendNotification(n FNDNotification) error {
+	// Check if web notifications are enabled
+	if web.config.Map["enabled"] != "true" {
+		return nil
+	}
+
 	if web.webServer == nil {
 		return nil
 	}
@@ -58,24 +63,42 @@ func (web *FNDWebNotificationSink) registerWebServer(webServer *FNDWebServer) {
 
 	web.webServer.r.GET("/htmx/web.html", func(c *gin.Context) {
 		t := template.Must(template.ParseFS(templateFS, "templates/web.html"))
-		t.Execute(c.Writer, web.generatePayload(false))
+		_ = t.Execute(c.Writer, web.generatePayload(false))
+	})
+
+	web.webServer.r.POST("/htmx/web/toggle", func(c *gin.Context) {
+		// Toggle the enabled status
+		if web.config.Map["enabled"] == "true" {
+			web.config.Map["enabled"] = "false"
+		} else {
+			web.config.Map["enabled"] = "true"
+		}
+
+		// Save configuration to disk immediately
+		web.webServer.saveConfigurationWithNotifications(web.webServer.notifyManager)
+
+		// Return updated page
+		t := template.Must(template.ParseFS(templateFS, "templates/web.html"))
+		_ = t.Execute(c.Writer, web.generatePayload(false))
 	})
 
 	web.webServer.r.POST("/htmx/web.html", func(c *gin.Context) {
-		web.config.Map["enabled"] = "false"
 		c.MultipartForm()
-		for key, value := range c.Request.PostForm {
-			if key == "active" {
-				if value[0] == "" {
-					continue
-				}
-				web.config.Map["enabled"] = "true"
-				continue
-			}
+
+		// Process form fields
+		for key, _ := range c.Request.PostForm {
+			// Web notifications don't have an active checkbox in the form
+			// The active state is managed by the separate toggle button
+			_ = key // Keep variable to avoid unused variable error
 		}
 
+		LogInfo("WEB", "Configuration updated", fmt.Sprintf("Enabled: %s", web.config.Map["enabled"]))
+
+		// Save configuration to disk immediately
+		web.webServer.saveConfigurationWithNotifications(web.webServer.notifyManager)
+
 		t := template.Must(template.ParseFS(templateFS, "templates/web.html"))
-		t.Execute(c.Writer, web.generatePayload(true))
+		_ = t.Execute(c.Writer, web.generatePayload(true))
 	})
 }
 

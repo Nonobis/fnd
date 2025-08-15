@@ -7,6 +7,7 @@
     <title>Frigate Notification Service</title>
     <link rel="stylesheet" href="/static/bulma.min.css">
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="/static/htmx.min.js"></script>
     <script>
         // Wait for DOM to be ready
@@ -36,25 +37,47 @@
 </head>
 
 <body>
-    <div class="columns is-centered" style="padding-left: 50px; padding-right: 50px;">
-        <div class="column">
-
-            <div class="Banner" style="padding: 30px;" id="header-section">
-                <h1 class="title is-1">{{index .TranslatedText 0}}</h1>
-                <span class="tag is-link is-info">{{.Version}}</span>
-                <br>
-                <br>
-                <div class="field">
-                    <div class="control">
-                        <div class="dropdown is-hoverable language-dropdown">
+    <!-- Modern Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="header-left">
+                <button class="hamburger-menu" id="hamburger-toggle" onclick="toggleMobileMenu()">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                
+                <div class="brand">
+                    <h1 class="brand-title">
+                        <span class="brand-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </span>
+                        <span>{{index .TranslatedText 0}}</span>
+                    </h1>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="header-controls">
+                    <!-- Version Badge -->
+                    <div class="version-badge">
+                        <span class="tag is-primary is-light">
+                            <span class="icon">
+                                <i class="fas fa-code-branch"></i>
+                            </span>
+                            <span>v{{.Version}}</span>
+                        </span>
+                    </div>
+                    
+                    <!-- Compact Language Selector -->
+                    <div class="language-selector">
+                        <div class="dropdown is-hoverable is-right">
                             <div class="dropdown-trigger">
-                                <button class="button is-light" aria-haspopup="true" aria-controls="dropdown-menu" title="Select Language">
+                                <button class="button is-small is-rounded is-light" aria-haspopup="true" aria-controls="dropdown-menu" title="{{ .CurrentLanguage.Name }}">
                                     <span class="icon">
                                         <span>{{ .CurrentLanguage.Flag }}</span>
                                     </span>
-                                    <span>{{ .CurrentLanguage.Name }}</span>
                                     <span class="icon is-small">
-                                        <span>▼</span>
+                                        <i class="fas fa-chevron-down"></i>
                                     </span>
                                 </button>
                             </div>
@@ -65,7 +88,7 @@
                                        hx-post="/htmx/language.html?lang={{ .Code }}" 
                                        hx-target="#lang-info"
                                        hx-trigger="click"
-                                       title="Switch to {{ .Name }}">
+                                       title="{{ .Name }}">
                                         <span class="icon">
                                             <span>{{ .Flag }}</span>
                                         </span>
@@ -75,27 +98,134 @@
                                 </div>
                             </div>
                         </div>
+                        <div id="lang-info"></div>
                     </div>
                 </div>
-                <div id="lang-info"></div>
-            </div>
-
-
-            <div class="columns">
-                <div class="column is-narrow" id="navigation-section">
-                    {{ template "navigation.html" .}}
-
-                </div>
-
-                <div class="column">
-                    <div id="main">
-                        {{ template "overview.html" .}}
-                    </div>
-                </div>
-
             </div>
         </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="app-container">
+
+
+        <div class="app-layout">
+            <aside class="app-sidebar" id="navigation-section">
+                {{ template "navigation.html" .}}
+            </aside>
+
+            <main class="app-main">
+                <div class="main-content" id="main">
+                    {{ template "overview.html" .}}
+                </div>
+            </main>
+        </div>
     </div>
+
+    <!-- Menu Toggle Script -->
+    <script>
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('navigation-section');
+            const hamburger = document.getElementById('hamburger-toggle');
+            const body = document.body;
+            const main = document.querySelector('.app-main');
+            
+            if (window.innerWidth <= 768) {
+                // Mobile behavior
+                sidebar.classList.toggle('mobile-menu-open');
+                hamburger.classList.toggle('active');
+                body.classList.toggle('menu-open');
+            } else {
+                // Desktop behavior - collapse/expand
+                sidebar.classList.toggle('collapsed');
+                hamburger.classList.toggle('active');
+                if (main) {
+                    main.classList.toggle('sidebar-collapsed');
+                }
+                
+                // Store preference in localStorage
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('sidebar-collapsed', isCollapsed.toString());
+            }
+        }
+
+        // Close mobile menu when clicking on a menu item
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.menu-link') && window.innerWidth <= 768) {
+                const sidebar = document.getElementById('navigation-section');
+                const hamburger = document.getElementById('hamburger-toggle');
+                const body = document.body;
+                
+                sidebar.classList.remove('mobile-menu-open');
+                hamburger.classList.remove('active');
+                body.classList.remove('menu-open');
+            }
+        });
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('navigation-section');
+                const hamburger = document.getElementById('hamburger-toggle');
+                const body = document.body;
+                
+                if (!sidebar.contains(e.target) && !hamburger.contains(e.target) && sidebar.classList.contains('mobile-menu-open')) {
+                    sidebar.classList.remove('mobile-menu-open');
+                    hamburger.classList.remove('active');
+                    body.classList.remove('menu-open');
+                }
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            const sidebar = document.getElementById('navigation-section');
+            const hamburger = document.getElementById('hamburger-toggle');
+            const body = document.body;
+            const main = document.querySelector('.app-main');
+            
+            if (window.innerWidth > 768) {
+                // Clean up mobile states
+                sidebar.classList.remove('mobile-menu-open');
+                body.classList.remove('menu-open');
+                
+                // Restore desktop collapsed state from localStorage
+                const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+                if (isCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    hamburger.classList.add('active');
+                    if (main) {
+                        main.classList.add('sidebar-collapsed');
+                    }
+                }
+            } else {
+                // Clean up desktop states
+                sidebar.classList.remove('collapsed');
+                if (main) {
+                    main.classList.remove('sidebar-collapsed');
+                }
+            }
+        });
+
+        // Initialize sidebar state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.innerWidth > 768) {
+                const sidebar = document.getElementById('navigation-section');
+                const hamburger = document.getElementById('hamburger-toggle');
+                const main = document.querySelector('.app-main');
+                
+                // Restore collapsed state from localStorage
+                const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+                if (isCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    hamburger.classList.add('active');
+                    if (main) {
+                        main.classList.add('sidebar-collapsed');
+                    }
+                }
+            }
+        });
+    </script>
 
 </body>
 

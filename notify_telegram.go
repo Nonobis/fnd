@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 
@@ -71,43 +72,61 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 	tel.webServer.r.GET("/htmx/telegram.html", func(c *gin.Context) {
 
 		t := template.Must(template.ParseFS(templateFS, "templates/telegram.html"))
-		t.Execute(c.Writer, tel.generatePayload(false))
+		_ = t.Execute(c.Writer, tel.generatePayload(false))
+	})
+
+	tel.webServer.r.POST("/htmx/telegram/toggle", func(c *gin.Context) {
+		// Toggle the enabled status
+		if tel.config.Map["enabled"] == "true" {
+			tel.config.Map["enabled"] = "false"
+			tel.lastStatusMessage = "disabled"
+		} else {
+			tel.config.Map["enabled"] = "true"
+			tel.lastStatusMessage = "enabled"
+		}
+
+		// Save configuration to disk immediately
+		tel.webServer.saveConfigurationWithNotifications(tel.webServer.notifyManager)
+
+		// Return updated page
+		t := template.Must(template.ParseFS(templateFS, "templates/telegram.html"))
+		_ = t.Execute(c.Writer, tel.generatePayload(false))
 	})
 
 	tel.webServer.r.POST("/htmx/telegram.html", func(c *gin.Context) {
 
 		lastToken := tel.config.Map["token"]
 
-		tel.config.Map["enabled"] = "false"
 		c.MultipartForm()
 		for key, value := range c.Request.PostForm {
 			if key == "token0815" {
-				if value[0] == "" {
-					continue
+				if value[0] != "" {
+					tel.config.Map["token"] = value[0]
 				}
-				tel.config.Map["token"] = value[0]
 				continue
 			}
 			if key == "chatid" {
-				if value[0] == "" {
-					continue
+				if value[0] != "" {
+					data, err := strconv.ParseInt(value[0], 10, 64)
+					if err == nil {
+						tel.config.Map["chatid"] = value[0]
+						tel.chatid = data
+					}
 				}
-				data, err := strconv.ParseInt(value[0], 10, 64)
-				if err != nil {
-					continue
-				}
-				tel.config.Map["chatid"] = value[0]
-				tel.chatid = data
 				continue
 			}
-			if key == "active" {
-				if value[0] == "" {
-					continue
-				}
-				tel.config.Map["enabled"] = "true"
-				continue
-			}
+			// Telegram doesn't have an active checkbox in the form
+			// The active state is managed by the separate toggle button
 		}
+		
+		LogInfo("TELEGRAM", "Configuration updated", fmt.Sprintf("Enabled: %s, Token: %s", 
+			tel.config.Map["enabled"], 
+			func() string {
+				if len(tel.config.Map["token"]) > 10 {
+					return tel.config.Map["token"][:10] + "..."
+				}
+				return tel.config.Map["token"]
+			}()))
 
 		if !tel.botRunning {
 			if tel.config.Map["enabled"] == "true" {
@@ -126,8 +145,11 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 			}
 		}
 
+		// Save configuration to disk immediately
+		tel.webServer.saveConfigurationWithNotifications(tel.webServer.notifyManager)
+
 		t := template.Must(template.ParseFS(templateFS, "templates/telegram.html"))
-		t.Execute(c.Writer, tel.generatePayload(true))
+		_ = t.Execute(c.Writer, tel.generatePayload(true))
 	})
 
 }
@@ -187,10 +209,33 @@ func (tel *FNDTelegramNotificationSink) sendNotification(n FNDNotification) erro
 		return errors.New("Chat ID empty!")
 	}
 
+	// If we have video data, send video instead of photo
+	if n.HasVideo && len(n.VideoData) > 0 {
+		videoParams := &bot.SendVideoParams{
+			ChatID:  tel.chatid,
+			Video:   &models.InputFileUpload{Filename: "clip.mp4", Data: bytes.NewReader(n.VideoData)},
+			Caption: n.Caption,
+		}
+
+		_, err := tel.bot.SendVideo(tel.ctx, videoParams)
+		if err != nil {
+			tel.lastStatusMessage = err.Error()
+			return err
+		}
+		tel.lastStatusMessage = "Online (video sent)"
+		return nil
+	}
+
+	// Send photo with optional video URL
+	caption := n.Caption
+	if n.HasVideo && n.VideoURL != "" {
+		caption += "\n🎥 Video: " + n.VideoURL
+	}
+
 	params := &bot.SendPhotoParams{
 		ChatID:  tel.chatid,
 		Photo:   &models.InputFileUpload{Filename: "snapshot.jpeg", Data: bytes.NewReader(n.JpegData)},
-		Caption: n.Caption,
+		Caption: caption,
 	}
 
 	_, err := tel.bot.SendPhoto(tel.ctx, params)
@@ -249,17 +294,117 @@ func (tel *FNDTelegramNotificationSink) botStop() {
 }
 
 func (tel *FNDTelegramNotificationSink) botHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if update.Message == nil {
+		return
+	}
 
 	if update.Message.Text == "/getid" {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
 			Text:   strconv.FormatInt(update.Message.Chat.ID, 10),
 		})
+		return
+	}
+
+	// Handle snapshot commands: /snapshot camera_name or /live camera_name
+	if strings.HasPrefix(update.Message.Text, "/snapshot ") || strings.HasPrefix(update.Message.Text, "/live ") {
+		parts := strings.Fields(update.Message.Text)
+		if len(parts) >= 2 {
+			camera := parts[1]
+			tel.handleSnapshotCommand(ctx, b, update.Message.Chat.ID, camera)
+		} else {
+			b.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID: update.Message.Chat.ID,
+				Text:   "Please specify a camera name. Example: /snapshot camera1",
+			})
+		}
+		return
+	}
+
+	// List available cameras command
+	if update.Message.Text == "/cameras" {
+		tel.handleCamerasCommand(ctx, b, update.Message.Chat.ID)
+		return
 	}
 }
 
 func (tel *FNDTelegramNotificationSink) getConfiguration() FNDNotificationConfigurationMap {
 	return tel.config
+}
+
+func (tel *FNDTelegramNotificationSink) handleSnapshotCommand(ctx context.Context, b *bot.Bot, chatID int64, camera string) {
+	if tel.webServer == nil || tel.webServer.frigateEvent == nil {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   "Service not available",
+		})
+		return
+	}
+
+	// Get live snapshot
+	imageData, err := tel.webServer.frigateEvent.api.getLiveSnapshotByCamera(camera)
+	if err != nil {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   fmt.Sprintf("Failed to get snapshot from camera '%s': %s", camera, err.Error()),
+		})
+		return
+	}
+
+	// Send photo
+	params := &bot.SendPhotoParams{
+		ChatID:  chatID,
+		Photo:   &models.InputFileUpload{Filename: fmt.Sprintf("snapshot_%s.jpeg", camera), Data: bytes.NewReader(imageData)},
+		Caption: fmt.Sprintf("Live snapshot from camera: %s\nTime: %s", camera, time.Now().Format("15:04:05 02.01.2006")),
+	}
+
+	_, err = b.SendPhoto(ctx, params)
+	if err != nil {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   fmt.Sprintf("Failed to send snapshot: %s", err.Error()),
+		})
+	}
+}
+
+func (tel *FNDTelegramNotificationSink) handleCamerasCommand(ctx context.Context, b *bot.Bot, chatID int64) {
+	if tel.webServer == nil || tel.webServer.frigateEvent == nil {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   "Service not available",
+		})
+		return
+	}
+
+	// Get available cameras
+	stats, err := tel.webServer.frigateEvent.api.getCameras()
+	if err != nil {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   fmt.Sprintf("Failed to get cameras: %s", err.Error()),
+		})
+		return
+	}
+
+	if len(stats.Cameras) == 0 {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   "No cameras available",
+		})
+		return
+	}
+
+	// Build camera list message
+	message := "Available cameras:\n"
+	for cameraName := range stats.Cameras {
+		message += fmt.Sprintf("📷 %s\n", cameraName)
+	}
+	message += "\nUse /snapshot camera_name or /live camera_name to get a live picture"
+
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: chatID,
+		Text:   message,
+	})
 }
 
 func (tel *FNDTelegramNotificationSink) getStatus() FNDNotificationSinkStatus {
@@ -269,3 +414,4 @@ func (tel *FNDTelegramNotificationSink) getStatus() FNDNotificationSinkStatus {
 		Message: tel.lastStatusMessage,
 	}
 }
+

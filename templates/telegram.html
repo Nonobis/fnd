@@ -1,52 +1,227 @@
-<div id="telegram-settings">
-    <div class="columns">
-
-
-        <div class="column is-narrow">
-            <h3 class="title is-3">Telegram</h3>
-            <form hx-post="/htmx/telegram.html" hx-target="#telegram-settings" hx-swap="outerHTML">
-
-                <label class="label">{{index .TranslatedText 0}}</label>
-                <div class="field">
-                    <div class="control">
-                        <label class="checkbox">
-                            <input type="checkbox" name="active" {{if .Active}}checked{{end}}>
-                            {{index .TranslatedText 0}}
-                        </label>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">Bot Token</label>
-                    <div class="control">
-                        <input class="input" type="text" name="token0815" placeholder="{{ .Token }}">
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">Chat ID</label>
-                    <div class="control">
-                        <input class="input" type="text" name="chatid" placeholder="{{ .ChatID }}">
-                    </div>
-                </div>
-
-                <div class="control">
-                    <button class="button is-link">{{index .TranslatedText 1}}</button>
-                </div>
-
-                <br>
-                {{ if .ShowStatus }}<span class="tag {{.Color}} is-normal">{{.StatusMessage}}</span>{{end}}
-
-
-            </form>
-
-        </div>
-
-        <div class="column is-narrow">
-            {{index .TranslatedText 2}}
-        </div>
-
-
-
+<div id="telegram-settings" class="settings-container">
+    <!-- Header Section -->
+    <div class="settings-header">
+        <h1 class="title is-2">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fab fa-telegram-plane"></i>
+                </span>
+                <span>Telegram</span>
+            </span>
+        </h1>
+        <p class="subtitle is-6">Configure Telegram bot notifications</p>
     </div>
+
+    <!-- Service Toggle Section -->
+    <div class="service-toggle-section {{if .Active}}is-enabled{{else}}is-disabled{{end}}">
+        <div class="service-toggle-title">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fab fa-telegram-plane"></i>
+                </span>
+                <span>Telegram Service</span>
+            </span>
+        </div>
+        <button class="service-toggle-button {{if .Active}}is-enabled{{else}}is-disabled{{end}}" 
+                hx-post="/htmx/telegram/toggle" 
+                hx-target="#telegram-settings"
+                hx-swap="outerHTML">
+            <span class="icon">
+                <i class="fas {{if .Active}}fa-toggle-on{{else}}fa-toggle-off{{end}}"></i>
+            </span>
+            <span>{{if .Active}}Service Enabled{{else}}Service Disabled{{end}}</span>
+        </button>
+        <div class="service-status-indicator {{if .Active}}is-enabled{{else}}is-disabled{{end}}">
+            <span class="icon">
+                <i class="fas {{if .Active}}fa-check-circle{{else}}fa-times-circle{{end}}"></i>
+            </span>
+            <span>{{if .Active}}Notifications will be sent to Telegram{{else}}Telegram notifications are disabled{{end}}</span>
+        </div>
+    </div>
+
+    <div class="columns">
+        <!-- Configuration Form -->
+        <div class="column is-8">
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h2 class="title is-4">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-robot"></i>
+                            </span>
+                            <span>Bot Configuration</span>
+                        </span>
+                    </h2>
+                </div>
+                <div class="settings-card-body">
+                    <form hx-post="/htmx/telegram.html" hx-target="#telegram-settings" hx-swap="outerHTML" id="telegram-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="label">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-key"></i>
+                                        </span>
+                                        <span>Bot Token</span>
+                                    </span>
+                                </label>
+                                <div class="control has-icons-left has-icons-right">
+                                    <input class="input is-medium telegram-field" type="password" name="token0815" 
+                                           placeholder="••••••••••••••••••••••••••••••••••••••••" 
+                                           {{if not .Active}}disabled{{end}} id="telegram-token">
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-key"></i>
+                                    </span>
+                                    <span class="icon is-small is-right toggle-password" onclick="toggleTokenVisibility('telegram-token', this)">
+                                        <i class="fas fa-eye"></i>
+                                    </span>
+                                </div>
+                                <p class="help">
+                                    {{if .Token}}
+                                    <span class="has-text-success">
+                                        <i class="fas fa-check-circle"></i> Token is configured
+                                    </span>
+                                    {{else}}
+                                    <span class="has-text-grey">Enter your Telegram Bot Token from @BotFather</span>
+                                    {{end}}
+                                </p>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="label">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-comments"></i>
+                                        </span>
+                                        <span>Chat ID</span>
+                                    </span>
+                                </label>
+                                <div class="control has-icons-left">
+                                    <input class="input is-medium telegram-field" type="text" name="chatid" 
+                                           placeholder="{{ .ChatID }}" {{if not .Active}}disabled{{end}}>
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-comments"></i>
+                                    </span>
+                                </div>
+                                <p class="help">Chat ID where notifications will be sent (send /getid to your bot)</p>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="button is-primary is-medium is-rounded telegram-field" {{if not .Active}}disabled{{end}}>
+                                <span class="icon">
+                                    <i class="fas fa-save"></i>
+                                </span>
+                                <span>{{index .TranslatedText 1}}</span>
+                            </button>
+                            <button type="button" class="button is-info is-medium is-rounded telegram-field" {{if not .Active}}disabled{{end}} 
+                                    hx-post="/api/test/telegram" 
+                                    hx-target="#test-result-telegram" 
+                                    hx-indicator="#test-loading-telegram">
+                                <span class="icon">
+                                    <i class="fas fa-paper-plane"></i>
+                                </span>
+                                <span>Test Notification</span>
+                            </button>
+                        </div>
+
+                        <!-- Test Result Area -->
+                        <div id="test-result-telegram" class="mt-3"></div>
+                        <div id="test-loading-telegram" class="has-text-centered mt-3" style="display: none;">
+                            <span class="icon">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                            <span>Sending test notification...</span>
+                        </div>
+
+                        {{ if .ShowStatus }}
+                        <div class="status-message mt-4">
+                            <div class="notification {{.Color}} is-light">
+                                <span class="icon">
+                                    <i class="fas {{ if eq .Color "is-success"}}fa-check-circle{{ else }}fa-exclamation-triangle{{ end }}"></i>
+                                </span>
+                                <span>{{.StatusMessage}}</span>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup Guide -->
+        <div class="column is-4">
+            <div class="help-card">
+                <div class="help-card-header">
+                    <h3 class="title is-5">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-question-circle"></i>
+                            </span>
+                            <span>Setup Guide</span>
+                        </span>
+                    </h3>
+                </div>
+                <div class="help-card-body">
+                    <div class="setup-steps">
+                        {{index .TranslatedText 2}}
+                    </div>
+
+                    <div class="notification is-info is-light mt-4">
+                        <strong>💡 Quick Start:</strong>
+                        <ol class="mt-2">
+                            <li>Message <a href="https://t.me/BotFather" target="_blank">@BotFather</a> on Telegram</li>
+                            <li>Create a new bot with <code>/newbot</code></li>
+                            <li>Copy the token and paste it above</li>
+                            <li>Start your bot and send <code>/getid</code></li>
+                            <li>Use the returned number as Chat ID</li>
+                        </ol>
+                    </div>
+
+                    <div class="notification is-warning is-light">
+                        <strong>🔒 Security:</strong> Keep your bot token private and never share it publicly.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTelegramFields() {
+            const isActive = document.getElementById('telegram-active').checked;
+            const fields = document.querySelectorAll('.telegram-field');
+            const toggleLabel = document.querySelector('.toggle-label');
+            
+            fields.forEach(field => {
+                field.disabled = !isActive;
+                if (isActive) {
+                    field.classList.remove('is-disabled');
+                } else {
+                    field.classList.add('is-disabled');
+                }
+            });
+            
+            toggleLabel.textContent = isActive ? 'Enabled' : 'Disabled';
+        }
+
+        function toggleTokenVisibility(inputId, iconElement) {
+            const input = document.getElementById(inputId);
+            const icon = iconElement.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Initialize the fields state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleTelegramFields();
+        });
+    </script>
 </div>

@@ -1,38 +1,172 @@
-<div id="web-settings">
-    <div class="columns">
-        
-        <div class="column is-narrow">
-            <h3 class="title is-3">Web Notifications</h3>
-            <form hx-post="/htmx/web.html" hx-target="#web-settings" hx-swap="outerHTML">
+<div id="web-settings" class="settings-container">
+    <!-- Header Section -->
+    <div class="settings-header">
+        <h1 class="title is-2">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fas fa-globe"></i>
+                </span>
+                <span>Web Notifications</span>
+            </span>
+        </h1>
+        <p class="subtitle is-6">Configure web interface notification display</p>
+    </div>
 
-                <label class="label">{{index .TranslatedText 0}}</label>
-                <div class="field">
-                    <div class="control">
-                        <label class="checkbox">
-                            <input type="checkbox" name="active" {{if .Active}}checked{{end}}>
-                            {{index .TranslatedText 0}}
-                        </label>
-                    </div>
-                </div>
-
-                <div class="control">
-                    <button class="button is-link">{{index .TranslatedText 1}}</button>
-                </div>
-
-                <br>
-                {{ if .ShowStatus }}<span class="tag {{.Color}} is-normal">{{.StatusMessage}}</span>{{end}}
-
-            </form>
-
+    <!-- Service Toggle Section -->
+    <div class="service-toggle-section {{if .Active}}is-enabled{{else}}is-disabled{{end}}">
+        <div class="service-toggle-title">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fas fa-globe"></i>
+                </span>
+                <span>Web Notification Service</span>
+            </span>
         </div>
+        <button class="service-toggle-button {{if .Active}}is-enabled{{else}}is-disabled{{end}}" 
+                hx-post="/htmx/web/toggle" 
+                hx-target="#web-settings"
+                hx-swap="outerHTML">
+            <span class="icon">
+                <i class="fas {{if .Active}}fa-toggle-on{{else}}fa-toggle-off{{end}}"></i>
+            </span>
+            <span>{{if .Active}}Service Enabled{{else}}Service Disabled{{end}}</span>
+        </button>
+        <div class="service-status-indicator {{if .Active}}is-enabled{{else}}is-disabled{{end}}">
+            <span class="icon">
+                <i class="fas {{if .Active}}fa-check-circle{{else}}fa-times-circle{{end}}"></i>
+            </span>
+            <span>{{if .Active}}Web notifications are displayed in overview{{else}}Web notifications are disabled{{end}}</span>
+        </div>
+    </div>
 
-        <div class="column is-narrow">
-            <div class="content">
-                <h4>Information</h4>
-                <p>Web notifications are displayed in the overview section of this interface.</p>
-                <p>This service is typically always enabled to show notifications in the web UI.</p>
+    <div class="columns">
+        <!-- Configuration Form -->
+        <div class="column is-8">
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h2 class="title is-4">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-monitor"></i>
+                            </span>
+                            <span>Interface Settings</span>
+                        </span>
+                    </h2>
+                </div>
+                <div class="settings-card-body">
+                    <form hx-post="/htmx/web.html" hx-target="#web-settings" hx-swap="outerHTML" id="web-form">
+                        <div class="notification is-info is-light">
+                            <span class="icon">
+                                <i class="fas fa-info-circle"></i>
+                            </span>
+                            <span>Web notifications are displayed in the overview section of this interface. This service should typically remain enabled to show notifications in the web UI.</span>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="button is-primary is-medium is-rounded web-field" {{if not .Active}}disabled{{end}}>
+                                <span class="icon">
+                                    <i class="fas fa-save"></i>
+                                </span>
+                                <span>{{index .TranslatedText 1}}</span>
+                            </button>
+                            <button type="button" class="button is-info is-medium is-rounded web-field" {{if not .Active}}disabled{{end}} 
+                                    hx-post="/api/test/web" 
+                                    hx-target="#test-result-web" 
+                                    hx-indicator="#test-loading-web">
+                                <span class="icon">
+                                    <i class="fas fa-paper-plane"></i>
+                                </span>
+                                <span>Test Notification</span>
+                            </button>
+                        </div>
+
+                        <!-- Test Result Area -->
+                        <div id="test-result-web" class="mt-3"></div>
+                        <div id="test-loading-web" class="has-text-centered mt-3" style="display: none;">
+                            <span class="icon">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                            <span>Sending test notification...</span>
+                        </div>
+
+                        {{ if .ShowStatus }}
+                        <div class="status-message mt-4">
+                            <div class="notification {{.Color}} is-light">
+                                <span class="icon">
+                                    <i class="fas {{ if eq .Color "is-success"}}fa-check-circle{{ else }}fa-exclamation-triangle{{ end }}"></i>
+                                </span>
+                                <span>{{.StatusMessage}}</span>
+                            </div>
+                        </div>
+                        {{ end }}
+                    </form>
+                </div>
             </div>
         </div>
 
+        <!-- Information Section -->
+        <div class="column is-4">
+            <div class="help-card">
+                <div class="help-card-header">
+                    <h3 class="title is-5">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-info-circle"></i>
+                            </span>
+                            <span>Information</span>
+                        </span>
+                    </h3>
+                </div>
+                <div class="help-card-body">
+                    <div class="help-item">
+                        <h4 class="help-title">
+                            <span class="icon">
+                                <i class="fas fa-desktop"></i>
+                            </span>
+                            <span>Web Interface</span>
+                        </h4>
+                        <p class="help-text">Web notifications are displayed in the overview section with images and event details.</p>
+                    </div>
+
+                    <div class="help-item">
+                        <h4 class="help-title">
+                            <span class="icon">
+                                <i class="fas fa-history"></i>
+                            </span>
+                            <span>Recent Events</span>
+                        </h4>
+                        <p class="help-text">The last few notifications are shown with timestamps and camera information.</p>
+                    </div>
+
+                    <div class="notification is-success is-light">
+                        <strong>✅ Recommended:</strong> Keep this service enabled to view notifications directly in the web interface.
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        function toggleWebFields() {
+            const isActive = document.getElementById('web-active').checked;
+            const fields = document.querySelectorAll('.web-field');
+            const toggleLabel = document.querySelector('.toggle-label');
+            
+            fields.forEach(field => {
+                field.disabled = !isActive;
+                if (isActive) {
+                    field.classList.remove('is-disabled');
+                } else {
+                    field.classList.add('is-disabled');
+                }
+            });
+            
+            toggleLabel.textContent = isActive ? 'Enabled' : 'Disabled';
+        }
+
+        // Initialize the fields state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleWebFields();
+        });
+    </script>
 </div>

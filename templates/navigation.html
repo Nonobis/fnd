@@ -1,21 +1,129 @@
-<aside class="menu">
-    <p class="menu-label">{{index .TranslatedText 2}}</p>
-    <ul class="menu-list">
-        <li><a hx-get="/htmx/overview.html" hx-target="#main">{{index .TranslatedText 1}}</a></li>
+<nav class="modern-menu">
+    <!-- Dashboard Section -->
+    <div class="menu-section">
+        <div class="menu-section-header">
+            <span class="menu-section-icon">
+                <i class="fas fa-tachometer-alt"></i>
+            </span>
+            <span class="menu-section-title">{{index .TranslatedText 2}}</span>
+        </div>
+        <ul class="menu-items">
+            <li class="menu-item">
+                <a href="#" class="menu-link active" hx-get="/htmx/overview.html" hx-target="#main" onclick="setActiveMenuItem(this)">
+                    <span class="menu-icon">
+                        <i class="fas fa-home"></i>
+                    </span>
+                    <span class="menu-text">{{index .TranslatedText 1}}</span>
+                </a>
+            </li>
+        </ul>
+    </div>
 
-    </ul>
-    <p class="menu-label">{{index .TranslatedText 3}}</p>
-    <ul class="menu-list">
-        <li>
-            <ul>
-                <li><a hx-get="/htmx/frigate.html" hx-target="#main">Frigate</a></li>
-                <li><a hx-get="/htmx/notifications.html" hx-target="#main">{{index .TranslatedText 4}}</a></li>
-                <li><a hx-get="/htmx/language_settings.html" hx-target="#main">Language</a></li>
-                <li><a hx-get="/htmx/web.html" hx-target="#main">Web</a></li>
-                <li><a hx-get="/htmx/telegram.html" hx-target="#main">Telegram</a></li>
-                <li><a hx-get="/htmx/gotify.html" hx-target="#main">Gotify</a></li>
-                <li><a hx-get="/htmx/apprise.html" hx-target="#main">Apprise</a></li>
-            </ul>
-        </li>
-    </ul>
-</aside>
+    <!-- Settings Section -->
+    <div class="menu-section">
+        <div class="menu-section-header">
+            <span class="menu-section-icon">
+                <i class="fas fa-cogs"></i>
+            </span>
+            <span class="menu-section-title">{{index .TranslatedText 3}}</span>
+        </div>
+        <ul class="menu-items">
+            <li class="menu-item">
+                <a href="#" class="menu-link" hx-get="/htmx/frigate.html" hx-target="#main" onclick="setActiveMenuItem(this)">
+                    <span class="menu-icon">
+                        <i class="fas fa-video"></i>
+                    </span>
+                    <span class="menu-text">Frigate</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link" hx-get="/htmx/notifications.html" hx-target="#main" onclick="setActiveMenuItem(this)">
+                    <span class="menu-icon">
+                        <i class="fas fa-bell"></i>
+                    </span>
+                    <span class="menu-text">{{index .TranslatedText 4}}</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link" hx-get="/htmx/language_settings.html" hx-target="#main" onclick="setActiveMenuItem(this)">
+                    <span class="menu-icon">
+                        <i class="fas fa-language"></i>
+                    </span>
+                    <span class="menu-text">Language</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link" hx-get="/htmx/logs.html" hx-target="#main" onclick="setActiveMenuItem(this)">
+                    <span class="menu-icon">
+                        <i class="fas fa-scroll"></i>
+                    </span>
+                    <span class="menu-text">Logs</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link" hx-get="/htmx/log_settings.html" hx-target="#main" onclick="setActiveMenuItem(this)">
+                    <span class="menu-icon">
+                        <i class="fas fa-cog"></i>
+                    </span>
+                    <span class="menu-text">Log Settings</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Notification Services Section -->
+    <div class="menu-section">
+        <div class="menu-section-header">
+            <span class="menu-section-icon">
+                <i class="fas fa-paper-plane"></i>
+            </span>
+            <span class="menu-section-title">Services</span>
+        </div>
+        <ul class="menu-items">
+            <li class="menu-item">
+                <a href="#" class="menu-link" hx-get="/htmx/web.html" hx-target="#main" onclick="setActiveMenuItem(this)">
+                    <span class="menu-icon">
+                        <i class="fas fa-globe"></i>
+                    </span>
+                    <span class="menu-text">Web</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link" hx-get="/htmx/telegram.html" hx-target="#main" onclick="setActiveMenuItem(this)">
+                    <span class="menu-icon">
+                        <i class="fab fa-telegram-plane"></i>
+                    </span>
+                    <span class="menu-text">Telegram</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link" hx-get="/htmx/gotify.html" hx-target="#main" onclick="setActiveMenuItem(this)">
+                    <span class="menu-icon">
+                        <i class="fas fa-bell"></i>
+                    </span>
+                    <span class="menu-text">Gotify</span>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link" hx-get="/htmx/apprise.html" hx-target="#main" onclick="setActiveMenuItem(this)">
+                    <span class="menu-icon">
+                        <i class="fas fa-broadcast-tower"></i>
+                    </span>
+                    <span class="menu-text">Apprise</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<script>
+function setActiveMenuItem(clickedLink) {
+    // Remove active class from all menu links
+    document.querySelectorAll('.menu-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // Add active class to clicked link
+    clickedLink.classList.add('active');
+}
+</script>

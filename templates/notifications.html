@@ -1,41 +1,178 @@
-<div id="notifications-settings">
+<div id="notifications-settings" class="settings-container">
+    <!-- Header Section -->
+    <div class="settings-header">
+        <div class="columns is-vcentered">
+            <div class="column">
+                <h1 class="title is-2">
+                    <span class="icon-text">
+                        <span class="icon">
+                            <i class="fas fa-bell"></i>
+                        </span>
+                        <span>{{index .TranslatedText 0}}</span>
+                    </span>
+                </h1>
+                <p class="subtitle is-6">Configure notification settings and camera monitoring</p>
+            </div>
+        </div>
+    </div>
+
     <div class="columns">
-
-
-        <div class="column is-narrow">
-            <h3 class="title is-3">{{index .TranslatedText 0}}</h3>
-            <form hx-post="/htmx/notifications.html" hx-target="#notifications-settings"
-                hx-swap="outerHTML">
-
-                <div class="field">
-                    <label class="label">{{index .TranslatedText 1}}</label>
-                    <div class="control">
-                        <input class="input" type="text" name="cooldown0815" placeholder="{{ .Conf.Cooldown }}">
+        <!-- Configuration Form -->
+        <div class="column is-8">
+            <form hx-post="/htmx/notifications.html" hx-target="#notifications-settings" hx-swap="outerHTML">
+                <!-- Cooldown Settings -->
+                <div class="settings-card mb-5">
+                    <div class="settings-card-header">
+                        <h2 class="title is-4">
+                            <span class="icon-text">
+                                <span class="icon">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                                <span>Timing Settings</span>
+                            </span>
+                        </h2>
+                    </div>
+                    <div class="settings-card-body">
+                        <div class="form-group">
+                            <label class="label">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-stopwatch"></i>
+                                    </span>
+                                    <span>{{index .TranslatedText 1}}</span>
+                                </span>
+                            </label>
+                            <div class="control has-icons-left has-icons-right">
+                                <input class="input is-medium" type="number" name="cooldown0815" placeholder="{{ .Conf.Cooldown }}" min="0" max="3600">
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-stopwatch"></i>
+                                </span>
+                                <span class="icon is-small is-right">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                            </div>
+                            <p class="help">Time in seconds between notifications for the same camera</p>
+                        </div>
                     </div>
                 </div>
 
-                <label class="label">{{index .TranslatedText 2}}</label>
-                {{ range .Conf.Cameras}}
-                <div class="field">
-                    <div class="control">
-                        <label class="checkbox">
-                            <input type="checkbox" name="{{.Name}}" {{if .Active}}checked{{end}}>
-                            {{ .Name }}
-                        </label>
+                <!-- Camera Settings -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <h2 class="title is-4">
+                            <span class="icon-text">
+                                <span class="icon">
+                                    <i class="fas fa-video"></i>
+                                </span>
+                                <span>{{index .TranslatedText 2}}</span>
+                            </span>
+                        </h2>
+                        <p class="subtitle is-6">Select which cameras should send notifications</p>
+                    </div>
+                    <div class="settings-card-body">
+                        {{ if .Conf.Cameras }}
+                        <div class="camera-grid">
+                            {{ range .Conf.Cameras}}
+                            <div class="camera-card">
+                                <div class="camera-card-content">
+                                    <div class="camera-icon">
+                                        <i class="fas fa-video"></i>
+                                    </div>
+                                    <div class="camera-info">
+                                        <h4 class="camera-name">{{ .Name }}</h4>
+                                        <div class="camera-toggle">
+                                            <label class="switch">
+                                                <input type="checkbox" name="{{.Name}}" {{if .Active}}checked{{end}}>
+                                                <span class="slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="camera-status">
+                                    <span class="status-indicator {{if .Active}}is-active{{else}}is-inactive{{end}}">
+                                        {{if .Active}}Active{{else}}Inactive{{end}}
+                                    </span>
+                                </div>
+                            </div>
+                            {{ end }}
+                        </div>
+                        {{ else }}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-video-slash"></i>
+                            </div>
+                            <h3 class="empty-state-title">No cameras found</h3>
+                            <p class="empty-state-message">Please configure your Frigate server first to see available cameras.</p>
+                        </div>
+                        {{ end }}
+                    </div>
+                </div>
+
+                <div class="form-actions mt-5">
+                    <button class="button is-primary is-medium is-rounded">
+                        <span class="icon">
+                            <i class="fas fa-save"></i>
+                        </span>
+                        <span>{{index .TranslatedText 3}}</span>
+                    </button>
+                </div>
+
+                {{ if .ShowStatus }}
+                <div class="status-message mt-4">
+                    <div class="notification {{.Color}} is-light">
+                        <span class="icon">
+                            <i class="fas {{ if eq .Color "is-success"}}fa-check-circle{{ else }}fa-exclamation-triangle{{ end }}"></i>
+                        </span>
+                        <span>{{.StatusMessage}}</span>
                     </div>
                 </div>
                 {{ end }}
-
-
-                <div class="control">
-                    <button class="button is-link">{{index .TranslatedText 3}}</button>
-                </div>
-                <br>
-                {{ if .ShowStatus }}<span class="tag {{.Color}} is-normal">{{.StatusMessage}}</span>{{end}}
-
-
             </form>
+        </div>
 
+        <!-- Help Section -->
+        <div class="column is-4">
+            <div class="help-card">
+                <div class="help-card-header">
+                    <h3 class="title is-5">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-question-circle"></i>
+                            </span>
+                            <span>Help & Information</span>
+                        </span>
+                    </h3>
+                </div>
+                <div class="help-card-body">
+                    <div class="help-item">
+                        <h4 class="help-title">
+                            <span class="icon">
+                                <i class="fas fa-stopwatch"></i>
+                            </span>
+                            <span>Cooldown Period</span>
+                        </h4>
+                        <p class="help-text">Prevents spam by setting a minimum time between notifications from the same camera. Recommended: 30-300 seconds.</p>
+                    </div>
+
+                    <div class="help-item">
+                        <h4 class="help-title">
+                            <span class="icon">
+                                <i class="fas fa-video"></i>
+                            </span>
+                            <span>Active Cameras</span>
+                        </h4>
+                        <p class="help-text">Only cameras marked as "Active" will send notifications. Inactive cameras will still record but won't trigger alerts.</p>
+                    </div>
+
+                    <div class="notification is-info is-light">
+                        <strong>💡 Tip:</strong> Start with a longer cooldown period and adjust based on your needs. Too short may result in notification spam.
+                    </div>
+
+                    <div class="notification is-warning is-light">
+                        <strong>⚠️ Note:</strong> Changes require the Frigate server to be properly configured and running.
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
