@@ -282,6 +282,23 @@ func (connection *FNDFrigateConnection) PublishTestEvent() (eventMessage, error)
 		return eventMessage{}, fmt.Errorf("MQTT client not connected")
 	}
 
+	// Get a real camera name from configuration
+	var cameraName string
+	connection.eventManager.fConf.m.Lock()
+	if len(connection.eventManager.fConf.Cameras) > 0 {
+		// Use the first available camera
+		for name := range connection.eventManager.fConf.Cameras {
+			cameraName = name
+			break
+		}
+	}
+	connection.eventManager.fConf.m.Unlock()
+
+	// If no cameras configured, use a default name
+	if cameraName == "" {
+		cameraName = "default_camera"
+	}
+
 	// Generate a test event
 	testEvent := eventMessage{
 		TypeInfo: "new",
@@ -294,7 +311,7 @@ func (connection *FNDFrigateConnection) PublishTestEvent() (eventMessage, error)
 			Score          float32 `json:"score"`
 		}{
 			Id:             fmt.Sprintf("test_event_%d", time.Now().Unix()),
-			Camera:         "test_camera",
+			Camera:         cameraName,
 			Label:          "person",
 			Top_Score:      0.95,
 			False_Positive: false,
@@ -309,7 +326,7 @@ func (connection *FNDFrigateConnection) PublishTestEvent() (eventMessage, error)
 			Score          float32 `json:"score"`
 		}{
 			Id:             fmt.Sprintf("test_event_%d", time.Now().Unix()),
-			Camera:         "test_camera",
+			Camera:         cameraName,
 			Label:          "person",
 			Top_Score:      0.95,
 			False_Positive: false,
