@@ -148,10 +148,10 @@
                             </table>
                             {{if not .Logs}}
                             <div class="has-text-centered py-6">
-                                <span class="icon is-large has-text-grey-light">
+                                <span class="icon is-large has-text-black">
                                     <i class="fas fa-inbox fa-3x"></i>
                                 </span>
-                                <p class="has-text-grey">No logs available</p>
+                                <p class="has-text-black">No logs available</p>
                             </div>
                             {{end}}
                         </div>
@@ -471,7 +471,7 @@
 }
 
 .logs-container .subtitle {
-    color: #6c757d;
+    color: #000;
 }
 
 /* Tab styles */
@@ -532,7 +532,7 @@
 }
 
 .logs-table thead th {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    background: linear-gradient(135deg, #000000 0%, #333333 100%);
     color: white;
     font-weight: 600;
     border: none;
@@ -546,12 +546,12 @@
 .logs-table tbody tr {
     background: white;
     transition: all 0.2s ease;
-    color: #495057;
+    color: #000000;
 }
 
 .logs-table tbody tr:nth-child(even) {
     background: #f8fafb;
-    color: #495057;
+    color: #000000;
 }
 
 .logs-table tbody tr:hover {
@@ -565,7 +565,7 @@
     border: none;
     padding: 0.75rem;
     vertical-align: middle;
-    color: #495057;
+    color: #000000;
 }
 
 .log-level-DEBUG {
@@ -611,7 +611,7 @@
 .timestamp {
     font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
     font-size: 0.85rem;
-    color: #6c757d;
+    color: #000;
     font-weight: 500;
     background: rgba(108, 117, 125, 0.1);
     padding: 0.25rem 0.5rem;
@@ -620,7 +620,7 @@
 
 .component {
     font-weight: 600;
-    color: #6c757d;
+    color: #000;
     background: #f8f9fa;
     padding: 0.25rem 0.5rem;
     border-radius: 6px;
@@ -644,7 +644,7 @@
     white-space: pre-wrap;
     word-wrap: break-word;
     border: 1px solid #dee2e6;
-    color: #495057;
+    color: #000000;
 }
 
 .details-cell {
@@ -652,7 +652,7 @@
 }
 
 .details-cell .button {
-    background: #6c757d;
+    background: #000000;
     color: white;
     border: none;
     border-radius: 50%;
@@ -664,8 +664,8 @@
 
 .details-cell .button:hover {
     transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
-    background: #495057;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    background: #333333;
 }
 
 .box {
@@ -682,7 +682,7 @@
     border: 2px solid #e9ecef;
     background: rgba(255, 255, 255, 0.9);
     transition: all 0.3s ease;
-    color: #495057;
+    color: #000000;
 }
 
 .field .control .select select:focus,
@@ -693,7 +693,7 @@
 
 .field .control .select select option {
     background: white;
-    color: #495057;
+    color: #000000;
 }
 
 .button {
@@ -727,7 +727,7 @@
 .button.is-light {
     background: rgba(255, 255, 255, 0.9);
     border: 2px solid rgba(255, 255, 255, 0.3);
-    color: #525f7f;
+    color: #000000;
 }
 
 .button.is-light:hover {
@@ -788,11 +788,11 @@
 
 /* No logs state */
 .has-text-grey {
-    color: #6c757d !important;
+    color: #000 !important;
 }
 
 .has-text-grey-light {
-    color: #adb5bd !important;
+    color: #000 !important;
 }
 
 /* Level indicator glow effect */

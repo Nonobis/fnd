@@ -20,3 +20,4 @@ fnd_conf/pending_events.json
 fnd_conf/faces.json
 fnd_conf/faces.db
 fnd_conf/pending_faces/
+fnd.exe

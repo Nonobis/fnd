@@ -139,7 +139,7 @@
         
         <div id="events-container">
             <div class="events-loading">
-                <p class="has-text-grey">Loading events...</p>
+                <p class="has-text-black">Loading events...</p>
             </div>
         </div>
     </div>
@@ -250,7 +250,7 @@
                                     <div class="columns is-mobile">
                                         <div class="column">
                                             <p class="has-text-weight-bold">${event.camera}</p>
-                                            <p class="is-size-7 has-text-grey">${formatDate(event.timestamp)}</p>
+                                            <p class="is-size-7 has-text-black">${formatDate(event.timestamp)}</p>
                                         </div>
                                         <div class="column is-narrow">
                                             <span class="tag ${statusClass}">
@@ -261,7 +261,7 @@
                                             </span>
                                         </div>
                                     </div>
-                                    <p class="is-size-7 has-text-grey">Event ID: ${event.eventId}</p>
+                                    <p class="is-size-7 has-text-black">Event ID: ${event.eventId}</p>
                                     ${event.processed && event.notes ? `<p class="is-size-7">${event.notes}</p>` : ''}
                                 </div>
                             </div>
