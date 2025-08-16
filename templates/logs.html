@@ -96,6 +96,40 @@
             <div class="section pt-0">
                 <div class="container">
                     <div class="box" style="max-height: 70vh; overflow-y: auto;">
+                        <!-- Quick Log Level Control -->
+                        <div class="level" style="margin-bottom: 1rem;">
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <button class="button is-info is-small" onclick="changeLogLevel('INFO')">
+                                        <span class="icon is-small">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
+                                        <span>Set to INFO</span>
+                                    </button>
+                                </div>
+                                <div class="control">
+                                    <button class="button is-warning is-small" onclick="changeLogLevel('WARN')">
+                                        <span class="icon is-small">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </span>
+                                        <span>Set to WARN</span>
+                                    </button>
+                                </div>
+                                <div class="control">
+                                    <button class="button is-danger is-small" onclick="changeLogLevel('ERROR')">
+                                        <span class="icon is-small">
+                                            <i class="fas fa-times-circle"></i>
+                                        </span>
+                                        <span>Set to ERROR</span>
+                                    </button>
+                                </div>
+                                <div class="control">
+                                    <span class="button is-static is-small" id="current-log-level">
+                                        Current: Loading...
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                         <div id="logs-content">
                             <table class="table is-fullwidth is-striped is-hoverable logs-table">
                                 <thead>
@@ -939,6 +973,10 @@ function startLiveUpdates() {
 
 function addLogEntry(logEntry) {
     const tbody = document.getElementById('logs-tbody');
+    if (!tbody) {
+        console.warn('logs-tbody element not found');
+        return;
+    }
     const row = createLogRow(logEntry);
     tbody.insertBefore(row, tbody.firstChild);
     
@@ -986,6 +1024,12 @@ function createLogRow(log) {
 }
 
 function refreshLogs() {
+    // Only refresh if logs tab is active
+    const logsTab = document.getElementById('logs-tab');
+    if (!logsTab || !logsTab.classList.contains('is-active')) {
+        return;
+    }
+    
     fetch('/api/logs/recent')
         .then(response => response.json())
         .then(data => {
@@ -998,6 +1042,10 @@ function refreshLogs() {
 
 function updateLogsTable(logs) {
     const tbody = document.getElementById('logs-tbody');
+    if (!tbody) {
+        console.warn('logs-tbody element not found');
+        return;
+    }
     tbody.innerHTML = '';
     
     logs.forEach(log => {
@@ -1252,6 +1300,10 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         initializeTabs();
         refreshLogs();
+        // Start auto-refresh only if logs tab is active
+        if (document.getElementById('live-logs').classList.contains('is-active')) {
+            setInterval(refreshLogs, 5000);
+        }
     }, 100);
 });
 
@@ -1261,6 +1313,10 @@ if (document.readyState !== 'loading') {
     setTimeout(() => {
         initializeTabs();
         refreshLogs();
+        // Start auto-refresh only if logs tab is active
+        if (document.getElementById('live-logs').classList.contains('is-active')) {
+            setInterval(refreshLogs, 5000);
+        }
     }, 100);
 }
 
@@ -1270,6 +1326,10 @@ document.addEventListener('htmx:afterSwap', function(event) {
     setTimeout(() => {
         initializeTabs();
         refreshLogs();
+        // Start auto-refresh only if logs tab is active
+        if (document.getElementById('live-logs').classList.contains('is-active')) {
+            setInterval(refreshLogs, 5000);
+        }
     }, 100);
 });
 
@@ -1279,6 +1339,10 @@ document.addEventListener('htmx:load', function(event) {
     setTimeout(() => {
         initializeTabs();
         refreshLogs();
+        // Start auto-refresh only if logs tab is active
+        if (document.getElementById('live-logs').classList.contains('is-active')) {
+            setInterval(refreshLogs, 5000);
+        }
     }, 100);
 });
 
@@ -1291,4 +1355,95 @@ window.addEventListener('beforeunload', function() {
         clearInterval(autoRefreshInterval);
     }
 });
+
+// Load current log level on page load
+loadCurrentLogLevel();
+
+function loadCurrentLogLevel() {
+    fetch('/api/logs/current-config')
+        .then(response => response.json())
+        .then(data => {
+            const levelNames = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
+            const currentLevel = levelNames[data.logLevel] || 'UNKNOWN';
+            document.getElementById('current-log-level').textContent = `Current: ${currentLevel}`;
+        })
+        .catch(error => {
+            console.error('Error loading log level:', error);
+            document.getElementById('current-log-level').textContent = 'Current: Error';
+        });
+}
+
+function changeLogLevel(level) {
+    const levelMap = {
+        'DEBUG': 0,
+        'INFO': 1,
+        'WARN': 2,
+        'ERROR': 3
+    };
+    
+    const logLevel = levelMap[level];
+    if (logLevel === undefined) {
+        console.error('Invalid log level:', level);
+        return;
+    }
+    
+    const settings = {
+        logLevel: logLevel.toString(),
+        maxEntries: '1000', // Keep current max entries
+        refreshInterval: '5',
+        retentionDays: '7'
+    };
+    
+    fetch('/api/logs/settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the display
+            document.getElementById('current-log-level').textContent = `Current: ${level}`;
+            
+            // Show success message
+            const notification = document.createElement('div');
+            notification.className = 'notification is-success is-light';
+            notification.innerHTML = `
+                <button class="delete" onclick="this.parentElement.remove()"></button>
+                Log level changed to ${level} successfully!
+            `;
+            document.querySelector('.box').insertBefore(notification, document.querySelector('.level'));
+            
+            // Remove notification after 3 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 3000);
+        } else {
+            throw new Error(data.error || 'Failed to change log level');
+        }
+    })
+    .catch(error => {
+        console.error('Error changing log level:', error);
+        
+        // Show error message
+        const notification = document.createElement('div');
+        notification.className = 'notification is-danger is-light';
+        notification.innerHTML = `
+            <button class="delete" onclick="this.parentElement.remove()"></button>
+            Failed to change log level: ${error.message}
+        `;
+        document.querySelector('.box').insertBefore(notification, document.querySelector('.level'));
+        
+        // Remove notification after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    });
+}
 </script>

@@ -751,7 +751,8 @@ func (s *FacialRecognitionService) saveFaceDatabase() error {
 func (s *FacialRecognitionService) TestConnection() error {
 	LogDebug("FACIAL_RECOGNITION", "Testing connection to CodeProject.AI", s.baseURL)
 
-	url := fmt.Sprintf("%s/v1/vision/face", s.baseURL)
+	// Try to connect to the base URL first to check if the service is reachable
+	url := fmt.Sprintf("%s/", s.baseURL)
 
 	// Create a simple test request
 	req, err := http.NewRequest("GET", url, nil)
@@ -766,10 +767,12 @@ func (s *FacialRecognitionService) TestConnection() error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	// Accept any 2xx or 4xx status code as the service is reachable
+	// 4xx means the service is running but the endpoint doesn't exist (which is expected for root path)
+	if resp.StatusCode >= 200 && resp.StatusCode < 500 {
+		LogInfo("FACIAL_RECOGNITION", "Connection test successful", s.baseURL)
+		return nil
 	}
 
-	LogInfo("FACIAL_RECOGNITION", "Connection test successful", s.baseURL)
-	return nil
+	return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 }

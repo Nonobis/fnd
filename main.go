@@ -72,7 +72,7 @@ func main() {
 			conf.Sentry.Environment = sentryEnvironment
 		}
 
-		err := InitializeSentry(conf.Sentry)
+		err := InitializeSentry(conf.Sentry, version)
 		if err != nil {
 			LogWarn("MAIN", "Failed to initialize Sentry", err.Error())
 		} else {

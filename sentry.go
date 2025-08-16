@@ -17,7 +17,7 @@ type SentryConfig struct {
 }
 
 // InitializeSentry initializes Sentry for error tracking
-func InitializeSentry(config SentryConfig) error {
+func InitializeSentry(config SentryConfig, appVersion string) error {
 	if !config.Enabled {
 		LogInfo("SENTRY", "Sentry disabled", "")
 		return nil
@@ -39,7 +39,7 @@ func InitializeSentry(config SentryConfig) error {
 		BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
 			// Add custom context
 			event.Tags["application"] = "FND"
-			event.Tags["version"] = "0.1.12"
+			event.Tags["version"] = appVersion
 
 			// Filter out certain errors if needed
 			if event.Exception != nil {
@@ -64,14 +64,14 @@ func InitializeSentry(config SentryConfig) error {
 	// Set up global error handler
 	sentry.ConfigureScope(func(scope *sentry.Scope) {
 		scope.SetTag("application", "FND")
-		scope.SetTag("version", "0.1.12")
+		scope.SetTag("version", appVersion)
 		// scope.SetContext("system", map[string]interface{}{
 		// 	"os":      "linux",
 		// 	"runtime": "go",
 		// })
 	})
 
-	LogInfo("SENTRY", "Sentry initialized successfully", fmt.Sprintf("Environment: %s, Debug: %t", config.Environment, config.Debug))
+	LogInfo("SENTRY", "Sentry initialized successfully", fmt.Sprintf("Environment: %s, Debug: %t, Version: %s", config.Environment, config.Debug, appVersion))
 	return nil
 }
 
