@@ -35,7 +35,6 @@ func RunBackgroundTask(api *FNDFrigateApi,
 
 func (bg *BackgroundTask) task() {
 	ticker := time.NewTicker(10 * time.Second)
-	tickerLong := time.NewTicker(120 * time.Minute)
 
 	// Initialize pending faces auto-process ticker
 	var pendingFacesTicker *time.Ticker
@@ -56,12 +55,11 @@ func (bg *BackgroundTask) task() {
 	}
 
 	defer ticker.Stop()
-	defer tickerLong.Stop()
 	if pendingFacesTicker != nil {
 		defer pendingFacesTicker.Stop()
 	}
 
-	LogInfo("BACKGROUND", "Background task started", fmt.Sprintf("Camera check: 10s, Config save: 120min, Pending faces: %v", pendingFacesTickerDuration))
+	LogInfo("BACKGROUND", "Background task started", fmt.Sprintf("Camera check: 10s, Pending faces: %v", pendingFacesTickerDuration))
 
 	// Create a channel for pending faces ticker that can be nil
 	var pendingFacesChan <-chan time.Time
@@ -90,16 +88,7 @@ func (bg *BackgroundTask) task() {
 			if discoveredCount > 0 {
 				LogInfo("BACKGROUND", "Camera discovery completed", fmt.Sprintf("New cameras: %d", discoveredCount))
 			}
-		case <-tickerLong.C:
-			LogInfo("BACKGROUND", "Periodic configuration save started", "")
-			bg.conf.Notify = bg.notify.getConfigAll()
-			err := bg.conf.WriteToFile(bg.configuration_path)
-			if err != nil {
-				LogError("BACKGROUND", "Failed to save configuration", err.Error())
-				fmt.Println(err.Error())
-			} else {
-				LogInfo("BACKGROUND", "Periodic configuration save completed", "Configuration synchronized to disk")
-			}
+		// Removed periodic configuration save - configuration is now saved immediately when changed
 		case <-pendingFacesChan:
 			bg.processPendingFacesAutomatically()
 		}

@@ -67,8 +67,8 @@ func (e *FNDFrigateEventManager) addNewEventMessage(msg eventMessage) error {
 			}
 		}
 
-		// Queue event for processing if task scheduler is available and enabled
-		if e.taskScheduler != nil && e.taskScheduler.config.EnableEventQueue {
+		// Queue event for processing - task scheduler is always enabled
+		if e.taskScheduler != nil {
 			queuedEvent := QueuedEvent{
 				ID:        fmt.Sprintf("event_%s_%d", msg.Before.Id, time.Now().Unix()),
 				EventID:   msg.Before.Id,
@@ -86,17 +86,9 @@ func (e *FNDFrigateEventManager) addNewEventMessage(msg eventMessage) error {
 				LogDebug("EVENT", "Event queued for processing", fmt.Sprintf("Event ID: %s", msg.Before.Id))
 			}
 		} else {
-			// Process immediately if task scheduler is not available or disabled
-			var err error
-			if e.shouldSendNotification(msg) {
-				LogInfo("EVENT", "Notification will be sent", fmt.Sprintf("Event ID: %s", msg.Before.Id))
-				err = e.prepareNotification(msg)
-			} else {
-				LogDebug("EVENT", "Notification skipped", fmt.Sprintf("Event ID: %s - Camera inactive or cooldown active", msg.Before.Id))
-			}
-			if err != nil {
-				return err
-			}
+			// Task scheduler is required - log error if not available
+			LogError("EVENT", "Task scheduler not available", fmt.Sprintf("Event ID: %s cannot be processed", msg.Before.Id))
+			return errors.New("task scheduler not available")
 		}
 	case "update":
 		if !avail {

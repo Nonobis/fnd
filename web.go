@@ -1447,18 +1447,28 @@ func (web *FNDWebServer) handleTemplateTest(c *gin.Context) {
 		UnknownFaces:    "1",
 	}
 
-	// Process templates
+	// Process templates with enhanced error reporting
 	processor := NewTemplateProcessor(&web.globalConf.Notify.Templates)
 
 	var processedTitle, processedMessage string
 	var err error
 
 	if title != "" {
+		// Validate template syntax first
+		if err := ValidateTemplate(title); err != nil {
+			errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+				<span class="icon"><i class="fas fa-times-circle"></i></span>
+				<span>Title template validation failed: %s</span>
+			</div>`, err.Error())
+			c.Data(200, "text/html", []byte(errorHTML))
+			return
+		}
+
 		processedTitle, err = processor.processTemplateString(title, testVars)
 		if err != nil {
 			errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
 				<span class="icon"><i class="fas fa-times-circle"></i></span>
-				<span>Title template error: %s</span>
+				<span>Title template processing error: %s</span>
 			</div>`, err.Error())
 			c.Data(200, "text/html", []byte(errorHTML))
 			return
@@ -1466,11 +1476,21 @@ func (web *FNDWebServer) handleTemplateTest(c *gin.Context) {
 	}
 
 	if message != "" {
+		// Validate template syntax first
+		if err := ValidateTemplate(message); err != nil {
+			errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+				<span class="icon"><i class="fas fa-times-circle"></i></span>
+				<span>Message template validation failed: %s</span>
+			</div>`, err.Error())
+			c.Data(200, "text/html", []byte(errorHTML))
+			return
+		}
+
 		processedMessage, err = processor.processTemplateString(message, testVars)
 		if err != nil {
 			errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
 				<span class="icon"><i class="fas fa-times-circle"></i></span>
-				<span>Message template error: %s</span>
+				<span>Message template processing error: %s</span>
 			</div>`, err.Error())
 			c.Data(200, "text/html", []byte(errorHTML))
 			return
@@ -2766,8 +2786,15 @@ func (web *FNDWebServer) handleTaskSchedulerConfig(c *gin.Context) {
 		}
 	}
 
-	// Update enable event queue
-	config.EnableEventQueue = c.PostForm("enableEventQueue") == "true"
+	// Update processed events retention days
+	if retentionStr := c.PostForm("processedEventsRetentionDays"); retentionStr != "" {
+		if retention, err := strconv.Atoi(retentionStr); err == nil && retention >= 1 && retention <= 365 {
+			config.ProcessedEventsRetentionDays = retention
+		}
+	}
+
+	// Event queue is always enabled - cannot be disabled
+	config.EnableEventQueue = true
 
 	// Update max queue size
 	if queueSizeStr := c.PostForm("maxEventQueueSize"); queueSizeStr != "" {

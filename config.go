@@ -247,13 +247,14 @@ func NEWDefaultFNDConfiguration() *FNDConfiguration {
 			Debug:       false,
 		},
 		TaskScheduler: FNDTaskSchedulerConfiguration{
-			EventProcessingInterval:  1,  // Default: 1 minute
-			PendingFacesInterval:     6,  // Default: 6 hours
-			LogPurgeInterval:         24, // Default: 24 hours
-			TaskHistoryRetentionDays: 7,  // Default: 7 days
-			EnableEventQueue:         true,
-			MaxEventQueueSize:        1000,
-			MaxConcurrentTasks:       5,
+			EventProcessingInterval:      1,    // Default: 1 minute
+			PendingFacesInterval:         6,    // Default: 6 hours
+			LogPurgeInterval:             24,   // Default: 24 hours
+			TaskHistoryRetentionDays:     7,    // Default: 7 days
+			EnableEventQueue:             true, // Always enabled - cannot be disabled
+			MaxEventQueueSize:            1000,
+			MaxConcurrentTasks:           5,
+			ProcessedEventsRetentionDays: 30, // Default: 30 days
 		},
 	}
 
@@ -677,11 +678,12 @@ func GetAvailableObjects() []string {
 
 // FNDTaskSchedulerConfiguration represents the task scheduler configuration
 type FNDTaskSchedulerConfiguration struct {
-	EventProcessingInterval  int  `json:"eventProcessingInterval"`  // in minutes
-	PendingFacesInterval     int  `json:"pendingFacesInterval"`     // in hours
-	LogPurgeInterval         int  `json:"logPurgeInterval"`         // in hours
-	TaskHistoryRetentionDays int  `json:"taskHistoryRetentionDays"` // in days
-	EnableEventQueue         bool `json:"enableEventQueue"`         // enable/disable event queue processing
-	MaxEventQueueSize        int  `json:"maxEventQueueSize"`        // maximum events in queue
-	MaxConcurrentTasks       int  `json:"maxConcurrentTasks"`       // maximum concurrent tasks
+	EventProcessingInterval      int  `json:"eventProcessingInterval"`      // in minutes
+	PendingFacesInterval         int  `json:"pendingFacesInterval"`         // in hours
+	LogPurgeInterval             int  `json:"logPurgeInterval"`             // in hours
+	TaskHistoryRetentionDays     int  `json:"taskHistoryRetentionDays"`     // in days
+	EnableEventQueue             bool `json:"enableEventQueue"`             // always enabled - cannot be disabled
+	MaxEventQueueSize            int  `json:"maxEventQueueSize"`            // maximum events in queue
+	MaxConcurrentTasks           int  `json:"maxConcurrentTasks"`           // maximum concurrent tasks
+	ProcessedEventsRetentionDays int  `json:"processedEventsRetentionDays"` // retention period for processed events (default: 30 days)
 }

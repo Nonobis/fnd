@@ -45,17 +45,17 @@ type TaskExecution struct {
 
 // QueuedEvent represents an event waiting to be processed
 type QueuedEvent struct {
-	ID        string                 `json:"id"`
-	EventID   string                 `json:"eventId"`
-	Type      string                 `json:"type"`
-	Camera    string                 `json:"camera"`
-	Label     string                 `json:"label"`
-	Score     float32                `json:"score"`
-	Timestamp time.Time              `json:"timestamp"`
-	Data      map[string]interface{} `json:"data"`
-	Status    TaskStatus             `json:"status"`
-	Attempts  int                    `json:"attempts"`
-	MaxAttempts int                  `json:"maxAttempts"`
+	ID          string                 `json:"id"`
+	EventID     string                 `json:"eventId"`
+	Type        string                 `json:"type"`
+	Camera      string                 `json:"camera"`
+	Label       string                 `json:"label"`
+	Score       float32                `json:"score"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Data        map[string]interface{} `json:"data"`
+	Status      TaskStatus             `json:"status"`
+	Attempts    int                    `json:"attempts"`
+	MaxAttempts int                    `json:"maxAttempts"`
 }
 
 // TaskScheduler manages scheduled tasks and their execution history
@@ -66,72 +66,72 @@ type TaskScheduler struct {
 	eventManager     *FNDFrigateEventManager
 	notifyManager    *FNDNotificationManager
 	api              *FNDFrigateApi
-	
+
 	// Task execution control
-	ctx              context.Context
-	cancel           context.CancelFunc
-	tickers          map[TaskType]*time.Ticker
-	runningTasks     map[string]bool
-	taskMutex        sync.RWMutex
-	queueMutex       sync.RWMutex
-	historyMutex     sync.RWMutex
-	
+	ctx          context.Context
+	cancel       context.CancelFunc
+	tickers      map[TaskType]*time.Ticker
+	runningTasks map[string]bool
+	taskMutex    sync.RWMutex
+	queueMutex   sync.RWMutex
+	historyMutex sync.RWMutex
+
 	// File paths
-	historyFilePath  string
-	queueFilePath    string
+	historyFilePath string
+	queueFilePath   string
 }
 
 // NewTaskScheduler creates a new task scheduler instance
 func NewTaskScheduler(config *FNDTaskSchedulerConfiguration, eventManager *FNDFrigateEventManager, notifyManager *FNDNotificationManager, api *FNDFrigateApi) *TaskScheduler {
 	scheduler := &TaskScheduler{
-		config:        config,
-		eventQueue:    make([]QueuedEvent, 0),
+		config:           config,
+		eventQueue:       make([]QueuedEvent, 0),
 		executionHistory: make([]TaskExecution, 0),
-		eventManager:  eventManager,
-		notifyManager: notifyManager,
-		api:           api,
-		tickers:       make(map[TaskType]*time.Ticker),
-		runningTasks:  make(map[string]bool),
+		eventManager:     eventManager,
+		notifyManager:    notifyManager,
+		api:              api,
+		tickers:          make(map[TaskType]*time.Ticker),
+		runningTasks:     make(map[string]bool),
 	}
-	
+
 	scheduler.ctx, scheduler.cancel = context.WithCancel(context.Background())
-	
+
 	// Set up file paths - store in fnd_conf directory
 	scheduler.historyFilePath = "fnd_conf/task_history.json"
 	scheduler.queueFilePath = "fnd_conf/event_queue.json"
-	
+
 	// Load existing data
 	scheduler.loadExecutionHistory()
 	scheduler.loadEventQueue()
-	
+
 	return scheduler
 }
 
 // Start starts the task scheduler
 func (ts *TaskScheduler) Start() {
 	LogInfo("TASK_SCHEDULER", "Starting task scheduler", "")
-	
+
 	// Start event processing task
 	if ts.config.EnableEventQueue {
 		interval := time.Duration(ts.config.EventProcessingInterval) * time.Minute
 		ts.tickers[TaskTypeEventProcessing] = time.NewTicker(interval)
 		LogInfo("TASK_SCHEDULER", "Event processing task scheduled", fmt.Sprintf("Interval: %v", interval))
 	}
-	
+
 	// Start pending faces task (if different from background task)
 	if ts.config.PendingFacesInterval > 0 {
 		interval := time.Duration(ts.config.PendingFacesInterval) * time.Hour
 		ts.tickers[TaskTypePendingFaces] = time.NewTicker(interval)
 		LogInfo("TASK_SCHEDULER", "Pending faces task scheduled", fmt.Sprintf("Interval: %v", interval))
 	}
-	
+
 	// Start log purge task
 	if ts.config.LogPurgeInterval > 0 {
 		interval := time.Duration(ts.config.LogPurgeInterval) * time.Hour
 		ts.tickers[TaskTypeLogPurge] = time.NewTicker(interval)
 		LogInfo("TASK_SCHEDULER", "Log purge task scheduled", fmt.Sprintf("Interval: %v", interval))
 	}
-	
+
 	// Start the main scheduler loop
 	go ts.schedulerLoop()
 }
@@ -139,15 +139,15 @@ func (ts *TaskScheduler) Start() {
 // Stop stops the task scheduler
 func (ts *TaskScheduler) Stop() {
 	LogInfo("TASK_SCHEDULER", "Stopping task scheduler", "")
-	
+
 	ts.cancel()
-	
+
 	// Stop all tickers
 	for taskType, ticker := range ts.tickers {
 		ticker.Stop()
 		LogInfo("TASK_SCHEDULER", "Stopped ticker", fmt.Sprintf("Task type: %s", taskType))
 	}
-	
+
 	// Save data before stopping
 	ts.saveExecutionHistory()
 	ts.saveEventQueue()
@@ -156,19 +156,19 @@ func (ts *TaskScheduler) Stop() {
 // schedulerLoop is the main scheduler loop
 func (ts *TaskScheduler) schedulerLoop() {
 	LogInfo("TASK_SCHEDULER", "Scheduler loop started", "")
-	
+
 	for {
 		select {
 		case <-ts.ctx.Done():
 			LogInfo("TASK_SCHEDULER", "Scheduler loop stopped", "")
 			return
-			
+
 		case <-ts.tickers[TaskTypeEventProcessing].C:
 			ts.executeTask(TaskTypeEventProcessing, "scheduled")
-			
+
 		case <-ts.tickers[TaskTypePendingFaces].C:
 			ts.executeTask(TaskTypePendingFaces, "scheduled")
-			
+
 		case <-ts.tickers[TaskTypeLogPurge].C:
 			ts.executeTask(TaskTypeLogPurge, "scheduled")
 		}
@@ -178,7 +178,7 @@ func (ts *TaskScheduler) schedulerLoop() {
 // executeTask executes a specific task
 func (ts *TaskScheduler) executeTask(taskType TaskType, triggeredBy string) {
 	executionID := fmt.Sprintf("%s_%d", taskType, time.Now().Unix())
-	
+
 	// Check if task is already running
 	ts.taskMutex.Lock()
 	if ts.runningTasks[executionID] {
@@ -188,7 +188,7 @@ func (ts *TaskScheduler) executeTask(taskType TaskType, triggeredBy string) {
 	}
 	ts.runningTasks[executionID] = true
 	ts.taskMutex.Unlock()
-	
+
 	// Create execution record
 	execution := TaskExecution{
 		ID:          executionID,
@@ -197,16 +197,16 @@ func (ts *TaskScheduler) executeTask(taskType TaskType, triggeredBy string) {
 		StartedAt:   time.Now(),
 		TriggeredBy: triggeredBy,
 	}
-	
+
 	// Add to history
 	ts.addExecutionToHistory(execution)
-	
+
 	LogInfo("TASK_SCHEDULER", "Starting task execution", fmt.Sprintf("Task: %s, ID: %s, Triggered by: %s", taskType, executionID, triggeredBy))
-	
+
 	// Execute the task
 	var result map[string]interface{}
 	var err error
-	
+
 	switch taskType {
 	case TaskTypeEventProcessing:
 		result, err = ts.processEventQueue()
@@ -217,11 +217,11 @@ func (ts *TaskScheduler) executeTask(taskType TaskType, triggeredBy string) {
 	default:
 		err = fmt.Errorf("unknown task type: %s", taskType)
 	}
-	
+
 	// Update execution record
 	completedAt := time.Now()
 	duration := completedAt.Sub(execution.StartedAt)
-	
+
 	if err != nil {
 		execution.Status = TaskStatusFailed
 		execution.Error = err.Error()
@@ -231,13 +231,13 @@ func (ts *TaskScheduler) executeTask(taskType TaskType, triggeredBy string) {
 		execution.Result = result
 		LogInfo("TASK_SCHEDULER", "Task execution completed", fmt.Sprintf("Task: %s, ID: %s, Duration: %v", taskType, executionID, duration))
 	}
-	
+
 	execution.CompletedAt = &completedAt
 	execution.Duration = duration
-	
+
 	// Update history
 	ts.updateExecutionInHistory(execution)
-	
+
 	// Remove from running tasks
 	ts.taskMutex.Lock()
 	delete(ts.runningTasks, executionID)
@@ -248,25 +248,25 @@ func (ts *TaskScheduler) executeTask(taskType TaskType, triggeredBy string) {
 func (ts *TaskScheduler) QueueEvent(event QueuedEvent) error {
 	ts.queueMutex.Lock()
 	defer ts.queueMutex.Unlock()
-	
+
 	// Check queue size limit
 	if len(ts.eventQueue) >= ts.config.MaxEventQueueSize {
 		LogWarn("TASK_SCHEDULER", "Event queue full, dropping oldest event", fmt.Sprintf("Queue size: %d, Max: %d", len(ts.eventQueue), ts.config.MaxEventQueueSize))
 		// Remove oldest event
 		ts.eventQueue = ts.eventQueue[1:]
 	}
-	
+
 	// Set default values
 	if event.MaxAttempts == 0 {
 		event.MaxAttempts = 3
 	}
 	event.Status = TaskStatusPending
 	event.Timestamp = time.Now()
-	
+
 	ts.eventQueue = append(ts.eventQueue, event)
-	
+
 	LogDebug("TASK_SCHEDULER", "Event queued", fmt.Sprintf("Event ID: %s, Queue size: %d", event.EventID, len(ts.eventQueue)))
-	
+
 	// Save queue to file
 	return ts.saveEventQueue()
 }
@@ -274,12 +274,12 @@ func (ts *TaskScheduler) QueueEvent(event QueuedEvent) error {
 // processEventQueue processes all queued events
 func (ts *TaskScheduler) processEventQueue() (map[string]interface{}, error) {
 	LogInfo("TASK_SCHEDULER", "Processing event queue", "")
-	
+
 	ts.queueMutex.Lock()
 	events := make([]QueuedEvent, len(ts.eventQueue))
 	copy(events, ts.eventQueue)
 	ts.queueMutex.Unlock()
-	
+
 	if len(events) == 0 {
 		LogInfo("TASK_SCHEDULER", "No events to process", "")
 		return map[string]interface{}{
@@ -288,35 +288,30 @@ func (ts *TaskScheduler) processEventQueue() (map[string]interface{}, error) {
 			"remaining": 0,
 		}, nil
 	}
-	
+
 	processed := 0
 	failed := 0
-	
+
 	for _, event := range events {
 		if event.Status != TaskStatusPending {
 			continue
 		}
-		
+
 		LogDebug("TASK_SCHEDULER", "Processing queued event", fmt.Sprintf("Event ID: %s, Camera: %s, Label: %s", event.EventID, event.Camera, event.Label))
-		
-		// Process the event
-		err := ts.processQueuedEvent(&event)
-		
+
+		// Process the event with retry logic
+		err := ts.processQueuedEventWithRetry(&event)
+
 		if err != nil {
-			event.Attempts++
-			if event.Attempts >= event.MaxAttempts {
-				event.Status = TaskStatusFailed
-				failed++
-				LogError("TASK_SCHEDULER", "Event processing failed permanently", fmt.Sprintf("Event ID: %s, Attempts: %d, Error: %s", event.EventID, event.Attempts, err.Error()))
-			} else {
-				LogWarn("TASK_SCHEDULER", "Event processing failed, will retry", fmt.Sprintf("Event ID: %s, Attempts: %d/%d, Error: %s", event.EventID, event.Attempts, event.MaxAttempts, err.Error()))
-			}
+			event.Status = TaskStatusFailed
+			failed++
+			LogError("TASK_SCHEDULER", "Event processing failed permanently", fmt.Sprintf("Event ID: %s, Attempts: %d, Error: %s", event.EventID, event.Attempts, err.Error()))
 		} else {
 			event.Status = TaskStatusCompleted
 			processed++
 			LogInfo("TASK_SCHEDULER", "Event processed successfully", fmt.Sprintf("Event ID: %s", event.EventID))
 		}
-		
+
 		// Update the event in the queue
 		ts.queueMutex.Lock()
 		for j, queuedEvent := range ts.eventQueue {
@@ -327,7 +322,7 @@ func (ts *TaskScheduler) processEventQueue() (map[string]interface{}, error) {
 		}
 		ts.queueMutex.Unlock()
 	}
-	
+
 	// Remove completed and failed events
 	ts.queueMutex.Lock()
 	newQueue := make([]QueuedEvent, 0)
@@ -338,18 +333,18 @@ func (ts *TaskScheduler) processEventQueue() (map[string]interface{}, error) {
 	}
 	ts.eventQueue = newQueue
 	ts.queueMutex.Unlock()
-	
+
 	// Save updated queue
 	ts.saveEventQueue()
-	
+
 	result := map[string]interface{}{
 		"processed": processed,
 		"failed":    failed,
 		"remaining": len(ts.eventQueue),
 	}
-	
+
 	LogInfo("TASK_SCHEDULER", "Event queue processing completed", fmt.Sprintf("Processed: %d, Failed: %d, Remaining: %d", processed, failed, len(ts.eventQueue)))
-	
+
 	return result, nil
 }
 
@@ -372,113 +367,162 @@ func (ts *TaskScheduler) processQueuedEvent(event *QueuedEvent) error {
 			Score:  event.Score,
 		},
 	}
-	
+
 	// Process using existing event manager
 	return ts.eventManager.addNewEventMessage(eventMsg)
+}
+
+// processQueuedEventWithRetry processes a single queued event with retry logic
+func (ts *TaskScheduler) processQueuedEventWithRetry(event *QueuedEvent) error {
+	maxAttempts := event.MaxAttempts
+	if maxAttempts == 0 {
+		maxAttempts = 3 // Default to 3 attempts
+	}
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		event.Attempts = attempt
+
+		err := ts.processQueuedEvent(event)
+		if err == nil {
+			return nil // Success
+		}
+
+		if attempt < maxAttempts {
+			LogWarn("TASK_SCHEDULER", "Event processing failed, retrying", fmt.Sprintf("Event ID: %s, Attempt: %d/%d, Error: %s", event.EventID, attempt, maxAttempts, err.Error()))
+			// Wait before retry (exponential backoff)
+			time.Sleep(time.Duration(attempt) * time.Second)
+		} else {
+			LogError("TASK_SCHEDULER", "Event processing failed after all retries", fmt.Sprintf("Event ID: %s, Attempts: %d, Error: %s", event.EventID, maxAttempts, err.Error()))
+			return err
+		}
+	}
+
+	return fmt.Errorf("event processing failed after %d attempts", maxAttempts)
 }
 
 // processPendingFaces processes pending faces (if not handled by background task)
 func (ts *TaskScheduler) processPendingFaces() (map[string]interface{}, error) {
 	LogInfo("TASK_SCHEDULER", "Processing pending faces", "")
-	
+
 	if ts.notifyManager.pendingFacesManager == nil {
 		return map[string]interface{}{
 			"processed": 0,
 			"error":     "Pending faces manager not available",
 		}, fmt.Errorf("pending faces manager not available")
 	}
-	
+
 	if ts.notifyManager.facialRecognitionService == nil {
 		return map[string]interface{}{
 			"processed": 0,
 			"error":     "Facial recognition service not available",
 		}, fmt.Errorf("facial recognition service not available")
 	}
-	
+
 	successCount, errorCount, err := ts.notifyManager.pendingFacesManager.ProcessAllPendingEventsWithAI(ts.notifyManager.facialRecognitionService)
-	
+
 	result := map[string]interface{}{
 		"success": successCount,
 		"errors":  errorCount,
 		"total":   successCount + errorCount,
 	}
-	
+
 	if err != nil {
 		result["error"] = err.Error()
 		return result, err
 	}
-	
+
 	return result, nil
 }
 
-// purgeOldLogs purges old task execution history
+// purgeOldLogs purges old task execution history and processed events
 func (ts *TaskScheduler) purgeOldLogs() (map[string]interface{}, error) {
-	LogInfo("TASK_SCHEDULER", "Purging old task logs", "")
-	
-	retentionDays := ts.config.TaskHistoryRetentionDays
-	if retentionDays <= 0 {
-		retentionDays = 7 // Default to 7 days
+	LogInfo("TASK_SCHEDULER", "Purging old task logs and processed events", "")
+
+	// Purge task history
+	taskRetentionDays := ts.config.TaskHistoryRetentionDays
+	if taskRetentionDays <= 0 {
+		taskRetentionDays = 7 // Default to 7 days
 	}
-	
-	cutoffDate := time.Now().AddDate(0, 0, -retentionDays)
-	
+
+	taskCutoffDate := time.Now().AddDate(0, 0, -taskRetentionDays)
+
 	ts.historyMutex.Lock()
-	originalCount := len(ts.executionHistory)
-	
-	// Count old records before purging
-	oldRecords := 0
+	originalTaskCount := len(ts.executionHistory)
+
+	// Count old task records before purging
+	oldTaskRecords := 0
 	for _, execution := range ts.executionHistory {
-		if execution.StartedAt.Before(cutoffDate) {
-			oldRecords++
+		if execution.StartedAt.Before(taskCutoffDate) {
+			oldTaskRecords++
 		}
 	}
-	
-	newHistory := make([]TaskExecution, 0)
+
+	newTaskHistory := make([]TaskExecution, 0)
 	for _, execution := range ts.executionHistory {
-		if execution.StartedAt.After(cutoffDate) {
-			newHistory = append(newHistory, execution)
+		if execution.StartedAt.After(taskCutoffDate) {
+			newTaskHistory = append(newTaskHistory, execution)
 		}
 	}
-	
-	ts.executionHistory = newHistory
+
+	ts.executionHistory = newTaskHistory
 	ts.historyMutex.Unlock()
-	
-	purgedCount := originalCount - len(newHistory)
-	
-	// Save updated history
+
+	// Save updated task history
 	ts.saveExecutionHistory()
-	
+
+	// Purge processed events from pending faces manager
+	var processedEventsPurged int
+	if ts.notifyManager != nil && ts.notifyManager.pendingFacesManager != nil {
+		processedRetentionDays := ts.config.ProcessedEventsRetentionDays
+		if processedRetentionDays <= 0 {
+			processedRetentionDays = 30 // Default to 30 days
+		}
+
+		err := ts.notifyManager.pendingFacesManager.CleanupOldProcessedEvents(processedRetentionDays)
+		if err != nil {
+			LogWarn("TASK_SCHEDULER", "Failed to cleanup processed events", err.Error())
+		} else {
+			// Get stats to see how many were cleaned up
+			stats := ts.notifyManager.pendingFacesManager.GetPendingEventsStats()
+			processedEventsPurged = stats["total"].(int) - stats["pending"].(int) - stats["processed"].(int)
+		}
+	}
+
+	purgedTaskCount := originalTaskCount - len(newTaskHistory)
+
 	result := map[string]interface{}{
-		"purged":       purgedCount,
-		"retained":     len(newHistory),
-		"original":     originalCount,
-		"oldRecords":   oldRecords,
-		"cutoff":       cutoffDate.Format("2006-01-02 15:04:05"),
-		"retentionDays": retentionDays,
+		"purgedTaskCount":        purgedTaskCount,
+		"retainedTaskCount":      len(newTaskHistory),
+		"originalTaskCount":      originalTaskCount,
+		"oldTaskRecords":         oldTaskRecords,
+		"taskCutoff":             taskCutoffDate.Format("2006-01-02 15:04:05"),
+		"taskRetentionDays":      taskRetentionDays,
+		"processedEventsPurged":  processedEventsPurged,
+		"processedRetentionDays": ts.config.ProcessedEventsRetentionDays,
 	}
-	
-	if purgedCount > 0 {
-		LogInfo("TASK_SCHEDULER", "Log purge completed", fmt.Sprintf("Purged: %d, Retained: %d, Original: %d", purgedCount, len(newHistory), originalCount))
+
+	if purgedTaskCount > 0 || processedEventsPurged > 0 {
+		LogInfo("TASK_SCHEDULER", "Log and events purge completed", fmt.Sprintf("Tasks - Purged: %d, Retained: %d, Original: %d | Processed Events: %d", purgedTaskCount, len(newTaskHistory), originalTaskCount, processedEventsPurged))
 	} else {
-		LogInfo("TASK_SCHEDULER", "Log purge completed - no old records found", fmt.Sprintf("Retained: %d, Original: %d, Cutoff: %s", len(newHistory), originalCount, cutoffDate.Format("2006-01-02 15:04:05")))
+		LogInfo("TASK_SCHEDULER", "Log and events purge completed - no old records found", fmt.Sprintf("Tasks - Retained: %d, Original: %d, Cutoff: %s", len(newTaskHistory), originalTaskCount, taskCutoffDate.Format("2006-01-02 15:04:05")))
 	}
-	
+
 	return result, nil
 }
 
 // ForceExecuteTask manually triggers a task execution
 func (ts *TaskScheduler) ForceExecuteTask(taskType TaskType) (string, error) {
 	LogInfo("TASK_SCHEDULER", "Manually triggering task", fmt.Sprintf("Task: %s", taskType))
-	
+
 	// Generate execution ID first
 	executionID := fmt.Sprintf("%s_%d", taskType, time.Now().Unix())
-	
+
 	// Execute in a goroutine to avoid blocking
 	go func() {
 		ts.executeTask(taskType, "manual")
 		LogInfo("TASK_SCHEDULER", "Manual task execution completed", fmt.Sprintf("Task: %s, ID: %s", taskType, executionID))
 	}()
-	
+
 	return executionID, nil
 }
 
@@ -486,20 +530,20 @@ func (ts *TaskScheduler) ForceExecuteTask(taskType TaskType) (string, error) {
 func (ts *TaskScheduler) GetExecutionHistory(limit int) []TaskExecution {
 	ts.historyMutex.RLock()
 	defer ts.historyMutex.RUnlock()
-	
+
 	if limit <= 0 || limit > len(ts.executionHistory) {
 		limit = len(ts.executionHistory)
 	}
-	
+
 	// Return most recent executions
 	start := len(ts.executionHistory) - limit
 	if start < 0 {
 		start = 0
 	}
-	
+
 	result := make([]TaskExecution, limit)
 	copy(result, ts.executionHistory[start:])
-	
+
 	return result
 }
 
@@ -507,11 +551,11 @@ func (ts *TaskScheduler) GetExecutionHistory(limit int) []TaskExecution {
 func (ts *TaskScheduler) GetEventQueueStats() map[string]interface{} {
 	ts.queueMutex.RLock()
 	defer ts.queueMutex.RUnlock()
-	
+
 	pending := 0
 	failed := 0
 	completed := 0
-	
+
 	for _, event := range ts.eventQueue {
 		switch event.Status {
 		case TaskStatusPending:
@@ -522,7 +566,7 @@ func (ts *TaskScheduler) GetEventQueueStats() map[string]interface{} {
 			completed++
 		}
 	}
-	
+
 	return map[string]interface{}{
 		"total":     len(ts.eventQueue),
 		"pending":   pending,
@@ -536,7 +580,7 @@ func (ts *TaskScheduler) GetEventQueueStats() map[string]interface{} {
 func (ts *TaskScheduler) addExecutionToHistory(execution TaskExecution) {
 	ts.historyMutex.Lock()
 	defer ts.historyMutex.Unlock()
-	
+
 	ts.executionHistory = append(ts.executionHistory, execution)
 	ts.saveExecutionHistory()
 }
@@ -545,14 +589,14 @@ func (ts *TaskScheduler) addExecutionToHistory(execution TaskExecution) {
 func (ts *TaskScheduler) updateExecutionInHistory(execution TaskExecution) {
 	ts.historyMutex.Lock()
 	defer ts.historyMutex.Unlock()
-	
+
 	for i, existing := range ts.executionHistory {
 		if existing.ID == execution.ID {
 			ts.executionHistory[i] = execution
 			break
 		}
 	}
-	
+
 	ts.saveExecutionHistory()
 }
 
@@ -565,13 +609,13 @@ func (ts *TaskScheduler) loadExecutionHistory() {
 		}
 		return
 	}
-	
+
 	err = json.Unmarshal(data, &ts.executionHistory)
 	if err != nil {
 		LogError("TASK_SCHEDULER", "Failed to parse execution history", err.Error())
 		return
 	}
-	
+
 	LogInfo("TASK_SCHEDULER", "Execution history loaded", fmt.Sprintf("Records: %d", len(ts.executionHistory)))
 }
 
@@ -582,7 +626,7 @@ func (ts *TaskScheduler) saveExecutionHistory() {
 		LogError("TASK_SCHEDULER", "Failed to marshal execution history", err.Error())
 		return
 	}
-	
+
 	err = os.WriteFile(ts.historyFilePath, data, 0644)
 	if err != nil {
 		LogError("TASK_SCHEDULER", "Failed to save execution history", err.Error())
@@ -599,13 +643,13 @@ func (ts *TaskScheduler) loadEventQueue() {
 		}
 		return
 	}
-	
+
 	err = json.Unmarshal(data, &ts.eventQueue)
 	if err != nil {
 		LogError("TASK_SCHEDULER", "Failed to parse event queue", err.Error())
 		return
 	}
-	
+
 	LogInfo("TASK_SCHEDULER", "Event queue loaded", fmt.Sprintf("Events: %d", len(ts.eventQueue)))
 }
 
@@ -616,12 +660,12 @@ func (ts *TaskScheduler) saveEventQueue() error {
 		LogError("TASK_SCHEDULER", "Failed to marshal event queue", err.Error())
 		return err
 	}
-	
+
 	err = os.WriteFile(ts.queueFilePath, data, 0644)
 	if err != nil {
 		LogError("TASK_SCHEDULER", "Failed to save event queue", err.Error())
 		return err
 	}
-	
+
 	return nil
 }

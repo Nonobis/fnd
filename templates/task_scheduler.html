@@ -292,6 +292,26 @@
                                          </div>
                                          <p class="help">Days to retain task execution history (1-365)</p>
                                      </div>
+
+                                     <!-- Processed Events Retention -->
+                                     <div class="form-group">
+                                         <label class="label">
+                                             <span class="icon-text">
+                                                 <span class="icon">
+                                                     <i class="fas fa-trash"></i>
+                                                 </span>
+                                                 <span>Processed Events Retention</span>
+                                             </span>
+                                         </label>
+                                         <div class="control has-icons-left">
+                                             <input class="input is-medium" type="number" name="processedEventsRetentionDays" 
+                                                    value="{{.Config.ProcessedEventsRetentionDays}}" min="1" max="365" required>
+                                             <span class="icon is-small is-left">
+                                                 <i class="fas fa-trash"></i>
+                                             </span>
+                                         </div>
+                                         <p class="help">Days to retain processed pending face events (1-365)</p>
+                                     </div>
                                  </div>
 
                                  <div class="form-actions">
@@ -320,13 +340,14 @@
                                              </span>
                                          </label>
                                          <div class="control">
-                                             <label class="checkbox">
-                                                 <input type="checkbox" name="enableEventQueue" value="true" 
-                                                        {{if .Config.EnableEventQueue}}checked{{end}}>
-                                                 Enable event queue processing
-                                             </label>
+                                             <div class="notification is-info is-light">
+                                                 <span class="icon">
+                                                     <i class="fas fa-info-circle"></i>
+                                                 </span>
+                                                 <span>Event queue processing is always enabled and cannot be disabled</span>
+                                             </div>
                                          </div>
-                                         <p class="help">Process events in batches instead of real-time</p>
+                                         <p class="help">Events are processed through the task scheduler for better reliability</p>
                                      </div>
 
                                      <!-- Max Queue Size -->
