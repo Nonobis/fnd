@@ -30,16 +30,16 @@ jobs:
       run: |
         if [ -f Makefile ]; then
           VERSION=$(grep '^VERSION=' Makefile | cut -d'=' -f2)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_ENV
           echo "Current version: $VERSION"
         else
-          echo "version=0.1.0" >> $GITHUB_OUTPUT
+          echo "version=0.1.0" >> $GITHUB_ENV
         fi
 
     - name: Generate new version
       id: new_version
       run: |
-        CURRENT_VERSION="${{ steps.current_version.outputs.version }}"
+        CURRENT_VERSION="${{ env.version }}"
         # Split version into parts
         IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
         MAJOR=${VERSION_PARTS[0]}

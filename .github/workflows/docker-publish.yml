@@ -37,9 +37,9 @@ jobs:
       run: |
         if [ -f Makefile ]; then
           VERSION=$(grep '^VERSION=' Makefile | cut -d'=' -f2)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_ENV
         else
-          echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "version=${{ github.ref_name }}" >> $GITHUB_ENV
         fi
 
     - name: Set up Go
@@ -50,7 +50,7 @@ jobs:
     - name: Build Go application
       run: |
         mkdir -p bin
-        go build -o bin/fnd -ldflags "-X main.version=${{ steps.version.outputs.version }}"
+        go build -o bin/fnd -ldflags "-X main.version=${{ env.version }}"
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -65,22 +65,22 @@ jobs:
     - name: Generate version based on event type
       id: build_version
       run: |
-        VERSION=${{ steps.version.outputs.version }}
+        VERSION=${{ env.version }}
         COMMIT_SHA=${GITHUB_SHA:0:7}
         
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           # PR build - generate alpha version
           PR_NUMBER=${{ github.event.number }}
           BUILD_VERSION="${VERSION}-alpha.pr${PR_NUMBER}.${COMMIT_SHA}"
-          echo "build_type=alpha" >> $GITHUB_OUTPUT
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "build_type=alpha" >> $GITHUB_ENV
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_ENV
         else
           # Direct commit to main - generate release version
           BUILD_VERSION="${VERSION}-${COMMIT_SHA}"
-          echo "build_type=release" >> $GITHUB_OUTPUT
+          echo "build_type=release" >> $GITHUB_ENV
         fi
         
-        echo "build_version=$BUILD_VERSION" >> $GITHUB_OUTPUT
+        echo "build_version=$BUILD_VERSION" >> $GITHUB_ENV
         echo "Generated version: $BUILD_VERSION"
 
     - name: Extract metadata for PRs (Alpha)
@@ -90,7 +90,7 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          type=raw,value=${{ steps.build_version.outputs.build_version }}
+          type=raw,value=${{ env.build_version }}
           type=raw,value=latest-dev
           type=raw,value=pr-${{ github.event.number }}
         labels: |
@@ -100,7 +100,7 @@ jobs:
           org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           org.opencontainers.image.revision=${{ github.sha }}
           org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
-          org.opencontainers.image.version=${{ steps.build_version.outputs.build_version }}
+          org.opencontainers.image.version=${{ env.build_version }}
           org.opencontainers.image.documentation=Alpha build from PR #${{ github.event.number }}
 
     - name: Extract metadata for main commits (Release)
@@ -110,8 +110,8 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          type=raw,value=${{ steps.build_version.outputs.build_version }}
-          type=raw,value=${{ steps.version.outputs.version }}
+          type=raw,value=${{ env.build_version }}
+          type=raw,value=${{ env.version }}
         labels: |
           org.opencontainers.image.title=FND
           org.opencontainers.image.description=Frigate Notification Daemon
@@ -119,15 +119,15 @@ jobs:
           org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           org.opencontainers.image.revision=${{ github.sha }}
           org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
-          org.opencontainers.image.version=${{ steps.build_version.outputs.build_version }}
+          org.opencontainers.image.version=${{ env.build_version }}
 
     - name: Display build information
       run: |
         echo "=== Build Information ==="
         echo "Event: ${{ github.event_name }}"
-        echo "Base Version: ${{ steps.version.outputs.version }}"
-        echo "Build Version: ${{ steps.build_version.outputs.build_version }}"
-        echo "Build Type: ${{ steps.build_version.outputs.build_type }}"
+        echo "Base Version: ${{ env.version }}"
+        echo "Build Version: ${{ env.build_version }}"
+        echo "Build Type: ${{ env.build_type }}"
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           echo "PR Number: ${{ github.event.number }}"
         fi
@@ -145,7 +145,7 @@ jobs:
         tags: ${{ steps.meta-alpha.outputs.tags }}
         labels: ${{ steps.meta-alpha.outputs.labels }}
         build-args: |
-          BUILD_VERSION=${{ steps.build_version.outputs.build_version }}
+          BUILD_VERSION=${{ env.build_version }}
           BUILD_DATE=${{ env.BUILD_DATE }}
           VCS_REF=${{ github.sha }}
           VCS_URL=${{ github.server_url }}/${{ github.repository }}
@@ -162,7 +162,7 @@ jobs:
         tags: ${{ steps.meta-release.outputs.tags }}
         labels: ${{ steps.meta-release.outputs.labels }}
         build-args: |
-          BUILD_VERSION=${{ steps.build_version.outputs.build_version }}
+          BUILD_VERSION=${{ env.build_version }}
           BUILD_DATE=${{ env.BUILD_DATE }}
           VCS_REF=${{ github.sha }}
           VCS_URL=${{ github.server_url }}/${{ github.repository }}
@@ -178,7 +178,7 @@ jobs:
         echo ""
         echo "💡 To use this alpha version:"
         echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-dev"
-        echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.build_version.outputs.build_version }}"
+        echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.build_version }}"
         echo "================================="
 
     - name: Display pushed images (Release)
@@ -190,6 +190,6 @@ jobs:
         echo ""
         echo "💡 To use this release version:"
         echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
-        echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.build_version.outputs.build_version }}"
-        echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}"
+        echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.build_version }}"
+        echo "  docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.version }}"
         echo "================================="
