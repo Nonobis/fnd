@@ -1,4 +1,4 @@
-VERSION=0.1.16
+VERSION=0.1.17
 
 all:
 	go build -o bin/fnd -ldflags "-X main.version=$(VERSION)"
