@@ -78,7 +78,7 @@ func (e *FNDFrigateEventManager) addNewEventMessage(msg eventMessage) error {
 				Timestamp: time.Now(),
 				Data:      make(map[string]interface{}),
 			}
-			
+
 			if err := e.taskScheduler.QueueEvent(queuedEvent); err != nil {
 				LogError("EVENT", "Failed to queue event", fmt.Sprintf("Event ID: %s, Error: %s", msg.Before.Id, err.Error()))
 			} else {

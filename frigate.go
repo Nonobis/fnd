@@ -275,3 +275,67 @@ func (connection *FNDFrigateConnection) isMqttConfigurationValid() bool {
 
 	return true
 }
+
+// PublishTestEvent publishes a test event via the real MQTT connection
+func (connection *FNDFrigateConnection) PublishTestEvent() error {
+	if !connection.client.IsConnected() {
+		return fmt.Errorf("MQTT client not connected")
+	}
+
+	// Generate a test event
+	testEvent := eventMessage{
+		TypeInfo: "new",
+		Before: struct {
+			Id             string  `json:"id"`
+			Camera         string  `json:"camera"`
+			Label          string  `json:"label"`
+			Top_Score      float32 `json:"top_score"`
+			False_Positive bool    `json:"false_positive"`
+			Score          float32 `json:"score"`
+		}{
+			Id:             fmt.Sprintf("test_event_%d", time.Now().Unix()),
+			Camera:         "test_camera",
+			Label:          "person",
+			Top_Score:      0.95,
+			False_Positive: false,
+			Score:          0.95,
+		},
+		After: struct {
+			Id             string  `json:"id"`
+			Camera         string  `json:"camera"`
+			Label          string  `json:"label"`
+			Top_Score      float32 `json:"top_score"`
+			False_Positive bool    `json:"false_positive"`
+			Score          float32 `json:"score"`
+		}{
+			Id:             fmt.Sprintf("test_event_%d", time.Now().Unix()),
+			Camera:         "test_camera",
+			Label:          "person",
+			Top_Score:      0.95,
+			False_Positive: false,
+			Score:          0.95,
+		},
+	}
+
+	// Convert to JSON
+	payload, err := json.Marshal(testEvent)
+	if err != nil {
+		return fmt.Errorf("failed to marshal test event: %v", err)
+	}
+
+	// Get topic prefix for publishing
+	topicPrefix := connection.config.MqttTopicPrefix
+	if topicPrefix == "" {
+		topicPrefix = "frigate"
+	}
+	eventsTopic := topicPrefix + "/events"
+
+	// Publish the test event
+	token := connection.client.Publish(eventsTopic, QOS, false, payload)
+	if token.Wait() && token.Error() != nil {
+		return fmt.Errorf("failed to publish test event: %v", token.Error())
+	}
+
+	LogInfo("MQTT", "Test event published successfully", fmt.Sprintf("Topic: %s, Event ID: %s", eventsTopic, testEvent.Before.Id))
+	return nil
+}

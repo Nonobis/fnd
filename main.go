@@ -88,7 +88,7 @@ func main() {
 	}
 	LogInfo("FRIGATE", "Frigate connection established successfully", "")
 
-	web := setupBasicRoutes("0.0.0.0:7777", &conf.Frigate, conf, configuration_path, taskScheduler)
+	web := setupBasicRoutes("0.0.0.0:7777", &conf.Frigate, conf, configuration_path, taskScheduler, connection)
 	LogInfo("WEB", "Web server initialized", "Address: 0.0.0.0:7777")
 
 	notify := NewFNDNotificationManager(conf.Notify, &conf.FacialRecognition)
@@ -116,11 +116,11 @@ func main() {
 	<-sig
 
 	LogInfo("SYSTEM", "Shutdown signal received", "Starting graceful shutdown")
-	
+
 	// Stop task scheduler
 	taskScheduler.Stop()
 	LogInfo("TASK_SCHEDULER", "Task scheduler stopped", "")
-	
+
 	bg.cancel()
 	LogInfo("BACKGROUND", "Background tasks stopped", "")
 

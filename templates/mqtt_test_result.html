@@ -1,0 +1,26 @@
+{{ if .success }}
+<div class="notification is-success is-light">
+    <span class="icon">
+        <i class="fas fa-check-circle"></i>
+    </span>
+    <span>{{ .message }}</span>
+</div>
+
+<div class="notification is-info is-light mt-3">
+    <h4 class="title is-6">Test Event Details:</h4>
+    <div class="content is-small">
+        <p><strong>Event ID:</strong> {{ .event.Before.Id }}</p>
+        <p><strong>Camera:</strong> {{ .event.Before.Camera }}</p>
+        <p><strong>Object Type:</strong> {{ .event.Before.Label }}</p>
+        <p><strong>Confidence:</strong> {{ .event.Before.Score }}%</p>
+        <p><strong>Event Type:</strong> {{ .event.TypeInfo }}</p>
+    </div>
+</div>
+{{ else }}
+<div class="notification is-danger is-light">
+    <span class="icon">
+        <i class="fas fa-exclamation-triangle"></i>
+    </span>
+    <span>{{ .message }}</span>
+</div>
+{{ end }}

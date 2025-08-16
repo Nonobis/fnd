@@ -19,16 +19,17 @@ import (
 )
 
 type FNDWebServer struct {
-	srv             *http.Server
-	r               *gin.Engine
-	OverviewPayload OverviewPayload
-	frigateConf     *FNDFrigateConfiguration
-	globalConf      *FNDConfiguration
-	configPath      string
-	notifyManager   *FNDNotificationManager
-	translation     *Translation
-	frigateEvent    *FNDFrigateEventManager
-	taskScheduler   *TaskScheduler
+	srv               *http.Server
+	r                 *gin.Engine
+	OverviewPayload   OverviewPayload
+	frigateConf       *FNDFrigateConfiguration
+	globalConf        *FNDConfiguration
+	configPath        string
+	notifyManager     *FNDNotificationManager
+	translation       *Translation
+	frigateEvent      *FNDFrigateEventManager
+	taskScheduler     *TaskScheduler
+	frigateConnection *FNDFrigateConnection
 }
 
 type FNDNotificationSinkStatus struct {
@@ -110,7 +111,7 @@ func (web *FNDWebServer) setNotificationManager(notifyManager *FNDNotificationMa
 	web.notifyManager = notifyManager
 }
 
-func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FNDConfiguration, configPath string, taskScheduler *TaskScheduler) *FNDWebServer {
+func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FNDConfiguration, configPath string, taskScheduler *TaskScheduler, frigateConnection *FNDFrigateConnection) *FNDWebServer {
 	r := gin.Default()
 
 	var web FNDWebServer
@@ -127,6 +128,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 	web.configPath = configPath
 	web.r = r
 	web.taskScheduler = taskScheduler
+	web.frigateConnection = frigateConnection
 	web.translation = setupTranslation()
 	err := web.translation.setLanguage(web.frigateConf.Language)
 	if err != nil {
@@ -455,6 +457,53 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 			StatusMessage:  "OK",
 			Conf:           conf,
 			TranslatedText: text,
+		})
+	})
+
+	r.POST("/htmx/mqtt-test", func(c *gin.Context) {
+		LogInfo("WEB", "MQTT test event requested", "")
+
+		// Check if Frigate connection is available
+		if web.frigateConnection == nil {
+			LogWarn("WEB", "Frigate connection not available for MQTT test", "")
+			t := template.Must(template.ParseFS(templateFS, "templates/mqtt_test_result.html"))
+			_ = t.Execute(c.Writer, gin.H{
+				"success": false,
+				"message": "Frigate connection not available. Please configure Frigate first.",
+			})
+			return
+		}
+
+		// Check if MQTT client is connected
+		if !web.frigateConnection.client.IsConnected() {
+			LogWarn("WEB", "MQTT client not connected for test", "")
+			t := template.Must(template.ParseFS(templateFS, "templates/mqtt_test_result.html"))
+			_ = t.Execute(c.Writer, gin.H{
+				"success": false,
+				"message": "MQTT client not connected. Please check your MQTT configuration.",
+			})
+			return
+		}
+
+		// Publish test event via real MQTT connection
+		err := web.frigateConnection.PublishTestEvent()
+		if err != nil {
+			LogError("WEB", "Failed to publish MQTT test event", err.Error())
+			t := template.Must(template.ParseFS(templateFS, "templates/mqtt_test_result.html"))
+			_ = t.Execute(c.Writer, gin.H{
+				"success": false,
+				"message": "Failed to publish test event: " + err.Error(),
+			})
+			return
+		}
+
+		LogInfo("WEB", "MQTT test event published successfully", "")
+
+		// Return success message
+		t := template.Must(template.ParseFS(templateFS, "templates/mqtt_test_result.html"))
+		_ = t.Execute(c.Writer, gin.H{
+			"success": true,
+			"message": "Test event published via MQTT successfully! Check logs for event processing.",
 		})
 	})
 
