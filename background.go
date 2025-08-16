@@ -63,12 +63,14 @@ func (bg *BackgroundTask) task() {
 				LogInfo("BACKGROUND", "Camera discovery completed", fmt.Sprintf("New cameras: %d", discoveredCount))
 			}
 		case <-tickerLong.C:
-			LogInfo("BACKGROUND", "Periodic configuration save", "")
+			LogInfo("BACKGROUND", "Periodic configuration save started", "")
 			bg.conf.Notify = bg.notify.getConfigAll()
 			err := bg.conf.WriteToFile(bg.configuration_path)
 			if err != nil {
 				LogError("BACKGROUND", "Failed to save configuration", err.Error())
 				fmt.Println(err.Error())
+			} else {
+				LogInfo("BACKGROUND", "Periodic configuration save completed", "Configuration synchronized to disk")
 			}
 		}
 	}
