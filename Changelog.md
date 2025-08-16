@@ -1,3 +1,29 @@
+## Version 0.1.12 - 16.08.2025
+
+### Changements depuis v0.1.11
+
+- fix: convert repository name to lowercase for Docker tagging
+- Merge branches 'main' and 'main' of https://github.com/Nonobis/fnd
+- feat: make latest tag dependent on successful build
+
+### 🐳 Image Docker
+
+Cette release est disponible sous forme d'image Docker :
+
+**Image principale :**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.12
+```
+
+**Image latest :**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Liens directs :**
+- 📦 [Package GitHub](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.12](ghcr.io/Nonobis/fnd:0.1.12)
+
 ## Version 0.1.11 - 16.08.2025
 
 ### Changements depuis v0.1.10
