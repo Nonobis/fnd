@@ -1,3 +1,29 @@
+## Version 0.1.25 - 16.08.2025
+
+### Changes since v0.1.24
+
+- remove todo
+- Merge branch 'main' of https://github.com/Nonobis/fnd
+- fix
+
+### 🐳 Docker Image
+
+This release is available as a Docker image:
+
+**Main image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.25
+```
+
+**Latest image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Direct links:**
+- 📦 [GitHub Package](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.25](ghcr.io/Nonobis/fnd:0.1.25)
+
 ## Version 0.1.24 - 16.08.2025
 
 ### Changes since v0.1.23
