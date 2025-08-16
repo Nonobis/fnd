@@ -38,13 +38,13 @@ type TelegramTemplatePayload struct {
 
 func (tel *FNDTelegramNotificationSink) createDefaultConfig() {
 	LogDebug("TELEGRAM", "Creating default configuration", "")
-	
+
 	tel.config = NEWDefaultFNDNotificationConfigurationMap()
 	tel.config.Map["enabled"] = "false"
 	tel.config.Map["token"] = ""
 	tel.config.Map["chatid"] = ""
-	
-	LogDebug("TELEGRAM", "Default configuration created", fmt.Sprintf("Enabled: %s, Token: %s, ChatID: %s", 
+
+	LogDebug("TELEGRAM", "Default configuration created", fmt.Sprintf("Enabled: %s, Token: %s, ChatID: %s",
 		tel.config.Map["enabled"], tel.config.Map["token"], tel.config.Map["chatid"]))
 }
 
@@ -54,12 +54,12 @@ func (tel *FNDTelegramNotificationSink) getName() string {
 
 func (tel *FNDTelegramNotificationSink) setup(conf FNDNotificationConfigurationMap, avail bool) error {
 	LogInfo("TELEGRAM", "Setting up Telegram sink", fmt.Sprintf("Configuration available: %t", avail))
-	
+
 	if avail {
 		tel.config = conf
-		LogDebug("TELEGRAM", "Using existing configuration", fmt.Sprintf("Enabled: %s, Token: %s, ChatID: %s", 
+		LogDebug("TELEGRAM", "Using existing configuration", fmt.Sprintf("Enabled: %s, Token: %s, ChatID: %s",
 			conf.Map["enabled"], conf.Map["token"], conf.Map["chatid"]))
-		
+
 		data, err := strconv.ParseInt(tel.config.Map["chatid"], 10, 64)
 		if err == nil {
 			tel.chatid = data
@@ -71,7 +71,7 @@ func (tel *FNDTelegramNotificationSink) setup(conf FNDNotificationConfigurationM
 	} else {
 		tel.createDefaultConfig()
 	}
-	
+
 	LogDebug("TELEGRAM", "Starting Telegram bot", "")
 	err := tel.botStart()
 	if err != nil {
@@ -80,7 +80,7 @@ func (tel *FNDTelegramNotificationSink) setup(conf FNDNotificationConfigurationM
 	} else {
 		LogInfo("TELEGRAM", "Telegram bot started successfully", "")
 	}
-	
+
 	tel.lastStatusMessage = "init"
 	LogDebug("TELEGRAM", "Telegram sink setup complete", fmt.Sprintf("Initial status: %s", tel.lastStatusMessage))
 	return nil
@@ -138,9 +138,9 @@ func (tel *FNDTelegramNotificationSink) registerWebServer(webServer *FNDWebServe
 			// Telegram doesn't have an active checkbox in the form
 			// The active state is managed by the separate toggle button
 		}
-		
-		LogInfo("TELEGRAM", "Configuration updated", fmt.Sprintf("Enabled: %s, Token: %s", 
-			tel.config.Map["enabled"], 
+
+		LogInfo("TELEGRAM", "Configuration updated", fmt.Sprintf("Enabled: %s, Token: %s",
+			tel.config.Map["enabled"],
 			func() string {
 				if len(tel.config.Map["token"]) > 10 {
 					return tel.config.Map["token"][:10] + "..."
@@ -428,10 +428,63 @@ func (tel *FNDTelegramNotificationSink) handleCamerasCommand(ctx context.Context
 }
 
 func (tel *FNDTelegramNotificationSink) getStatus() FNDNotificationSinkStatus {
+	// Check if Telegram is enabled
+	if tel.config.Map["enabled"] != "true" {
+		return FNDNotificationSinkStatus{
+			Name:    tel.getName(),
+			Good:    false,
+			Message: "Disabled",
+		}
+	}
+
+	// Check if required configuration is present
+	if tel.config.Map["token"] == "" {
+		return FNDNotificationSinkStatus{
+			Name:    tel.getName(),
+			Good:    false,
+			Message: "Bot token not configured",
+		}
+	}
+
+	if tel.config.Map["chatid"] == "" {
+		return FNDNotificationSinkStatus{
+			Name:    tel.getName(),
+			Good:    false,
+			Message: "Chat ID not configured",
+		}
+	}
+
+	// If bot is running and we have a successful status, use it
+	if tel.botRunning && tel.lastStatusMessage == "Online" {
+		return FNDNotificationSinkStatus{
+			Name:    tel.getName(),
+			Good:    true,
+			Message: tel.lastStatusMessage,
+		}
+	}
+
+	// If we have an error message, use it
+	if tel.lastStatusMessage != "" && tel.lastStatusMessage != "init" {
+		return FNDNotificationSinkStatus{
+			Name:    tel.getName(),
+			Good:    false,
+			Message: tel.lastStatusMessage,
+		}
+	}
+
+	// If bot is running but no specific status, show as ready
+	if tel.botRunning {
+		return FNDNotificationSinkStatus{
+			Name:    tel.getName(),
+			Good:    true,
+			Message: "Ready",
+		}
+	}
+
+	// Default status for enabled and configured but not yet started
 	return FNDNotificationSinkStatus{
 		Name:    tel.getName(),
-		Good:    tel.botRunning,
-		Message: tel.lastStatusMessage,
+		Good:    false,
+		Message: "Not started",
 	}
 }
-

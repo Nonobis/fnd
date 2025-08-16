@@ -9,11 +9,11 @@
 ✅ Remake ui more beautiful, modern and responsibe.
 - Implement LLM (OpenAI/Gemini/Ollama) configuration for LLM-Vision interpretation of snapshot, if activated this interpretation is a description of the snapshot added to template with a custom tag
 - LLM need to be fully configuratble and optional. 1 page for configuring all LLM.
-
-- Add Machine learning system for facial recognizion (CodeProject.AI (externally hosted). 
-- Add UI for managing Image/Face with a First Name / Last Name and other information available
-
 - Add LLM request for determining action done on event for better message
+✅ Add a system for analysing only event with specific objects (configuration by camera, one or more objects)
+- On every forms, add validation control if not found
+✅ Add Machine learning system for facial recognizion (CodeProject.AI (externally hosted). 
+✅ Add UI for managing Image/Face with a First Name / Last Name and other information available
 ✅ implement Cooldown in overview
 ✅ Add test button for each notification system on each settings page
 ✅ Add system for personalising template of notification. (Wysiwig editor ?? it's must be fully compatible with all different notification system implemented

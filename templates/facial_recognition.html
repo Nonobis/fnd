@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeProject.AI Configuration - FND</title>
+    <link rel="stylesheet" href="/static/bulma.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/htmx.min.js"></script>
+    <style>
+        /* Tab system styles with higher specificity */
+        #facial-recognition-settings .tab-content {
+            display: none !important;
+        }
+        #facial-recognition-settings .tab-content.is-active {
+            display: block !important;
+        }
+        #facial-recognition-settings .tabs li.is-active a {
+            border-bottom-color: #3273dc !important;
+            color: #3273dc !important;
+        }
+        .settings-section {
+            margin-bottom: 2rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .help-text {
+            font-size: 0.875rem;
+            color: #7a7a7a;
+            margin-top: 0.25rem;
+        }
+        
+        /* Additional tab styles to ensure they work */
+        .tabs.is-boxed li a {
+            border-radius: 6px 6px 0 0;
+            border-bottom-color: transparent;
+        }
+        .tabs.is-boxed li.is-active a {
+            background-color: #3273dc;
+            border-color: #3273dc;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<div id="facial-recognition-settings" class="settings-container">
+    <!-- Header Section -->
+    <div class="settings-header">
+        <h1 class="title is-2">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fas fa-brain"></i>
+                </span>
+                <span>CodeProject.AI</span>
+            </span>
+        </h1>
+        <p class="subtitle is-6">Configure facial recognition using external CodeProject.AI server</p>
+    </div>
+
+    <!-- Service Toggle Section -->
+    <div class="service-toggle-section {{if .Config.Enabled}}is-enabled{{else}}is-disabled{{end}}">
+        <div class="service-toggle-title">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fas fa-brain"></i>
+                </span>
+                <span>CodeProject.AI Service</span>
+            </span>
+        </div>
+        <button class="service-toggle-button {{if .Config.Enabled}}is-enabled{{else}}is-disabled{{end}}" 
+                hx-post="/api/facial-recognition/toggle" 
+                hx-target="#facial-recognition-settings"
+                hx-swap="outerHTML">
+            <span class="icon">
+                <i class="fas {{if .Config.Enabled}}fa-toggle-on{{else}}fa-toggle-off{{end}}"></i>
+            </span>
+            <span>{{if .Config.Enabled}}Service Enabled{{else}}Service Disabled{{end}}</span>
+        </button>
+        <div class="service-status-indicator {{if .Config.Enabled}}is-enabled{{else}}is-disabled{{end}}">
+            <span class="icon">
+                <i class="fas {{if .Config.Enabled}}fa-check-circle{{else}}fa-times-circle{{end}}"></i>
+            </span>
+            <span>{{if .Config.Enabled}}Facial recognition is active{{else}}Facial recognition is disabled{{end}}</span>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="tabs is-boxed is-medium">
+        <ul>
+            <li class="is-active">
+                <a href="#" onclick="showTab('server', event); return false;">
+                    <span class="icon"><i class="fas fa-server"></i></span>
+                    <span>Server Settings</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" onclick="showTab('features', event); return false;">
+                    <span class="icon"><i class="fas fa-cogs"></i></span>
+                    <span>Features</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" onclick="showTab('database', event); return false;">
+                    <span class="icon"><i class="fas fa-database"></i></span>
+                    <span>Database</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" onclick="showTab('faces', event); return false;">
+                    <span class="icon"><i class="fas fa-users"></i></span>
+                    <span>Face Management</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" onclick="showTab('setup', event); return false;">
+                    <span class="icon"><i class="fas fa-book"></i></span>
+                    <span>Setup Guide</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content is-active" id="server-tab">
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <h2 class="title is-4">
+                    <span class="icon-text">
+                        <span class="icon">
+                            <i class="fas fa-server"></i>
+                        </span>
+                        <span>Server Configuration</span>
+                    </span>
+                </h2>
+            </div>
+            <div class="settings-card-body">
+                <form hx-post="/api/facial-recognition/config" hx-target="#facial-recognition-settings" hx-swap="outerHTML" id="facial-recognition-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="label">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-link"></i>
+                                    </span>
+                                    <span>Server Host</span>
+                                </span>
+                            </label>
+                            <div class="control has-icons-left">
+                                <input class="input is-medium facial-recognition-field" type="text" name="codeProjectAIHost" 
+                                       value="{{.Config.CodeProjectAIHost}}" placeholder="localhost" 
+                                       {{if not .Config.Enabled}}disabled{{end}}>
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-link"></i>
+                                </span>
+                            </div>
+                            <p class="help-text">Hostname or IP address of your CodeProject.AI server</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="label">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-network-wired"></i>
+                                    </span>
+                                    <span>Server Port</span>
+                                </span>
+                            </label>
+                            <div class="control has-icons-left">
+                                <input class="input is-medium facial-recognition-field" type="number" name="codeProjectAIPort" 
+                                       value="{{.Config.CodeProjectAIPort}}" placeholder="8000" min="1" max="65535"
+                                       {{if not .Config.Enabled}}disabled{{end}}>
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-network-wired"></i>
+                                </span>
+                            </div>
+                            <p class="help-text">Port number of your CodeProject.AI server (default: 8000)</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="label">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-shield-alt"></i>
+                                    </span>
+                                    <span>Use SSL</span>
+                                </span>
+                            </label>
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="codeProjectAIUseSSL" value="true" 
+                                           {{if .Config.CodeProjectAIUseSSL}}checked{{end}}
+                                           {{if not .Config.Enabled}}disabled{{end}}>
+                                    Use HTTPS for CodeProject.AI connection
+                                </label>
+                            </div>
+                            <p class="help-text">Enable for secure connections</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="label">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
+                                    <span>Connection Timeout</span>
+                                </span>
+                            </label>
+                            <div class="control has-icons-left">
+                                <input class="input is-medium facial-recognition-field" type="number" name="codeProjectAITimeout" 
+                                       value="{{.Config.CodeProjectAITimeout}}" placeholder="30" min="5" max="300"
+                                       {{if not .Config.Enabled}}disabled{{end}}>
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                            </div>
+                            <p class="help-text">Timeout for API requests in seconds</p>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="button is-primary" type="submit" {{if not .Config.Enabled}}disabled{{end}}>
+                            <span class="icon">
+                                <i class="fas fa-save"></i>
+                            </span>
+                            <span>Save Configuration</span>
+                        </button>
+                        <button class="button is-info" type="button" 
+                                hx-post="/api/facial-recognition/test" 
+                                hx-target="#test-status" 
+                                hx-swap="outerHTML"
+                                {{if not .Config.Enabled}}disabled{{end}}>
+                            <span class="icon">
+                                <i class="fas fa-plug"></i>
+                            </span>
+                            <span>Test Connection</span>
+                        </button>
+                    </div>
+                </form>
+
+                <div id="test-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="features-tab">
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <h2 class="title is-4">
+                    <span class="icon-text">
+                        <span class="icon">
+                            <i class="fas fa-cogs"></i>
+                        </span>
+                        <span>Feature Configuration</span>
+                    </span>
+                </h2>
+            </div>
+            <div class="settings-card-body">
+                <form hx-post="/api/facial-recognition/config" hx-target="#facial-recognition-settings" hx-swap="outerHTML">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="label">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <span>Face Detection</span>
+                                </span>
+                            </label>
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="faceDetectionEnabled" value="true" 
+                                           {{if .Config.FaceDetectionEnabled}}checked{{end}}
+                                           {{if not .Config.Enabled}}disabled{{end}}>
+                                    Enable face detection in images
+                                </label>
+                            </div>
+                            <p class="help-text">Detect faces in captured images from Frigate events</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="label">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-user-check"></i>
+                                    </span>
+                                    <span>Face Recognition</span>
+                                </span>
+                            </label>
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="faceRecognitionEnabled" value="true" 
+                                           {{if .Config.FaceRecognitionEnabled}}checked{{end}}
+                                           {{if not .Config.Enabled}}disabled{{end}}>
+                                    Enable face recognition (requires trained faces)
+                                </label>
+                            </div>
+                            <p class="help-text">Recognize known faces from database and include in notifications</p>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="button is-primary" type="submit" {{if not .Config.Enabled}}disabled{{end}}>
+                            <span class="icon">
+                                <i class="fas fa-save"></i>
+                            </span>
+                            <span>Save Features</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="database-tab">
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <h2 class="title is-4">
+                    <span class="icon-text">
+                        <span class="icon">
+                            <i class="fas fa-database"></i>
+                        </span>
+                        <span>Database Configuration</span>
+                    </span>
+                </h2>
+            </div>
+            <div class="settings-card-body">
+                <form hx-post="/api/facial-recognition/config" hx-target="#facial-recognition-settings" hx-swap="outerHTML">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="label">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-folder"></i>
+                                    </span>
+                                    <span>Database Path</span>
+                                </span>
+                            </label>
+                            <div class="control has-icons-left">
+                                <input class="input is-medium facial-recognition-field" type="text" name="faceDatabasePath" 
+                                       value="{{.Config.FaceDatabasePath}}" placeholder="./face_db"
+                                       {{if not .Config.Enabled}}disabled{{end}}>
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-folder"></i>
+                                </span>
+                            </div>
+                            <p class="help-text">Local path to store face database and images</p>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="button is-primary" type="submit" {{if not .Config.Enabled}}disabled{{end}}>
+                            <span class="icon">
+                                <i class="fas fa-save"></i>
+                            </span>
+                            <span>Save Database Settings</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="faces-tab">
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <h2 class="title is-4">
+                    <span class="icon-text">
+                        <span class="icon">
+                            <i class="fas fa-users"></i>
+                        </span>
+                        <span>Face Management</span>
+                    </span>
+                </h2>
+            </div>
+            <div class="settings-card-body">
+                <div class="content">
+                    <p>Manage known faces for recognition. Add faces with names and contact information.</p>
+                    
+                    <div class="buttons">
+                        <button class="button is-success" 
+                                hx-get="/api/facial-recognition/faces" 
+                                hx-target="#faces-list" 
+                                hx-swap="outerHTML"
+                                {{if not .Config.Enabled}}disabled{{end}}>
+                            <span class="icon">
+                                <i class="fas fa-users"></i>
+                            </span>
+                            <span>View All Faces</span>
+                        </button>
+                        <button class="button is-info" 
+                                hx-get="/api/facial-recognition/faces/add" 
+                                hx-target="#face-form" 
+                                hx-swap="outerHTML"
+                                {{if not .Config.Enabled}}disabled{{end}}>
+                            <span class="icon">
+                                <i class="fas fa-user-plus"></i>
+                            </span>
+                            <span>Add New Face</span>
+                        </button>
+                    </div>
+
+                    <div id="faces-list"></div>
+                    <div id="face-form"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Guide Tab -->
+    <div class="tab-content" id="setup-tab">
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <h2 class="title is-4">
+                    <span class="icon-text">
+                        <span class="icon">
+                            <i class="fas fa-book"></i>
+                        </span>
+                        <span>CodeProject.AI Server Setup Guide</span>
+                    </span>
+                </h2>
+            </div>
+            <div class="settings-card-body">
+                <div class="content">
+                    <div class="notification is-info is-light">
+                        <span class="icon">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                        <span><strong>Before you begin:</strong> You need to have CodeProject.AI Server installed and running on your network.</span>
+                    </div>
+
+                    <h3 class="title is-5">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-download"></i>
+                            </span>
+                            <span>Step 1: Install CodeProject.AI Server</span>
+                        </span>
+                    </h3>
+                    <div class="box">
+                        <h4 class="title is-6">Docker Installation (Recommended)</h4>
+                        <pre><code>docker run -d --name codeproject-ai-server \
+  -p 8000:32168 \
+  -v codeproject-ai:/app/storage \
+  --restart unless-stopped \
+  codeproject/codeproject-ai-server:latest</code></pre>
+                        
+                        <h4 class="title is-6">Direct Installation</h4>
+                        <p>Download from <a href="https://github.com/codeproject/CodeProject.AI-Server" target="_blank">GitHub</a> and follow the installation instructions.</p>
+                    </div>
+
+                    <h3 class="title is-5">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-cogs"></i>
+                            </span>
+                            <span>Step 2: Configure CodeProject.AI Server</span>
+                        </span>
+                    </h3>
+                    <div class="box">
+                        <h4 class="title is-6">Required Modules</h4>
+                        <ul>
+                            <li><strong>Face Detection:</strong> Automatically installed with the server</li>
+                            <li><strong>Face Recognition:</strong> Automatically installed with the server</li>
+                        </ul>
+                        
+                        <h4 class="title is-6">Access the Web Interface</h4>
+                        <p>Open your browser and navigate to: <code>http://your-server-ip:8000</code></p>
+                        <p>Verify that the Face Detection and Face Recognition modules are running.</p>
+                    </div>
+
+                    <h3 class="title is-5">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-network-wired"></i>
+                            </span>
+                            <span>Step 3: Configure FND Connection</span>
+                        </span>
+                    </h3>
+                    <div class="box">
+                        <h4 class="title is-6">Server Settings</h4>
+                        <ul>
+                            <li><strong>Server Host:</strong> IP address or hostname of your CodeProject.AI server</li>
+                            <li><strong>Server Port:</strong> Default is 8000 (or the port you configured)</li>
+                            <li><strong>Use SSL:</strong> Enable if using HTTPS</li>
+                            <li><strong>Connection Timeout:</strong> 30 seconds is usually sufficient</li>
+                        </ul>
+                        
+                        <h4 class="title is-6">Test Connection</h4>
+                        <p>Use the "Test Connection" button in the Server Settings tab to verify connectivity.</p>
+                    </div>
+
+                    <h3 class="title is-5">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-users"></i>
+                            </span>
+                            <span>Step 4: Add Known Faces</span>
+                        </span>
+                    </h3>
+                    <div class="box">
+                        <h4 class="title is-6">Face Requirements</h4>
+                        <ul>
+                            <li>Clear, front-facing photos</li>
+                            <li>Good lighting conditions</li>
+                            <li>Face should be clearly visible</li>
+                            <li>Recommended size: 200x200 pixels minimum</li>
+                        </ul>
+                        
+                        <h4 class="title is-6">Adding Faces</h4>
+                        <ol>
+                            <li>Go to the "Face Management" tab</li>
+                            <li>Click "Add New Face"</li>
+                            <li>Enter the person's first and last name</li>
+                            <li>Upload a clear photo of their face</li>
+                            <li>Save the face record</li>
+                        </ol>
+                    </div>
+
+                    <h3 class="title is-5">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-check-circle"></i>
+                            </span>
+                            <span>Step 5: Enable and Test</span>
+                        </span>
+                    </h3>
+                    <div class="box">
+                        <h4 class="title is-6">Final Steps</h4>
+                        <ol>
+                            <li>Enable the CodeProject.AI service using the toggle at the top</li>
+                            <li>Configure which features to enable (detection/recognition)</li>
+                            <li>Test with a Frigate event containing a person</li>
+                            <li>Check notifications for facial recognition results</li>
+                        </ol>
+                        
+                        <h4 class="title is-6">Troubleshooting</h4>
+                        <ul>
+                            <li><strong>Connection failed:</strong> Check server IP, port, and firewall settings</li>
+                            <li><strong>No faces detected:</strong> Verify face detection is enabled in CodeProject.AI</li>
+                            <li><strong>No recognition:</strong> Ensure you have added known faces to the database</li>
+                            <li><strong>Poor accuracy:</strong> Use higher quality face images with better lighting</li>
+                        </ul>
+                    </div>
+
+                    <div class="notification is-warning is-light">
+                        <span class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </span>
+                        <span><strong>Important:</strong> CodeProject.AI Server requires significant computational resources. Ensure your server has adequate CPU and RAM for optimal performance.</span>
+                    </div>
+
+                    <div class="notification is-success is-light">
+                        <span class="icon">
+                            <i class="fas fa-link"></i>
+                        </span>
+                        <span><strong>Need help?</strong> Visit the <a href="https://github.com/codeproject/CodeProject.AI-Server" target="_blank">CodeProject.AI documentation</a> for detailed setup instructions.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Simple tab switching function
+    function showTab(tabName, event) {
+        // Prevent default link behavior
+        if (event) {
+            event.preventDefault();
+        }
+        
+        console.log('Switching to tab:', tabName);
+        
+        // Hide all tab contents
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabContents.forEach(content => {
+            content.style.display = 'none';
+            content.classList.remove('is-active');
+        });
+
+        // Remove active class from all tabs
+        const tabs = document.querySelectorAll('.tabs li');
+        tabs.forEach(tab => {
+            tab.classList.remove('is-active');
+        });
+
+        // Show selected tab content
+        const selectedTab = document.getElementById(tabName + '-tab');
+        if (selectedTab) {
+            selectedTab.style.display = 'block';
+            selectedTab.classList.add('is-active');
+            console.log('Activated tab:', selectedTab.id);
+        } else {
+            console.error('Tab content not found:', tabName + '-tab');
+        }
+
+        // Add active class to selected tab
+        if (event && event.target) {
+            const selectedTabLink = event.target.closest('li');
+            if (selectedTabLink) {
+                selectedTabLink.classList.add('is-active');
+            }
+        }
+    }
+
+    // Initialize tabs when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, initializing tabs');
+        // Show the first tab by default
+        showTab('server');
+    });
+
+    // Auto-refresh status when configuration changes
+    document.addEventListener('htmx:afterRequest', function(event) {
+        if (event.detail.xhr.status === 200) {
+            // Refresh overview status if we're on the overview page
+            const overviewStatus = document.getElementById('facial-recognition-status');
+            if (overviewStatus) {
+                htmx.ajax('GET', '/api/overview/facial-recognition-status', {target: '#facial-recognition-status', swap: 'outerHTML'});
+            }
+        }
+    });
+</script>
+</body>
+</html>

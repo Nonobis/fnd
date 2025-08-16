@@ -269,11 +269,54 @@ func (gotify *FNDGotifyNotificationSink) getConfiguration() FNDNotificationConfi
 }
 
 func (gotify *FNDGotifyNotificationSink) getStatus() FNDNotificationSinkStatus {
-	status := FNDNotificationSinkStatus{
-		Name:    gotify.getName(),
-		Good:    gotify.lastStatusMessage == "Online",
-		Message: gotify.lastStatusMessage,
+	// Check if Gotify is enabled
+	if gotify.config.Map["enabled"] != "true" {
+		return FNDNotificationSinkStatus{
+			Name:    gotify.getName(),
+			Good:    false,
+			Message: "Disabled",
+		}
 	}
-	LogDebug("GOTIFY", "Getting status", fmt.Sprintf("Name: %s, Good: %t, Message: %s", status.Name, status.Good, status.Message))
-	return status
+
+	// Check if required configuration is present
+	if gotify.config.Map["apptoken"] == "" {
+		return FNDNotificationSinkStatus{
+			Name:    gotify.getName(),
+			Good:    false,
+			Message: "App token not configured",
+		}
+	}
+
+	if gotify.config.Map["serverurl"] == "" {
+		return FNDNotificationSinkStatus{
+			Name:    gotify.getName(),
+			Good:    false,
+			Message: "Server URL not configured",
+		}
+	}
+
+	// If we have a successful status message, use it
+	if gotify.lastStatusMessage == "Online" {
+		return FNDNotificationSinkStatus{
+			Name:    gotify.getName(),
+			Good:    true,
+			Message: gotify.lastStatusMessage,
+		}
+	}
+
+	// If we have an error message, use it
+	if gotify.lastStatusMessage != "init" && gotify.lastStatusMessage != "" {
+		return FNDNotificationSinkStatus{
+			Name:    gotify.getName(),
+			Good:    false,
+			Message: gotify.lastStatusMessage,
+		}
+	}
+
+	// Default status for enabled and configured but not yet tested
+	return FNDNotificationSinkStatus{
+		Name:    gotify.getName(),
+		Good:    true,
+		Message: "Ready",
+	}
 }

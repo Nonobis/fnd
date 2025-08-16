@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Filters - FND</title>
+    <link rel="stylesheet" href="/static/bulma.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/htmx.min.js"></script>
+    <style>
+        .camera-card {
+            margin-bottom: 1.5rem;
+        }
+        .object-filter-status {
+            margin-top: 0.5rem;
+        }
+        .filter-summary {
+            font-size: 0.875rem;
+            color: #7a7a7a;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #7a7a7a;
+        }
+    </style>
+</head>
+<body>
+<div class="settings-container">
+    <!-- Header Section -->
+    <div class="settings-header">
+        <h1 class="title is-2">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fas fa-filter"></i>
+                </span>
+                <span>Object Filters</span>
+            </span>
+        </h1>
+        <p class="subtitle is-6">Configure which objects to monitor for each camera</p>
+    </div>
+
+    <!-- Info Section -->
+    <div class="notification is-info is-light">
+        <span class="icon">
+            <i class="fas fa-info-circle"></i>
+        </span>
+        <span><strong>How it works:</strong> Enable object filtering for specific cameras to reduce notifications and improve performance. Only events with the selected objects will trigger notifications.</span>
+    </div>
+
+    <!-- Cameras List -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h2 class="title is-4">
+                <span class="icon-text">
+                    <span class="icon">
+                        <i class="fas fa-video"></i>
+                    </span>
+                    <span>Camera Configuration</span>
+                </span>
+            </h2>
+        </div>
+        <div class="settings-card-body">
+            <div id="cameras-list">
+                <!-- Cameras will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Load cameras list on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCamerasList();
+    });
+
+    function loadCamerasList() {
+        fetch('/api/object-filters/cameras')
+            .then(response => response.json())
+            .then(cameras => {
+                const camerasList = document.getElementById('cameras-list');
+                
+                // Handle null or undefined cameras
+                if (!cameras || cameras.length === 0) {
+                    camerasList.innerHTML = `
+                        <div class="empty-state">
+                            <span class="icon is-large">
+                                <i class="fas fa-video fa-3x"></i>
+                            </span>
+                            <p class="mt-3">No cameras configured yet</p>
+                            <p class="is-size-7">Cameras will appear here once they are detected from Frigate</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                cameras.forEach(camera => {
+                    const statusClass = camera.Active ? 'is-success' : 'is-danger';
+                    const statusText = camera.Active ? 'Active' : 'Inactive';
+                    const statusIcon = camera.Active ? 'fa-check-circle' : 'fa-times-circle';
+                    
+                    const filterStatus = camera.ObjectFilter.Enabled ? 
+                        `<span class="tag is-info">Filtered (${camera.ObjectFilter.Objects.length} objects)</span>` :
+                        '<span class="tag is-light">All objects</span>';
+                    
+                    const filterSummary = camera.ObjectFilter.Enabled && camera.ObjectFilter.Objects.length > 0 ?
+                        `<div class="filter-summary">Watching: ${camera.ObjectFilter.Objects.join(', ')}</div>` :
+                        '';
+
+                    html += `
+                        <div class="card camera-card">
+                            <div class="card-content">
+                                <div class="columns is-vcentered">
+                                    <div class="column">
+                                        <h3 class="title is-5">${camera.Name}</h3>
+                                        <div class="object-filter-status">
+                                            <span class="tag ${statusClass}">${statusText}</span>
+                                            ${filterStatus}
+                                        </div>
+                                        ${filterSummary}
+                                    </div>
+                                    <div class="column is-narrow">
+                                        <button class="button is-primary" 
+                                                onclick="configureCamera('${camera.Name}')">
+                                            <span class="icon">
+                                                <i class="fas fa-cog"></i>
+                                            </span>
+                                            <span>Configure</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                camerasList.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error loading cameras:', error);
+                document.getElementById('cameras-list').innerHTML = `
+                    <div class="notification is-danger is-light">
+                        <span class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </span>
+                        <span>Failed to load cameras: ${error.message}</span>
+                    </div>
+                `;
+            });
+    }
+
+    function configureCamera(cameraName) {
+        // Open camera configuration in a modal or new page
+        window.location.href = `/object-filters/camera/${cameraName}`;
+    }
+
+    // Auto-refresh cameras list every 30 seconds
+    setInterval(loadCamerasList, 30000);
+</script>
+</body>
+</html>

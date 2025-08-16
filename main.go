@@ -59,7 +59,7 @@ func main() {
 	web := setupBasicRoutes("0.0.0.0:7777", &conf.Frigate, conf, configuration_path)
 	LogInfo("WEB", "Web server initialized", "Address: 0.0.0.0:7777")
 
-	notify := NewFNDNotificationManager(conf.Notify)
+	notify := NewFNDNotificationManager(conf.Notify, &conf.FacialRecognition)
 	notify.setupNotificationSinks(connection.eventManager.notificationChannel, web, connection)
 	web.setNotificationManager(notify)
 	LogInfo("NOTIFY", "Notification manager initialized", "")

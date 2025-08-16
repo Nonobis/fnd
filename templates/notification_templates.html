@@ -192,6 +192,10 @@
                             <li>Use <code>{{.Date}}</code> and <code>{{.Time}}</code> for timestamps</li>
                             <li>Use <code>{{.VideoURL}}</code> for video links</li>
                             <li>Use <code>{{if .HasVideo}}...{{end}}</code> for conditional content</li>
+                            <li>Use <code>{{if .HasFaces}}...{{end}}</code> for facial recognition content</li>
+                            <li>Use <code>{{.RecognizedFaces}}</code> for recognized person names</li>
+                            <li>Use <code>{{.UnknownFaces}}</code> for count of unknown faces</li>
+                            <li>Use <code>{{.FaceCount}}</code> for total faces detected</li>
                         </ul>
                     </div>
 

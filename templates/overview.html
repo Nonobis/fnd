@@ -23,14 +23,14 @@
             </h2>
             
             <div class="status-grid">
-                {{ range .NotificationStatus}}
-                <div class="status-card {{if .Good}}status-success{{else}}status-error{{end}}">
+                {{ range $name, $status := .NotificationStatus}}
+                <div class="status-card {{if $status.Good}}status-success{{else}}status-error{{end}}">
                     <div class="status-card-header">
-                        <span class="status-name">{{ .Name }}</span>
-                        <span class="status-indicator {{if .Good}}has-background-success{{else}}has-background-danger{{end}}"></span>
+                        <span class="status-name">{{ $status.Name }}</span>
+                        <span class="status-indicator {{if $status.Good}}has-background-success{{else}}has-background-danger{{end}}"></span>
                     </div>
                     <div class="status-card-body">
-                        <p class="status-message">{{ .Message }}</p>
+                        <p class="status-message">{{ $status.Message }}</p>
                     </div>
                 </div>
                 {{ end }}
@@ -74,6 +74,11 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                
+                <!-- Facial Recognition Status Card -->
+                <div class="status-card" id="facial-recognition-status" hx-get="/api/overview/facial-recognition-status" hx-trigger="every 5s" hx-swap="outerHTML">
+                    <!-- Status will be loaded dynamically -->
                 </div>
             </div>
         </div>

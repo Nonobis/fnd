@@ -304,9 +304,46 @@ func (apprise *FNDAppriseNotificationSink) SetAppriseConfig(config *AppriseConfi
 }
 
 func (apprise *FNDAppriseNotificationSink) getStatus() FNDNotificationSinkStatus {
+	// Check if Apprise is enabled
+	if apprise.config.Map["enabled"] != "true" {
+		return FNDNotificationSinkStatus{
+			Name:    apprise.getName(),
+			Good:    false,
+			Message: "Disabled",
+		}
+	}
+
+	// Check if required configuration is present
+	if apprise.appriseConfig.ServerURL == "" {
+		return FNDNotificationSinkStatus{
+			Name:    apprise.getName(),
+			Good:    false,
+			Message: "Server URL not configured",
+		}
+	}
+
+	// If we have a successful status message, use it
+	if apprise.lastStatusMessage == "Online" || apprise.lastStatusMessage == "Online (with video)" {
+		return FNDNotificationSinkStatus{
+			Name:    apprise.getName(),
+			Good:    true,
+			Message: apprise.lastStatusMessage,
+		}
+	}
+
+	// If we have an error message, use it
+	if apprise.lastStatusMessage != "" && apprise.lastStatusMessage != "init" {
+		return FNDNotificationSinkStatus{
+			Name:    apprise.getName(),
+			Good:    false,
+			Message: apprise.lastStatusMessage,
+		}
+	}
+
+	// Default status for enabled and configured but not yet tested
 	return FNDNotificationSinkStatus{
 		Name:    apprise.getName(),
-		Good:    apprise.lastStatusMessage == "Online",
-		Message: apprise.lastStatusMessage,
+		Good:    true,
+		Message: "Ready",
 	}
 }

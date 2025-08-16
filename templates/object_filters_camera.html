@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Filters - {{.CameraName}} - FND</title>
+    <link rel="stylesheet" href="/static/bulma.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/htmx.min.js"></script>
+    <style>
+        .object-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .object-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border: 1px solid #dbdbdb;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        .object-item:hover {
+            background: #f0f0f0;
+        }
+        .object-item input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+        .search-box {
+            margin-bottom: 1rem;
+        }
+        .selected-count {
+            margin-top: 1rem;
+            font-weight: bold;
+            color: #3273dc;
+        }
+        .quick-select {
+            margin-bottom: 1rem;
+        }
+        .quick-select .buttons {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+<div class="settings-container">
+    <!-- Header Section -->
+    <div class="settings-header">
+        <h1 class="title is-2">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fas fa-filter"></i>
+                </span>
+                <span>Object Filters - {{.CameraName}}</span>
+            </span>
+        </h1>
+        <p class="subtitle is-6">Configure which objects to monitor for this camera</p>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a href="/object-filters" class="button is-light">
+            <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+            </span>
+            <span>Back to Cameras</span>
+        </a>
+    </div>
+
+    <!-- Configuration Form -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h2 class="title is-4">
+                <span class="icon-text">
+                    <span class="icon">
+                        <i class="fas fa-cog"></i>
+                    </span>
+                    <span>Filter Configuration</span>
+                </span>
+            </h2>
+        </div>
+        <div class="settings-card-body">
+            <form id="object-filter-form" hx-post="/api/object-filters/camera/{{.CameraName}}" hx-target="#form-response" hx-swap="outerHTML">
+                <!-- Enable/Disable Filter -->
+                <div class="field">
+                    <div class="control">
+                        <label class="checkbox">
+                            <input type="checkbox" name="enabled" value="true" {{if .Camera.ObjectFilter.Enabled}}checked{{end}}>
+                            <strong>Enable object filtering for this camera</strong>
+                        </label>
+                    </div>
+                    <p class="help">When enabled, only events with the selected objects will trigger notifications</p>
+                </div>
+
+                <div id="filter-options" {{if not .Camera.ObjectFilter.Enabled}}style="display: none;"{{end}}>
+                    <!-- Quick Select Buttons -->
+                    <div class="quick-select">
+                        <label class="label">Quick Select</label>
+                        <div class="buttons">
+                            <button type="button" class="button is-small is-info" onclick="selectCommonObjects()">
+                                <span class="icon">
+                                    <i class="fas fa-users"></i>
+                                </span>
+                                <span>People & Vehicles</span>
+                            </button>
+                            <button type="button" class="button is-small is-success" onclick="selectAnimals()">
+                                <span class="icon">
+                                    <i class="fas fa-paw"></i>
+                                </span>
+                                <span>Animals</span>
+                            </button>
+                            <button type="button" class="button is-small is-warning" onclick="selectAll()">
+                                <span class="icon">
+                                    <i class="fas fa-check-double"></i>
+                                </span>
+                                <span>Select All</span>
+                            </button>
+                            <button type="button" class="button is-small is-danger" onclick="clearSelection()">
+                                <span class="icon">
+                                    <i class="fas fa-times"></i>
+                                </span>
+                                <span>Clear All</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search Box -->
+                    <div class="search-box">
+                        <div class="field">
+                            <label class="label">Search Objects</label>
+                            <div class="control has-icons-left">
+                                <input class="input" type="text" id="object-search" placeholder="Type to search objects...">
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Count -->
+                    <div class="selected-count" id="selected-count">
+                        Selected: 0 objects
+                    </div>
+
+                    <!-- Objects Grid -->
+                    <div class="object-grid" id="objects-grid">
+                        {{range .AvailableObjects}}
+                        <div class="object-item" data-object="{{.}}">
+                            <label class="checkbox">
+                                <input type="checkbox" name="objects" value="{{.}}" 
+                                       {{if contains $.Camera.ObjectFilter.Objects .}}checked{{end}}>
+                                {{.}}
+                            </label>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button class="button is-primary" type="submit">
+                        <span class="icon">
+                            <i class="fas fa-save"></i>
+                        </span>
+                        <span>Save Configuration</span>
+                    </button>
+                    <a href="/object-filters" class="button is-light">
+                        <span class="icon">
+                            <i class="fas fa-times"></i>
+                        </span>
+                        <span>Cancel</span>
+                    </a>
+                </div>
+            </form>
+
+            <!-- Response Area -->
+            <div id="form-response"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle filter options visibility
+    document.querySelector('input[name="enabled"]').addEventListener('change', function() {
+        const filterOptions = document.getElementById('filter-options');
+        filterOptions.style.display = this.checked ? 'block' : 'none';
+        updateSelectedCount();
+    });
+
+    // Search functionality
+    document.getElementById('object-search').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const objectItems = document.querySelectorAll('.object-item');
+        
+        objectItems.forEach(item => {
+            const objectName = item.getAttribute('data-object').toLowerCase();
+            if (objectName.includes(searchTerm)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+
+    // Update selected count
+    function updateSelectedCount() {
+        const checkboxes = document.querySelectorAll('input[name="objects"]:checked');
+        const countElement = document.getElementById('selected-count');
+        countElement.textContent = `Selected: ${checkboxes.length} objects`;
+    }
+
+    // Add event listeners to all checkboxes
+    document.querySelectorAll('input[name="objects"]').forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+
+    // Quick select functions
+    function selectCommonObjects() {
+        const commonObjects = ['person', 'car', 'truck', 'bicycle', 'motorcycle', 'bus'];
+        selectObjects(commonObjects);
+    }
+
+    function selectAnimals() {
+        const animals = ['bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe'];
+        selectObjects(animals);
+    }
+
+    function selectAll() {
+        const checkboxes = document.querySelectorAll('input[name="objects"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        updateSelectedCount();
+    }
+
+    function clearSelection() {
+        const checkboxes = document.querySelectorAll('input[name="objects"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateSelectedCount();
+    }
+
+    function selectObjects(objects) {
+        const checkboxes = document.querySelectorAll('input[name="objects"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = objects.includes(checkbox.value);
+        });
+        updateSelectedCount();
+    }
+
+    // Initialize selected count
+    document.addEventListener('DOMContentLoaded', function() {
+        updateSelectedCount();
+    });
+</script>
+</body>
+</html>

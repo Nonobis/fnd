@@ -14,6 +14,7 @@ type FNDNotification struct {
 	Caption   string
 	Title     string
 	HasVideo  bool
+	FaceRecognitionResult *FaceRecognitionResult
 }
 
 type FNDNotificationSink interface {
@@ -37,15 +38,25 @@ type FNDNotificationManager struct {
 
 	//template processor
 	templateProcessor *TemplateProcessor
+	
+	//facial recognition
+	facialRecognitionService *FacialRecognitionService
 }
 
-func NewFNDNotificationManager(conf FNDNotificationConfiguration) *FNDNotificationManager {
-	return &FNDNotificationManager{
+func NewFNDNotificationManager(conf FNDNotificationConfiguration, facialRecognitionConfig *FNDFacialRecognitionConfiguration) *FNDNotificationManager {
+	manager := &FNDNotificationManager{
 		conf:              conf,
 		sinks:             make(map[string]FNDNotificationSink),
 		templateProcessor: NewTemplateProcessor(&conf.Templates),
 	}
-
+	
+	// Initialize facial recognition service if enabled
+	if facialRecognitionConfig != nil && facialRecognitionConfig.Enabled {
+		manager.facialRecognitionService = NewFacialRecognitionService(facialRecognitionConfig)
+		LogInfo("NOTIFY", "Facial recognition service initialized", "")
+	}
+	
+	return manager
 }
 
 func (m *FNDNotificationManager) setupNotificationSinks(c chan FNDNotification, web *FNDWebServer, frigateConn *FNDFrigateConnection) {
@@ -85,6 +96,12 @@ func (m *FNDNotificationManager) registerNotificationSinks(sink FNDNotificationS
 
 func (m *FNDNotificationManager) notifyAll(n FNDNotification) {
 	LogInfo("NOTIFY", "Sending notification to all enabled sinks", fmt.Sprintf("Caption: %s", n.Caption))
+	
+	// Process facial recognition if enabled and image data is available
+	if m.facialRecognitionService != nil && len(n.JpegData) > 0 {
+		m.processFacialRecognition(&n)
+	}
+	
 	enabledCount := 0
 	for sinkName, v := range m.sinks {
 		// Check if the sink is enabled before sending notification
@@ -243,4 +260,73 @@ func (m *FNDNotificationManager) sendLiveSnapshot(camera string, api *FNDFrigate
 func (m *FNDNotificationManager) updateTemplates(templates *NotificationTemplates) {
 	m.templateProcessor = NewTemplateProcessor(templates)
 	LogInfo("NOTIFY", "Templates updated", "Template processor refreshed")
+}
+
+// processFacialRecognition processes facial recognition on the notification image
+func (m *FNDNotificationManager) processFacialRecognition(n *FNDNotification) {
+	LogDebug("NOTIFY", "Processing facial recognition", fmt.Sprintf("Image size: %d bytes", len(n.JpegData)))
+	
+	// Perform face recognition
+	recognitionResult, err := m.facialRecognitionService.RecognizeFaces(n.JpegData)
+	if err != nil {
+		LogError("NOTIFY", "Facial recognition failed", err.Error())
+		return
+	}
+	
+	// Store the recognition result
+	n.FaceRecognitionResult = recognitionResult
+	
+	// Log recognition results
+	if len(recognitionResult.RecognizedFaces) > 0 {
+		recognizedNames := make([]string, 0, len(recognitionResult.RecognizedFaces))
+		for _, face := range recognitionResult.RecognizedFaces {
+			if face.Person != nil {
+				recognizedNames = append(recognizedNames, fmt.Sprintf("%s %s (%.1f%%)", 
+					face.Person.FirstName, face.Person.LastName, face.Confidence*100))
+			}
+		}
+		LogInfo("NOTIFY", "Faces recognized", fmt.Sprintf("Recognized: %s", strings.Join(recognizedNames, ", ")))
+	}
+	
+	if len(recognitionResult.UnknownFaces) > 0 {
+		LogInfo("NOTIFY", "Unknown faces detected", fmt.Sprintf("Count: %d", len(recognitionResult.UnknownFaces)))
+	}
+	
+	// Update notification caption with facial recognition results
+	m.updateNotificationWithFacialRecognition(n, recognitionResult)
+}
+
+// updateNotificationWithFacialRecognition updates the notification caption with facial recognition results
+func (m *FNDNotificationManager) updateNotificationWithFacialRecognition(n *FNDNotification, result *FaceRecognitionResult) {
+	if result == nil {
+		return
+	}
+	
+	var recognitionInfo strings.Builder
+	
+	// Add recognized faces information
+	if len(result.RecognizedFaces) > 0 {
+		recognitionInfo.WriteString("\n👤 Recognized: ")
+		recognizedNames := make([]string, 0, len(result.RecognizedFaces))
+		for _, face := range result.RecognizedFaces {
+			if face.Person != nil {
+				recognizedNames = append(recognizedNames, fmt.Sprintf("%s %s (%.1f%%)", 
+					face.Person.FirstName, face.Person.LastName, face.Confidence*100))
+			}
+		}
+		recognitionInfo.WriteString(strings.Join(recognizedNames, ", "))
+	}
+	
+	// Add unknown faces information
+	if len(result.UnknownFaces) > 0 {
+		if recognitionInfo.Len() > 0 {
+			recognitionInfo.WriteString("\n")
+		}
+		recognitionInfo.WriteString(fmt.Sprintf("❓ Unknown faces: %d", len(result.UnknownFaces)))
+	}
+	
+	// Append recognition info to caption
+	if recognitionInfo.Len() > 0 {
+		n.Caption += recognitionInfo.String()
+	}
 }

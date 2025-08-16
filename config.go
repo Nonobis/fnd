@@ -6,12 +6,14 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type FNDConfiguration struct {
 	Frigate FNDFrigateConfiguration
 	Notify  FNDNotificationConfiguration
 	Logging FNDLoggingConfiguration
+	FacialRecognition FNDFacialRecognitionConfiguration
 }
 
 type FNDFrigateConfiguration struct {
@@ -33,9 +35,16 @@ type FNDFrigateConfiguration struct {
 	m sync.Mutex
 }
 
+// ObjectFilter represents which objects to watch for a camera
+type ObjectFilter struct {
+	Enabled bool     `json:"enabled"`
+	Objects []string `json:"objects"`
+}
+
 type CameraConfig struct {
-	Name   string
-	Active bool
+	Name         string       `json:"name"`
+	Active       bool         `json:"active"`
+	ObjectFilter ObjectFilter `json:"objectFilter"`
 }
 
 // Apprise configuration constants
@@ -89,6 +98,10 @@ type TemplateVariables struct {
 	EventID     string
 	HasSnapshot bool
 	SnapshotURL string
+	HasFaces    bool
+	RecognizedFaces string
+	UnknownFaces string
+	FaceCount   int
 }
 
 // Logging configuration constants
@@ -107,6 +120,54 @@ type FNDLoggingConfiguration struct {
 	LogLevel      int  `json:"logLevel"`
 	EnableFile    bool `json:"enableFile"`
 	EnableConsole bool `json:"enableConsole"`
+}
+
+// Facial Recognition configuration constants
+const (
+	FacialRecognitionEnabledKey = "enabled"
+	CodeProjectAIHostKey        = "host"
+	CodeProjectAIPortKey        = "port"
+	CodeProjectAIUseSSLKey      = "useSSL"
+	CodeProjectAITimeoutKey     = "timeout"
+	FaceDetectionEnabledKey     = "faceDetectionEnabled"
+	FaceRecognitionEnabledKey   = "faceRecognitionEnabled"
+	FaceDatabasePathKey         = "faceDatabasePath"
+)
+
+// FNDFacialRecognitionConfiguration represents the facial recognition configuration
+type FNDFacialRecognitionConfiguration struct {
+	Enabled              bool   `json:"enabled"`
+	CodeProjectAIHost    string `json:"codeProjectAIHost"`
+	CodeProjectAIPort    int    `json:"codeProjectAIPort"`
+	CodeProjectAIUseSSL  bool   `json:"codeProjectAIUseSSL"`
+	CodeProjectAITimeout int    `json:"codeProjectAITimeout"`
+	FaceDetectionEnabled bool   `json:"faceDetectionEnabled"`
+	FaceRecognitionEnabled bool `json:"faceRecognitionEnabled"`
+	FaceDatabasePath     string `json:"faceDatabasePath"`
+	
+	m sync.Mutex
+}
+
+// FaceRecord represents a face record in the database
+type FaceRecord struct {
+	ID          string    `json:"id"`
+	FirstName   string    `json:"firstName"`
+	LastName    string    `json:"lastName"`
+	Email       string    `json:"email"`
+	Phone       string    `json:"phone"`
+	Notes       string    `json:"notes"`
+	FaceID      string    `json:"faceId"`
+	ImagePath   string    `json:"imagePath"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+	IsActive    bool      `json:"isActive"`
+}
+
+// FaceDatabase represents the face database structure
+type FaceDatabase struct {
+	Faces []FaceRecord `json:"faces"`
+	
+	m sync.RWMutex
 }
 
 func LoadFNDConf(filename string) *FNDConfiguration {
@@ -150,12 +211,22 @@ func NEWDefaultFNDConfiguration() *FNDConfiguration {
 			Templates: NotificationTemplates{
 				Global: NotificationTemplate{
 					Title:   "New Event",
-					Message: "A new event has occurred: {{.Object}} at {{.Camera}} on {{.Date}} {{.Time}}{{if .HasVideo}}\n🎥 Video: {{.VideoURL}}{{end}}{{if .HasSnapshot}}\n📸 Snapshot attached{{end}}",
+					Message: "A new event has occurred: {{.Object}} at {{.Camera}} on {{.Date}} {{.Time}}{{if .HasVideo}}\n🎥 Video: {{.VideoURL}}{{end}}{{if .HasSnapshot}}\n📸 Snapshot attached{{end}}{{if .HasFaces}}\n👤 Faces detected: {{.FaceCount}}{{if .RecognizedFaces}}\n✅ Recognized: {{.RecognizedFaces}}{{end}}{{if .UnknownFaces}}\n❓ Unknown: {{.UnknownFaces}}{{end}}{{end}}",
 				},
 				PerService: make(map[string]NotificationTemplate),
 			},
 		},
 		Logging: NewDefaultLoggingConfiguration(),
+		FacialRecognition: FNDFacialRecognitionConfiguration{
+			Enabled: false,
+			CodeProjectAIHost: "localhost",
+			CodeProjectAIPort: 8000,
+			CodeProjectAIUseSSL: false,
+			CodeProjectAITimeout: 30,
+			FaceDetectionEnabled: true,
+			FaceRecognitionEnabled: true,
+			FaceDatabasePath: "./face_db",
+		},
 	}
 	
 	LogDebug("CONFIG", "Default configuration created", fmt.Sprintf("Frigate host: %s, Cooldown: %d, Language: %s", conf.Frigate.Host, conf.Frigate.Cooldown, conf.Frigate.Language))
@@ -360,4 +431,205 @@ func (fConf *FNDFrigateConfiguration) activateCameras(activeList []string) {
 	}
 
 	LogInfo("CAMERA", "Camera activation updated", fmt.Sprintf("Active cameras: %v, Activated: %d, Deactivated: %d", activeList, activatedCount, deactivatedCount))
+}
+
+// NewDefaultFacialRecognitionConfiguration creates a default facial recognition configuration
+func NewDefaultFacialRecognitionConfiguration() FNDFacialRecognitionConfiguration {
+	LogDebug("CONFIG", "Creating default facial recognition configuration", "")
+	
+	config := FNDFacialRecognitionConfiguration{
+		Enabled:              false,
+		CodeProjectAIHost:    "localhost",
+		CodeProjectAIPort:    8000,
+		CodeProjectAIUseSSL:  false,
+		CodeProjectAITimeout: 30,
+		FaceDetectionEnabled: true,
+		FaceRecognitionEnabled: true,
+		FaceDatabasePath:     "./face_db",
+	}
+	
+	LogDebug("CONFIG", "Default facial recognition configuration created", fmt.Sprintf("Enabled: %t, Host: %s, Port: %d", config.Enabled, config.CodeProjectAIHost, config.CodeProjectAIPort))
+	return config
+}
+
+// PopulateFacialRecognitionConfigFromMap populates facial recognition configuration from a map
+func (frc *FNDFacialRecognitionConfiguration) PopulateFacialRecognitionConfigFromMap(m map[string]string) {
+	LogDebug("CONFIG", "Populating facial recognition configuration from map", fmt.Sprintf("Map keys: %v", getMapKeys(m)))
+	
+	if enabled, exists := m[FacialRecognitionEnabledKey]; exists {
+		frc.Enabled = enabled == "true"
+		LogDebug("CONFIG", "FacialRecognitionConfig Enabled set", fmt.Sprintf("Value: %t", frc.Enabled))
+	}
+	if host, exists := m[CodeProjectAIHostKey]; exists {
+		frc.CodeProjectAIHost = host
+		LogDebug("CONFIG", "FacialRecognitionConfig Host set", fmt.Sprintf("Value: %s", frc.CodeProjectAIHost))
+	}
+	if port, exists := m[CodeProjectAIPortKey]; exists {
+		if p, err := strconv.Atoi(port); err == nil {
+			frc.CodeProjectAIPort = p
+			LogDebug("CONFIG", "FacialRecognitionConfig Port set", fmt.Sprintf("Value: %d", frc.CodeProjectAIPort))
+		} else {
+			LogWarn("CONFIG", "Invalid port value in FacialRecognitionConfig", fmt.Sprintf("Value: %s, Error: %s", port, err.Error()))
+		}
+	}
+	if useSSL, exists := m[CodeProjectAIUseSSLKey]; exists {
+		frc.CodeProjectAIUseSSL = useSSL == "true"
+		LogDebug("CONFIG", "FacialRecognitionConfig UseSSL set", fmt.Sprintf("Value: %t", frc.CodeProjectAIUseSSL))
+	}
+	if timeout, exists := m[CodeProjectAITimeoutKey]; exists {
+		if t, err := strconv.Atoi(timeout); err == nil {
+			frc.CodeProjectAITimeout = t
+			LogDebug("CONFIG", "FacialRecognitionConfig Timeout set", fmt.Sprintf("Value: %d", frc.CodeProjectAITimeout))
+		} else {
+			LogWarn("CONFIG", "Invalid timeout value in FacialRecognitionConfig", fmt.Sprintf("Value: %s, Error: %s", timeout, err.Error()))
+		}
+	}
+	if faceDetectionEnabled, exists := m[FaceDetectionEnabledKey]; exists {
+		frc.FaceDetectionEnabled = faceDetectionEnabled == "true"
+		LogDebug("CONFIG", "FacialRecognitionConfig FaceDetectionEnabled set", fmt.Sprintf("Value: %t", frc.FaceDetectionEnabled))
+	}
+	if faceRecognitionEnabled, exists := m[FaceRecognitionEnabledKey]; exists {
+		frc.FaceRecognitionEnabled = faceRecognitionEnabled == "true"
+		LogDebug("CONFIG", "FacialRecognitionConfig FaceRecognitionEnabled set", fmt.Sprintf("Value: %t", frc.FaceRecognitionEnabled))
+	}
+	if faceDatabasePath, exists := m[FaceDatabasePathKey]; exists {
+		frc.FaceDatabasePath = faceDatabasePath
+		LogDebug("CONFIG", "FacialRecognitionConfig FaceDatabasePath set", fmt.Sprintf("Value: %s", frc.FaceDatabasePath))
+	}
+	
+	LogDebug("CONFIG", "FacialRecognitionConfig populated from map", fmt.Sprintf("Enabled: %t, Host: %s, Port: %d", frc.Enabled, frc.CodeProjectAIHost, frc.CodeProjectAIPort))
+}
+
+// getMapKeys is a helper function to get keys from a map for logging
+func getMapKeys(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// GetCameraConfig returns the configuration for a specific camera
+func (c *FNDConfiguration) GetCameraConfig(cameraName string) CameraConfig {
+	c.Frigate.m.Lock()
+	defer c.Frigate.m.Unlock()
+	
+	if config, exists := c.Frigate.Cameras[cameraName]; exists {
+		return config
+	}
+	
+	// Default configuration with object filter disabled
+	return CameraConfig{
+		Name: cameraName, 
+		Active: true,
+		ObjectFilter: ObjectFilter{
+			Enabled: false,
+			Objects: []string{},
+		},
+	}
+}
+
+// ShouldAnalyzeObject checks if an object should be analyzed for a specific camera
+func (c *FNDConfiguration) ShouldAnalyzeObject(cameraName, objectType string) bool {
+	cameraConfig := c.GetCameraConfig(cameraName)
+	
+	// If camera is not active, don't analyze
+	if !cameraConfig.Active {
+		return false
+	}
+	
+	// If object filter is not enabled, analyze all objects
+	if !cameraConfig.ObjectFilter.Enabled {
+		return true
+	}
+	
+	// Check if the object type is in the allowed list
+	for _, allowedObject := range cameraConfig.ObjectFilter.Objects {
+		if allowedObject == objectType {
+			return true
+		}
+	}
+	
+	return false
+}
+
+// GetAvailableObjects returns a list of commonly detected objects
+func GetAvailableObjects() []string {
+	return []string{
+		"person",
+		"car",
+		"truck",
+		"bicycle",
+		"motorcycle",
+		"bus",
+		"train",
+		"boat",
+		"airplane",
+		"bird",
+		"cat",
+		"dog",
+		"horse",
+		"sheep",
+		"cow",
+		"elephant",
+		"bear",
+		"zebra",
+		"giraffe",
+		"backpack",
+		"umbrella",
+		"handbag",
+		"tie",
+		"suitcase",
+		"frisbee",
+		"skis",
+		"snowboard",
+		"sports ball",
+		"kite",
+		"baseball bat",
+		"baseball glove",
+		"skateboard",
+		"surfboard",
+		"tennis racket",
+		"bottle",
+		"wine glass",
+		"cup",
+		"fork",
+		"knife",
+		"spoon",
+		"bowl",
+		"banana",
+		"apple",
+		"sandwich",
+		"orange",
+		"broccoli",
+		"carrot",
+		"hot dog",
+		"pizza",
+		"donut",
+		"cake",
+		"chair",
+		"couch",
+		"potted plant",
+		"bed",
+		"dining table",
+		"toilet",
+		"tv",
+		"laptop",
+		"mouse",
+		"remote",
+		"keyboard",
+		"cell phone",
+		"microwave",
+		"oven",
+		"toaster",
+		"sink",
+		"refrigerator",
+		"book",
+		"clock",
+		"vase",
+		"scissors",
+		"teddy bear",
+		"hair drier",
+		"toothbrush",
+	}
 }

@@ -6,10 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -865,6 +868,80 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		web.handleTemplateTest(c)
 	})
 
+	// Facial Recognition Routes
+	r.GET("/facial-recognition", func(c *gin.Context) {
+		web.handleFacialRecognitionPage(c)
+	})
+
+	r.GET("/face-management", func(c *gin.Context) {
+		web.handleFaceManagementPage(c)
+	})
+
+	r.POST("/api/facial-recognition/toggle", func(c *gin.Context) {
+		web.handleFacialRecognitionToggle(c)
+	})
+	r.POST("/api/facial-recognition/config", func(c *gin.Context) {
+		web.handleFacialRecognitionConfig(c)
+	})
+
+	r.POST("/api/facial-recognition/test", func(c *gin.Context) {
+		web.handleFacialRecognitionTest(c)
+	})
+
+	r.GET("/api/facial-recognition/faces", func(c *gin.Context) {
+		web.handleFacialRecognitionFaces(c)
+	})
+
+	r.GET("/api/facial-recognition/faces/add", func(c *gin.Context) {
+		web.handleFacialRecognitionFaceAdd(c)
+	})
+
+	r.POST("/api/facial-recognition/faces", func(c *gin.Context) {
+		web.handleFacialRecognitionFaceSave(c)
+	})
+
+	r.GET("/api/facial-recognition/faces/edit/:id", func(c *gin.Context) {
+		web.handleFacialRecognitionFaceEdit(c)
+	})
+
+	r.PUT("/api/facial-recognition/faces/:id", func(c *gin.Context) {
+		web.handleFacialRecognitionFaceUpdate(c)
+	})
+
+	r.DELETE("/api/facial-recognition/faces/:id", func(c *gin.Context) {
+		web.handleFacialRecognitionFaceDelete(c)
+	})
+
+	r.GET("/api/overview/facial-recognition-status", func(c *gin.Context) {
+		web.handleFacialRecognitionStatus(c)
+	})
+
+	// Serve face images
+	r.GET("/api/facial-recognition/images/:person/:filename", func(c *gin.Context) {
+		web.handleFacialRecognitionImage(c)
+	})
+
+	// Object Filter Routes
+	r.GET("/object-filters", func(c *gin.Context) {
+		web.handleObjectFiltersPage(c)
+	})
+
+	r.GET("/api/object-filters/cameras", func(c *gin.Context) {
+		web.handleObjectFiltersCameras(c)
+	})
+
+	r.GET("/api/object-filters/camera/:camera", func(c *gin.Context) {
+		web.handleObjectFiltersCameraConfig(c)
+	})
+
+	r.POST("/api/object-filters/camera/:camera", func(c *gin.Context) {
+		web.handleObjectFiltersCameraSave(c)
+	})
+
+	r.GET("/api/object-filters/available-objects", func(c *gin.Context) {
+		web.handleObjectFiltersAvailableObjects(c)
+	})
+
 	return &web
 }
 
@@ -1132,7 +1209,7 @@ func (web *FNDWebServer) handleNotificationTemplatesPage(c *gin.Context) {
 		web.globalConf.Notify.Templates.Global.Title = "New Event"
 	}
 	if web.globalConf.Notify.Templates.Global.Message == "" {
-		web.globalConf.Notify.Templates.Global.Message = "A new event has occurred: {{.Object}} at {{.Camera}} on {{.Date}} {{.Time}}. Video: {{.VideoURL}}"
+		web.globalConf.Notify.Templates.Global.Message = "A new event has occurred: {{.Object}} at {{.Camera}} on {{.Date}} {{.Time}}{{if .HasVideo}}\n🎥 Video: {{.VideoURL}}{{end}}{{if .HasSnapshot}}\n📸 Snapshot attached{{end}}{{if .HasFaces}}\n👤 Faces detected: {{.FaceCount}}{{if .RecognizedFaces}}\n✅ Recognized: {{.RecognizedFaces}}{{end}}{{if .UnknownFaces}}\n❓ Unknown: {{.UnknownFaces}}{{end}}{{end}}"
 	}
 
 	t := template.Must(template.ParseFS(templateFS, "templates/notification_templates.html"))
@@ -1253,4 +1330,798 @@ func (web *FNDWebServer) handleTemplateTest(c *gin.Context) {
 	</div>`, processedTitle, processedMessage)
 
 	c.Data(200, "text/html", []byte(previewHTML))
+}
+
+// Facial Recognition Routes and Handlers
+
+func (web *FNDWebServer) handleFacialRecognitionPage(c *gin.Context) {
+	LogDebug("WEB", "Handling facial recognition page", "")
+
+	tmpl, err := template.ParseFS(templateFS, "templates/facial_recognition.html")
+	if err != nil {
+		LogError("WEB", "Failed to parse facial recognition template", err.Error())
+		c.String(500, "Internal server error")
+		return
+	}
+
+	data := struct {
+		Config *FNDFacialRecognitionConfiguration
+	}{
+		Config: &web.globalConf.FacialRecognition,
+	}
+
+	err = tmpl.Execute(c.Writer, data)
+	if err != nil {
+		LogError("WEB", "Failed to execute facial recognition template", err.Error())
+		c.String(500, "Internal server error")
+		return
+	}
+}
+
+func (web *FNDWebServer) handleFaceManagementPage(c *gin.Context) {
+	LogDebug("WEB", "Handling face management page", "")
+
+	tmpl, err := template.ParseFS(templateFS, "templates/face_management.html")
+	if err != nil {
+		LogError("WEB", "Failed to parse face management template", err.Error())
+		c.String(500, "Internal server error")
+		return
+	}
+
+	data := struct{}{}
+	err = tmpl.Execute(c.Writer, data)
+	if err != nil {
+		LogError("WEB", "Failed to execute face management template", err.Error())
+		c.String(500, "Internal server error")
+		return
+	}
+}
+
+func (web *FNDWebServer) handleFacialRecognitionToggle(c *gin.Context) {
+	LogDebug("WEB", "Handling facial recognition toggle", "")
+
+	// Toggle the enabled status
+	web.globalConf.FacialRecognition.Enabled = !web.globalConf.FacialRecognition.Enabled
+
+	// Save configuration
+	err := web.saveConfiguration()
+	if err != nil {
+		LogError("WEB", "Failed to save facial recognition configuration", err.Error())
+		c.String(500, "Failed to save configuration")
+		return
+	}
+
+	// Reinitialize facial recognition service if notification manager exists
+	if web.notifyManager != nil {
+		if web.globalConf.FacialRecognition.Enabled {
+			web.notifyManager.facialRecognitionService = NewFacialRecognitionService(&web.globalConf.FacialRecognition)
+			LogInfo("WEB", "Facial recognition service reinitialized", "")
+		} else {
+			web.notifyManager.facialRecognitionService = nil
+			LogInfo("WEB", "Facial recognition service disabled", "")
+		}
+	}
+
+	// Return the updated page
+	web.handleFacialRecognitionPage(c)
+}
+
+func (web *FNDWebServer) handleFacialRecognitionConfig(c *gin.Context) {
+	LogDebug("WEB", "Handling facial recognition configuration update", "")
+
+	c.MultipartForm()
+
+	// Parse form data
+	host := c.PostForm("codeProjectAIHost")
+	portStr := c.PostForm("codeProjectAIPort")
+	useSSL := c.PostForm("codeProjectAIUseSSL") == "true"
+	timeoutStr := c.PostForm("codeProjectAITimeout")
+	faceDetectionEnabled := c.PostForm("faceDetectionEnabled") == "true"
+	faceRecognitionEnabled := c.PostForm("faceRecognitionEnabled") == "true"
+	faceDatabasePath := c.PostForm("faceDatabasePath")
+
+	// Convert port
+	port := 8000
+	if portStr != "" {
+		if p, err := strconv.Atoi(portStr); err == nil {
+			port = p
+		}
+	}
+
+	// Convert timeout
+	timeout := 30
+	if timeoutStr != "" {
+		if t, err := strconv.Atoi(timeoutStr); err == nil {
+			timeout = t
+		}
+	}
+
+	// Update configuration (keep enabled status unchanged)
+	web.globalConf.FacialRecognition.CodeProjectAIHost = host
+	web.globalConf.FacialRecognition.CodeProjectAIPort = port
+	web.globalConf.FacialRecognition.CodeProjectAIUseSSL = useSSL
+	web.globalConf.FacialRecognition.CodeProjectAITimeout = timeout
+	web.globalConf.FacialRecognition.FaceDetectionEnabled = faceDetectionEnabled
+	web.globalConf.FacialRecognition.FaceRecognitionEnabled = faceRecognitionEnabled
+	web.globalConf.FacialRecognition.FaceDatabasePath = faceDatabasePath
+
+	// Save configuration
+	err := web.saveConfiguration()
+	if err != nil {
+		LogError("WEB", "Failed to save facial recognition configuration", err.Error())
+		errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Failed to save configuration: %s</span>
+		</div>`, err.Error())
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	// Reinitialize facial recognition service if notification manager exists and enabled
+	if web.notifyManager != nil && web.globalConf.FacialRecognition.Enabled {
+		web.notifyManager.facialRecognitionService = NewFacialRecognitionService(&web.globalConf.FacialRecognition)
+		LogInfo("WEB", "Facial recognition service reinitialized", "")
+	}
+
+	LogInfo("WEB", "Facial recognition configuration updated", fmt.Sprintf("Host: %s, Port: %d", host, port))
+
+	// Return the updated page
+	web.handleFacialRecognitionPage(c)
+}
+
+func (web *FNDWebServer) handleFacialRecognitionTest(c *gin.Context) {
+	LogDebug("WEB", "Testing facial recognition connection", "")
+
+	if !web.globalConf.FacialRecognition.Enabled {
+		errorHTML := `<div class="notification is-warning is-light">
+			<span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+			<span>Facial recognition is disabled. Please enable it first.</span>
+		</div>`
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	// Create temporary service for testing
+	testService := NewFacialRecognitionService(&web.globalConf.FacialRecognition)
+
+	err := testService.TestConnection()
+	if err != nil {
+		LogError("WEB", "Facial recognition connection test failed", err.Error())
+		errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Connection test failed: %s</span>
+		</div>`, err.Error())
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	LogInfo("WEB", "Facial recognition connection test successful", "")
+	successHTML := `<div class="notification is-success is-light">
+		<span class="icon"><i class="fas fa-check-circle"></i></span>
+		<span>Connection test successful! CodeProject.AI is reachable.</span>
+	</div>`
+	c.Data(200, "text/html", []byte(successHTML))
+}
+
+func (web *FNDWebServer) handleFacialRecognitionFaces(c *gin.Context) {
+	LogDebug("WEB", "Handling facial recognition faces list", "")
+
+	if web.notifyManager == nil || web.notifyManager.facialRecognitionService == nil {
+		errorHTML := `<div class="notification is-warning is-light">
+			<span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+			<span>Facial recognition service is not available.</span>
+		</div>`
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	faces := web.notifyManager.facialRecognitionService.GetAllFaces()
+
+	if len(faces) == 0 {
+		infoHTML := `<div class="notification is-info is-light">
+			<span class="icon"><i class="fas fa-info-circle"></i></span>
+			<span>No faces in database. Add some faces to get started.</span>
+		</div>`
+		c.Data(200, "text/html", []byte(infoHTML))
+		return
+	}
+
+	// Create faces list HTML
+	var facesHTML strings.Builder
+	facesHTML.WriteString(`<div class="faces-grid">`)
+
+	for _, face := range faces {
+		statusClass := "is-success"
+		statusText := "Active"
+		statusIcon := "fa-check-circle"
+		if !face.IsActive {
+			statusClass = "is-danger"
+			statusText = "Inactive"
+			statusIcon = "fa-times-circle"
+		}
+
+		// Try to load face image if it exists
+		imageHTML := `<div class="face-placeholder">
+			<span class="icon is-large">
+				<i class="fas fa-user"></i>
+			</span>
+		</div>`
+
+		if face.ImagePath != "" {
+			// Check if image file exists
+			if _, err := os.Stat(face.ImagePath); err == nil {
+				// Extract person directory and filename from path
+				personDir := filepath.Base(filepath.Dir(face.ImagePath))
+				filename := filepath.Base(face.ImagePath)
+				imageURL := fmt.Sprintf("/api/facial-recognition/images/%s/%s", personDir, filename)
+
+				imageHTML = fmt.Sprintf(`<img src="%s" alt="%s %s" class="face-image">`,
+					imageURL, face.FirstName, face.LastName)
+			}
+		}
+
+		facesHTML.WriteString(fmt.Sprintf(`<div class="face-card">
+			<div class="face-info">
+				%s
+				<div class="face-details">
+					<h4 class="title is-5">%s %s</h4>
+					<p class="subtitle is-6">Face ID: %s</p>
+					<p class="subtitle is-6">Added: %s</p>
+					<span class="tag %s">
+						<span class="icon is-small">
+							<i class="fas %s"></i>
+						</span>
+						<span>%s</span>
+					</span>
+				</div>
+				<div class="face-actions">
+					<button class="button is-info is-small" hx-get="/api/facial-recognition/faces/edit/%s" hx-target="#face-form" hx-swap="outerHTML" title="Edit face">
+						<span class="icon">
+							<i class="fas fa-edit"></i>
+						</span>
+					</button>
+					<button class="button is-danger is-small" hx-delete="/api/facial-recognition/faces/%s" hx-confirm="Are you sure you want to delete this face?" title="Delete face">
+						<span class="icon">
+							<i class="fas fa-trash"></i>
+						</span>
+					</button>
+				</div>
+			</div>
+		</div>`, imageHTML, face.FirstName, face.LastName, face.FaceID,
+			face.CreatedAt.Format("2006-01-02 15:04"), statusClass, statusIcon, statusText, face.ID, face.ID))
+	}
+
+	facesHTML.WriteString(`</div>`)
+
+	c.Data(200, "text/html", []byte(facesHTML.String()))
+}
+
+func (web *FNDWebServer) handleFacialRecognitionFaceAdd(c *gin.Context) {
+	LogDebug("WEB", "Handling facial recognition face add form", "")
+
+	formHTML := `<div class="settings-card">
+		<div class="settings-card-header">
+			<h3 class="title is-4">
+				<span class="icon-text">
+					<span class="icon">
+						<i class="fas fa-user-plus"></i>
+					</span>
+					<span>Add New Face</span>
+				</span>
+			</h3>
+		</div>
+		<div class="settings-card-body">
+			<form hx-post="/api/facial-recognition/faces" hx-encoding="multipart/form-data" hx-target="#face-form" hx-swap="outerHTML">
+				<div class="form-grid">
+					<div class="form-group">
+						<label class="label">
+							<span class="icon-text">
+								<span class="icon">
+									<i class="fas fa-user"></i>
+								</span>
+								<span>First Name</span>
+							</span>
+						</label>
+						<div class="control has-icons-left">
+							<input class="input is-medium" type="text" name="firstName" required placeholder="John">
+							<span class="icon is-small is-left">
+								<i class="fas fa-user"></i>
+							</span>
+						</div>
+						<p class="help-text">Enter the person's first name</p>
+					</div>
+					
+					<div class="form-group">
+						<label class="label">
+							<span class="icon-text">
+								<span class="icon">
+									<i class="fas fa-user"></i>
+								</span>
+								<span>Last Name</span>
+							</span>
+						</label>
+						<div class="control has-icons-left">
+							<input class="input is-medium" type="text" name="lastName" required placeholder="Doe">
+							<span class="icon is-small is-left">
+								<i class="fas fa-user"></i>
+							</span>
+						</div>
+						<p class="help-text">Enter the person's last name</p>
+					</div>
+				</div>
+				
+				<div class="form-group">
+					<label class="label">
+						<span class="icon-text">
+							<span class="icon">
+								<i class="fas fa-image"></i>
+							</span>
+							<span>Face Image</span>
+						</span>
+					</label>
+					<div class="control">
+						<input class="input" type="file" name="image" accept="image/*" required>
+					</div>
+					<p class="help-text">Upload a clear, front-facing image of the person's face. The image should be well-lit and show the face clearly.</p>
+				</div>
+				
+				<div class="form-actions">
+					<button class="button is-primary" type="submit">
+						<span class="icon">
+							<i class="fas fa-save"></i>
+						</span>
+						<span>Add Face</span>
+					</button>
+					<button class="button" type="button" hx-get="/api/facial-recognition/faces" hx-target="#face-form" hx-swap="outerHTML">
+						Cancel
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>`
+
+	c.Data(200, "text/html", []byte(formHTML))
+}
+
+func (web *FNDWebServer) handleFacialRecognitionFaceEdit(c *gin.Context) {
+	faceID := c.Param("id")
+	LogDebug("WEB", "Handling facial recognition face edit", fmt.Sprintf("Face ID: %s", faceID))
+
+	if web.notifyManager == nil || web.notifyManager.facialRecognitionService == nil {
+		errorHTML := `<div class="notification is-warning is-light">
+			<span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+			<span>Facial recognition service is not available.</span>
+		</div>`
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	face := web.notifyManager.facialRecognitionService.GetFaceByID(faceID)
+	if face == nil {
+		errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Face with ID %s not found.</span>
+		</div>`, faceID)
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	formHTML := fmt.Sprintf(`<div class="settings-card">
+		<div class="settings-card-header">
+			<h3 class="title is-4">
+				<span class="icon-text">
+					<span class="icon">
+						<i class="fas fa-edit"></i>
+					</span>
+					<span>Edit Face</span>
+				</span>
+			</h3>
+		</div>
+		<div class="settings-card-body">
+			<form hx-put="/api/facial-recognition/faces/%s" hx-target="#face-form" hx-swap="outerHTML">
+				<input type="hidden" name="id" value="%s">
+				
+				<div class="form-grid">
+					<div class="form-group">
+						<label class="label">
+							<span class="icon-text">
+								<span class="icon">
+									<i class="fas fa-user"></i>
+								</span>
+								<span>First Name</span>
+							</span>
+						</label>
+						<div class="control has-icons-left">
+							<input class="input is-medium" type="text" name="firstName" value="%s" required>
+							<span class="icon is-small is-left">
+								<i class="fas fa-user"></i>
+							</span>
+						</div>
+						<p class="help-text">Enter the person's first name</p>
+					</div>
+					
+					<div class="form-group">
+						<label class="label">
+							<span class="icon-text">
+								<span class="icon">
+									<i class="fas fa-user"></i>
+								</span>
+								<span>Last Name</span>
+							</span>
+						</label>
+						<div class="control has-icons-left">
+							<input class="input is-medium" type="text" name="lastName" value="%s" required>
+							<span class="icon is-small is-left">
+								<i class="fas fa-user"></i>
+							</span>
+						</div>
+						<p class="help-text">Enter the person's last name</p>
+					</div>
+				</div>
+				
+				<div class="form-group">
+					<label class="label">
+						<span class="icon-text">
+							<span class="icon">
+								<i class="fas fa-toggle-on"></i>
+							</span>
+							<span>Status</span>
+						</span>
+					</label>
+					<div class="control">
+						<label class="checkbox">
+							<input type="checkbox" name="isActive" value="true" %s>
+							Active (face will be used for recognition)
+						</label>
+					</div>
+					<p class="help-text">Inactive faces will not be used for recognition</p>
+				</div>
+				
+				<div class="form-actions">
+					<button class="button is-primary" type="submit">
+						<span class="icon">
+							<i class="fas fa-save"></i>
+						</span>
+						<span>Update Face</span>
+					</button>
+					<button class="button" type="button" hx-get="/api/facial-recognition/faces" hx-target="#face-form" hx-swap="outerHTML">
+						Cancel
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>`, faceID, face.ID, face.FirstName, face.LastName,
+		func() string {
+			if face.IsActive {
+				return "checked"
+			}
+			return ""
+		}())
+
+	c.Data(200, "text/html", []byte(formHTML))
+}
+
+func (web *FNDWebServer) handleFacialRecognitionFaceSave(c *gin.Context) {
+	LogDebug("WEB", "Handling facial recognition face save", "")
+
+	if web.notifyManager == nil || web.notifyManager.facialRecognitionService == nil {
+		errorHTML := `<div class="notification is-warning is-light">
+			<span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+			<span>Facial recognition service is not available.</span>
+		</div>`
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	c.MultipartForm()
+
+	// Parse form data
+	firstName := c.PostForm("firstName")
+	lastName := c.PostForm("lastName")
+	isActive := c.PostForm("isActive") == "true"
+
+	// Get uploaded file
+	file, err := c.FormFile("image")
+	if err != nil {
+		errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Failed to get uploaded file: %s</span>
+		</div>`, err.Error())
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	// Read file data
+	src, err := file.Open()
+	if err != nil {
+		errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Failed to open uploaded file: %s</span>
+		</div>`, err.Error())
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+	defer src.Close()
+
+	imageData, err := io.ReadAll(src)
+	if err != nil {
+		errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Failed to read uploaded file: %s</span>
+		</div>`, err.Error())
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	// Create face record
+	faceRecord := &FaceRecord{
+		FirstName: firstName,
+		LastName:  lastName,
+		IsActive:  isActive,
+	}
+
+	// Add face to database
+	err = web.notifyManager.facialRecognitionService.AddFaceToDatabase(faceRecord, imageData)
+	if err != nil {
+		LogError("WEB", "Failed to add face to database", err.Error())
+		errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Failed to add face: %s</span>
+		</div>`, err.Error())
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	LogInfo("WEB", "Face added to database", fmt.Sprintf("Person: %s %s", firstName, lastName))
+
+	successHTML := fmt.Sprintf(`<div class="notification is-success is-light">
+		<span class="icon"><i class="fas fa-check-circle"></i></span>
+		<span>Face added successfully: %s %s</span>
+	</div>`, firstName, lastName)
+	c.Data(200, "text/html", []byte(successHTML))
+}
+
+func (web *FNDWebServer) handleFacialRecognitionFaceUpdate(c *gin.Context) {
+	faceID := c.Param("id")
+	LogDebug("WEB", "Handling facial recognition face update", fmt.Sprintf("Face ID: %s", faceID))
+
+	if web.notifyManager == nil || web.notifyManager.facialRecognitionService == nil {
+		errorHTML := `<div class="notification is-warning is-light">
+			<span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+			<span>Facial recognition service is not available.</span>
+		</div>`
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	c.MultipartForm()
+
+	// Parse form data
+	firstName := c.PostForm("firstName")
+	lastName := c.PostForm("lastName")
+	isActive := c.PostForm("isActive") == "true"
+
+	// Get existing face
+	face := web.notifyManager.facialRecognitionService.GetFaceByID(faceID)
+	if face == nil {
+		errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Face with ID %s not found.</span>
+		</div>`, faceID)
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	// Update face record
+	face.FirstName = firstName
+	face.LastName = lastName
+	face.IsActive = isActive
+
+	// Update face in database
+	err := web.notifyManager.facialRecognitionService.UpdateFaceInDatabase(face)
+	if err != nil {
+		LogError("WEB", "Failed to update face in database", err.Error())
+		errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Failed to update face: %s</span>
+		</div>`, err.Error())
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	LogInfo("WEB", "Face updated in database", fmt.Sprintf("Person: %s %s", firstName, lastName))
+
+	successHTML := fmt.Sprintf(`<div class="notification is-success is-light">
+		<span class="icon"><i class="fas fa-check-circle"></i></span>
+		<span>Face updated successfully: %s %s</span>
+	</div>`, firstName, lastName)
+	c.Data(200, "text/html", []byte(successHTML))
+}
+
+func (web *FNDWebServer) handleFacialRecognitionFaceDelete(c *gin.Context) {
+	faceID := c.Param("id")
+	LogDebug("WEB", "Handling facial recognition face delete", fmt.Sprintf("Face ID: %s", faceID))
+
+	if web.notifyManager == nil || web.notifyManager.facialRecognitionService == nil {
+		errorHTML := `<div class="notification is-warning is-light">
+			<span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+			<span>Facial recognition service is not available.</span>
+		</div>`
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	// Delete face from database
+	err := web.notifyManager.facialRecognitionService.DeleteFaceFromDatabase(faceID)
+	if err != nil {
+		LogError("WEB", "Failed to delete face from database", err.Error())
+		errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Failed to delete face: %s</span>
+		</div>`, err.Error())
+		c.Data(200, "text/html", []byte(errorHTML))
+		return
+	}
+
+	LogInfo("WEB", "Face deleted from database", fmt.Sprintf("Face ID: %s", faceID))
+
+	successHTML := `<div class="notification is-success is-light">
+		<span class="icon"><i class="fas fa-check-circle"></i></span>
+		<span>Face deleted successfully</span>
+	</div>`
+	c.Data(200, "text/html", []byte(successHTML))
+}
+
+func (web *FNDWebServer) handleFacialRecognitionStatus(c *gin.Context) {
+	LogDebug("WEB", "Handling facial recognition status", "")
+
+	enabled := web.globalConf.FacialRecognition.Enabled
+	statusClass := "is-danger"
+	statusText := "Disabled"
+	icon := "fas fa-times-circle"
+
+	if enabled {
+		statusClass = "is-success"
+		statusText = "Enabled"
+		icon = "fas fa-check-circle"
+	}
+
+	statusHTML := fmt.Sprintf(`<div class="notification %s is-light">
+		<span class="icon"><i class="%s"></i></span>
+		<span><strong>Facial Recognition:</strong> %s</span>
+	</div>`, statusClass, icon, statusText)
+
+	c.Data(200, "text/html", []byte(statusHTML))
+}
+
+func (web *FNDWebServer) handleFacialRecognitionImage(c *gin.Context) {
+	person := c.Param("person")
+	filename := c.Param("filename")
+	LogDebug("WEB", "Handling facial recognition image request", fmt.Sprintf("Person: %s, File: %s", person, filename))
+
+	if web.notifyManager == nil || web.notifyManager.facialRecognitionService == nil {
+		c.Status(http.StatusServiceUnavailable)
+		return
+	}
+
+	// Construct the image path
+	imagePath := filepath.Join(web.globalConf.FacialRecognition.FaceDatabasePath, person, filename)
+
+	// Check if file exists
+	if _, err := os.Stat(imagePath); os.IsNotExist(err) {
+		LogDebug("WEB", "Face image not found", imagePath)
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	// Set appropriate headers
+	c.Header("Content-Type", "image/jpeg")
+	c.Header("Cache-Control", "public, max-age=3600") // Cache for 1 hour
+
+	// Serve the file
+	c.File(imagePath)
+}
+
+// Object Filter Handlers
+
+func (web *FNDWebServer) handleObjectFiltersPage(c *gin.Context) {
+	LogDebug("WEB", "Handling object filters page", "")
+
+	t := template.Must(template.ParseFS(templateFS, "templates/object_filters.html"))
+	t.Execute(c.Writer, gin.H{
+		"Cameras": web.frigateConf.Cameras,
+	})
+}
+
+func (web *FNDWebServer) handleObjectFiltersCameras(c *gin.Context) {
+	LogDebug("WEB", "Handling object filters cameras list", "")
+
+	cameras := make([]gin.H, 0) // Initialize as empty slice, not nil
+	for cameraName, cameraConfig := range web.frigateConf.Cameras {
+		cameras = append(cameras, gin.H{
+			"Name":         cameraName,
+			"Active":       cameraConfig.Active,
+			"ObjectFilter": cameraConfig.ObjectFilter,
+		})
+	}
+
+	c.JSON(200, cameras)
+}
+
+func (web *FNDWebServer) handleObjectFiltersCameraConfig(c *gin.Context) {
+	cameraName := c.Param("camera")
+	LogDebug("WEB", "Handling object filters camera config", fmt.Sprintf("Camera: %s", cameraName))
+
+	cameraConfig := web.frigateConf.checkOrAddCamera(cameraName)
+	availableObjects := GetAvailableObjects()
+
+	// Create template with custom functions
+	t := template.Must(template.New("object_filters_camera.html").Funcs(template.FuncMap{
+		"contains": func(slice []string, item string) bool {
+			for _, s := range slice {
+				if s == item {
+					return true
+				}
+			}
+			return false
+		},
+	}).ParseFS(templateFS, "templates/object_filters_camera.html"))
+	
+	t.Execute(c.Writer, gin.H{
+		"Camera":           cameraConfig,
+		"CameraName":       cameraName,
+		"AvailableObjects": availableObjects,
+	})
+}
+
+func (web *FNDWebServer) handleObjectFiltersCameraSave(c *gin.Context) {
+	cameraName := c.Param("camera")
+	LogDebug("WEB", "Handling object filters camera save", fmt.Sprintf("Camera: %s", cameraName))
+
+	// Parse form data
+	enabled := c.PostForm("enabled") == "true"
+	objects := c.PostFormArray("objects")
+
+	// Update camera configuration
+	web.frigateConf.m.Lock()
+	if config, exists := web.frigateConf.Cameras[cameraName]; exists {
+		config.ObjectFilter.Enabled = enabled
+		config.ObjectFilter.Objects = objects
+		web.frigateConf.Cameras[cameraName] = config
+	} else {
+		// Create new camera config if it doesn't exist
+		web.frigateConf.Cameras[cameraName] = CameraConfig{
+			Name: cameraName,
+			Active: true,
+			ObjectFilter: ObjectFilter{
+				Enabled: enabled,
+				Objects: objects,
+			},
+		}
+	}
+	web.frigateConf.m.Unlock()
+
+	// Save configuration
+	err := web.saveConfiguration()
+	if err != nil {
+		LogError("WEB", "Failed to save object filter configuration", err.Error())
+		c.JSON(500, gin.H{"error": "Failed to save configuration"})
+		return
+	}
+
+	LogInfo("WEB", "Object filter configuration saved", fmt.Sprintf("Camera: %s, Enabled: %t, Objects: %v", cameraName, enabled, objects))
+
+	// Return success response
+	successHTML := fmt.Sprintf(`<div class="notification is-success is-light">
+		<span class="icon"><i class="fas fa-check-circle"></i></span>
+		<span>Object filter configuration saved for camera: %s</span>
+	</div>`, cameraName)
+	c.Data(200, "text/html", []byte(successHTML))
+}
+
+func (web *FNDWebServer) handleObjectFiltersAvailableObjects(c *gin.Context) {
+	LogDebug("WEB", "Handling available objects request", "")
+
+	objects := GetAvailableObjects()
+	c.JSON(200, objects)
 }

@@ -5,7 +5,24 @@
     "MqttServer": "mqtt-server",
     "MqttPort": "1883",
     "Cooldown": 60,
-    "Cameras": {},
+    "Cameras": {
+      "camera1": {
+        "name": "camera1",
+        "active": true,
+        "objectFilter": {
+          "enabled": false,
+          "objects": []
+        }
+      },
+      "camera2": {
+        "name": "camera2",
+        "active": true,
+        "objectFilter": {
+          "enabled": true,
+          "objects": ["person", "car"]
+        }
+      }
+    },
     "Language": "en",
     "VideoEnabled": true,
     "VideoUrlOnly": false,
@@ -42,5 +59,15 @@
       "timeout": 30,
       "format": "text"
     }
+  },
+  "FacialRecognition": {
+    "enabled": false,
+    "codeProjectAIHost": "localhost",
+    "codeProjectAIPort": 8000,
+    "codeProjectAIUseSSL": false,
+    "codeProjectAITimeout": 30,
+    "faceDetectionEnabled": true,
+    "faceRecognitionEnabled": true,
+    "faceDatabasePath": "./face_db"
   }
 }

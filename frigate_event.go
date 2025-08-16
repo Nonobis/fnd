@@ -81,7 +81,7 @@ func (e *FNDFrigateEventManager) addNewEventMessage(msg eventMessage) error {
 }
 
 func (e *FNDFrigateEventManager) shouldSendNotification(msg eventMessage) bool {
-	LogDebug("NOTIFICATION", "Checking notification criteria", fmt.Sprintf("Event ID: %s, Camera: %s", msg.Before.Id, msg.Before.Camera))
+	LogDebug("NOTIFICATION", "Checking notification criteria", fmt.Sprintf("Event ID: %s, Camera: %s, Object: %s", msg.Before.Id, msg.Before.Camera, msg.Before.Label))
 
 	cameraConfig := e.fConf.checkOrAddCamera(msg.Before.Camera)
 	if !cameraConfig.Active {
@@ -89,6 +89,24 @@ func (e *FNDFrigateEventManager) shouldSendNotification(msg eventMessage) bool {
 		return false
 	}
 	LogDebug("NOTIFICATION", "Camera active", fmt.Sprintf("Camera: %s", msg.Before.Camera))
+
+	// Check object filter if enabled
+	if cameraConfig.ObjectFilter.Enabled {
+		objectAllowed := false
+		for _, allowedObject := range cameraConfig.ObjectFilter.Objects {
+			if allowedObject == msg.Before.Label {
+				objectAllowed = true
+				break
+			}
+		}
+		if !objectAllowed {
+			LogDebug("NOTIFICATION", "Object filtered out", fmt.Sprintf("Camera: %s, Object: %s, Allowed objects: %v", msg.Before.Camera, msg.Before.Label, cameraConfig.ObjectFilter.Objects))
+			return false
+		}
+		LogDebug("NOTIFICATION", "Object allowed", fmt.Sprintf("Camera: %s, Object: %s", msg.Before.Camera, msg.Before.Label))
+	} else {
+		LogDebug("NOTIFICATION", "Object filter disabled", fmt.Sprintf("Camera: %s, Object: %s", msg.Before.Camera, msg.Before.Label))
+	}
 
 	diff := time.Since(e.lastNotificationSent)
 	cooldownSeconds := diff.Seconds()

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"text/template"
 	"time"
 )
@@ -116,6 +117,10 @@ func GetAvailableVariables() map[string]string {
 		"{{.EventID}}":     "Event ID from Frigate",
 		"{{.HasSnapshot}}": "Boolean indicating if snapshot is available",
 		"{{.SnapshotURL}}": "Snapshot attachment indicator",
+		"{{.HasFaces}}":    "Boolean indicating if faces were detected",
+		"{{.RecognizedFaces}}": "List of recognized faces (names)",
+		"{{.UnknownFaces}}": "Number of unknown faces detected",
+		"{{.FaceCount}}":   "Total number of faces detected",
 	}
 	
 	LogDebug("TEMPLATE", "Available variables retrieved", fmt.Sprintf("Count: %d", len(variables)))
@@ -142,6 +147,10 @@ func ValidateTemplate(templateStr string) error {
 		EventID:     "test_event_123",
 		HasSnapshot: true,
 		SnapshotURL: "[Snapshot attached]",
+		HasFaces:    true,
+		RecognizedFaces: "John Doe (95.2%), Jane Smith (87.1%)",
+		UnknownFaces: "2",
+		FaceCount:   4,
 	}
 
 	LogDebug("TEMPLATE", "Testing template syntax", "")
@@ -180,6 +189,34 @@ func CreateTemplateVariables(n FNDNotification, camera, object, eventID string) 
 		snapshotURL = "[Snapshot attached]"
 	}
 
+	// Process facial recognition data
+	hasFaces := false
+	recognizedFaces := ""
+	unknownFaces := ""
+	faceCount := 0
+	
+	if n.FaceRecognitionResult != nil {
+		faceCount = len(n.FaceRecognitionResult.RecognizedFaces) + len(n.FaceRecognitionResult.UnknownFaces)
+		hasFaces = faceCount > 0
+		
+		// Build recognized faces list
+		if len(n.FaceRecognitionResult.RecognizedFaces) > 0 {
+			names := make([]string, 0, len(n.FaceRecognitionResult.RecognizedFaces))
+			for _, face := range n.FaceRecognitionResult.RecognizedFaces {
+				if face.Person != nil {
+					names = append(names, fmt.Sprintf("%s %s (%.1f%%)", 
+						face.Person.FirstName, face.Person.LastName, face.Confidence*100))
+				}
+			}
+			recognizedFaces = strings.Join(names, ", ")
+		}
+		
+		// Set unknown faces count
+		if len(n.FaceRecognitionResult.UnknownFaces) > 0 {
+			unknownFaces = fmt.Sprintf("%d", len(n.FaceRecognitionResult.UnknownFaces))
+		}
+	}
+
 	variables := TemplateVariables{
 		Camera:      camera,
 		Object:      object,
@@ -190,8 +227,13 @@ func CreateTemplateVariables(n FNDNotification, camera, object, eventID string) 
 		EventID:     eventID,
 		HasSnapshot: hasSnapshot,
 		SnapshotURL: snapshotURL,
+		HasFaces:    hasFaces,
+		RecognizedFaces: recognizedFaces,
+		UnknownFaces: unknownFaces,
+		FaceCount:   faceCount,
 	}
 	
-	LogDebug("TEMPLATE", "Template variables created", fmt.Sprintf("HasVideo: %t, HasSnapshot: %t, VideoURL: %s", variables.HasVideo, variables.HasSnapshot, variables.VideoURL))
+	LogDebug("TEMPLATE", "Template variables created", fmt.Sprintf("HasVideo: %t, HasSnapshot: %t, HasFaces: %t, FaceCount: %d", 
+		variables.HasVideo, variables.HasSnapshot, variables.HasFaces, variables.FaceCount))
 	return variables
 }
