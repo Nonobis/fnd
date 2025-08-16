@@ -38,6 +38,9 @@ func main() {
 
 	conf := LoadFNDConf(configuration_path)
 
+	// Migrate data to standardized paths
+	migrateDataToStandardPaths()
+
 	// Initialize logger with configuration
 	err = InitializeLogger(&conf.Logging)
 	if err != nil {
@@ -137,4 +140,48 @@ func main() {
 	}
 
 	CloseLogger()
+}
+
+// migrateDataToStandardPaths migrates existing data to standardized paths in fnd_conf directory
+func migrateDataToStandardPaths() {
+	// Migrate task_history.json if it exists in root
+	if _, err := os.Stat("task_history.json"); err == nil {
+		if err := os.Rename("task_history.json", "fnd_conf/task_history.json"); err == nil {
+			LogInfo("MIGRATION", "Migrated task_history.json to fnd_conf/", "")
+		} else {
+			LogWarn("MIGRATION", "Failed to migrate task_history.json", err.Error())
+		}
+	}
+
+	// Migrate event_queue.json if it exists in root
+	if _, err := os.Stat("event_queue.json"); err == nil {
+		if err := os.Rename("event_queue.json", "fnd_conf/event_queue.json"); err == nil {
+			LogInfo("MIGRATION", "Migrated event_queue.json to fnd_conf/", "")
+		} else {
+			LogWarn("MIGRATION", "Failed to migrate event_queue.json", err.Error())
+		}
+	}
+
+	// Migrate pending_events.json from face_db if it exists
+	if _, err := os.Stat("face_db/pending_events.json"); err == nil {
+		if err := os.Rename("face_db/pending_events.json", "fnd_conf/pending_events.json"); err == nil {
+			LogInfo("MIGRATION", "Migrated pending_events.json to fnd_conf/", "")
+		} else {
+			LogWarn("MIGRATION", "Failed to migrate pending_events.json", err.Error())
+		}
+	}
+
+	// Migrate faces.json from face_db if it exists
+	if _, err := os.Stat("face_db/faces.json"); err == nil {
+		if err := os.Rename("face_db/faces.json", "fnd_conf/faces.json"); err == nil {
+			LogInfo("MIGRATION", "Migrated faces.json to fnd_conf/", "")
+		} else {
+			LogWarn("MIGRATION", "Failed to migrate faces.json", err.Error())
+		}
+	}
+
+	// Create pending_faces directory in fnd_conf if it doesn't exist
+	if err := os.MkdirAll("fnd_conf/pending_faces", 0755); err != nil {
+		LogWarn("MIGRATION", "Failed to create pending_faces directory", err.Error())
+	}
 }

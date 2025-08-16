@@ -13,4 +13,10 @@ fnd*.tar
 **/__debug_bin.*
 ./fnd.exe
 fnd.exe
-task_history.json
+# Task scheduler files
+fnd_conf/task_history.json
+fnd_conf/event_queue.json
+fnd_conf/pending_events.json
+fnd_conf/faces.json
+fnd_conf/faces.db
+fnd_conf/pending_faces/

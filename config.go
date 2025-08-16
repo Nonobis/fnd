@@ -149,7 +149,8 @@ type FNDFacialRecognitionConfiguration struct {
 	CodeProjectAITimeout   int    `json:"codeProjectAITimeout"`
 	FaceDetectionEnabled   bool   `json:"faceDetectionEnabled"`
 	FaceRecognitionEnabled bool   `json:"faceRecognitionEnabled"`
-	FaceDatabasePath       string `json:"faceDatabasePath"`
+	// FaceDatabasePath is deprecated - using SQLite database in fnd_conf directory
+	FaceDatabasePath       string `json:"faceDatabasePath,omitempty"`
 	PendingFacesAutoProcess bool   `json:"pendingFacesAutoProcess"`
 	PendingFacesInterval   int    `json:"pendingFacesInterval"` // Interval in hours
 
@@ -235,7 +236,7 @@ func NEWDefaultFNDConfiguration() *FNDConfiguration {
 			CodeProjectAITimeout:   30,
 			FaceDetectionEnabled:   true,
 			FaceRecognitionEnabled: true,
-			FaceDatabasePath:       "face_db/faces.json",
+			FaceDatabasePath:       "fnd_conf/faces.db", // SQLite database
 			PendingFacesAutoProcess: false,
 			PendingFacesInterval:   6, // Default: 6 hours
 		},
@@ -471,7 +472,7 @@ func NewDefaultFacialRecognitionConfiguration() FNDFacialRecognitionConfiguratio
 		CodeProjectAITimeout:   30,
 		FaceDetectionEnabled:   true,
 		FaceRecognitionEnabled: true,
-		FaceDatabasePath:       "./face_db",
+		FaceDatabasePath:       "fnd_conf/faces.db", // SQLite database
 		PendingFacesAutoProcess: false,
 		PendingFacesInterval:   6, // Default: 6 hours
 	}

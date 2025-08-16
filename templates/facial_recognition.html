@@ -343,25 +343,6 @@
             <div class="settings-card-body">
                 <form hx-post="/api/facial-recognition/config" hx-target="#facial-recognition-settings" hx-swap="outerHTML">
                     <div class="form-grid">
-                        <div class="form-group">
-                            <label class="label">
-                                <span class="icon-text">
-                                    <span class="icon">
-                                        <i class="fas fa-folder"></i>
-                                    </span>
-                                    <span>Database Path</span>
-                                </span>
-                            </label>
-                            <div class="control has-icons-left">
-                                <input class="input is-medium facial-recognition-field" type="text" name="faceDatabasePath" 
-                                       value="{{.Config.FaceDatabasePath}}" placeholder="./face_db"
-                                       {{if not .Config.Enabled}}disabled{{end}}>
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-folder"></i>
-                                </span>
-                            </div>
-                            <p class="help-text">Local path to store face database and images</p>
-                        </div>
                     </div>
 
                     <div class="form-actions">

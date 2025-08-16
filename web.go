@@ -1445,8 +1445,6 @@ func (web *FNDWebServer) handleFacialRecognitionConfig(c *gin.Context) {
 	timeoutStr := c.PostForm("codeProjectAITimeout")
 	faceDetectionEnabled := c.PostForm("faceDetectionEnabled") == "true"
 	faceRecognitionEnabled := c.PostForm("faceRecognitionEnabled") == "true"
-	faceDatabasePath := c.PostForm("faceDatabasePath")
-
 	// Convert port
 	port := 8000
 	if portStr != "" {
@@ -1470,7 +1468,7 @@ func (web *FNDWebServer) handleFacialRecognitionConfig(c *gin.Context) {
 	web.globalConf.FacialRecognition.CodeProjectAITimeout = timeout
 	web.globalConf.FacialRecognition.FaceDetectionEnabled = faceDetectionEnabled
 	web.globalConf.FacialRecognition.FaceRecognitionEnabled = faceRecognitionEnabled
-	web.globalConf.FacialRecognition.FaceDatabasePath = faceDatabasePath
+	// FaceDatabasePath is now fixed to fnd_conf/faces.db
 
 	// Save configuration
 	err := web.saveConfiguration()
@@ -2044,7 +2042,7 @@ func (web *FNDWebServer) handleFacialRecognitionImage(c *gin.Context) {
 	}
 
 	// Construct the image path
-	imagePath := filepath.Join(web.globalConf.FacialRecognition.FaceDatabasePath, person, filename)
+	imagePath := filepath.Join("fnd_conf", person, filename)
 
 	// Check if file exists
 	if _, err := os.Stat(imagePath); os.IsNotExist(err) {

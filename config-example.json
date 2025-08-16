@@ -48,7 +48,7 @@
     "codeProjectAITimeout": 30,
     "faceDetectionEnabled": true,
     "faceRecognitionEnabled": true,
-    "faceDatabasePath": "face_db/faces.json"
+    "faceDatabasePath": "fnd_conf/faces.db"
   },
   "sentry": {
     "enabled": false,

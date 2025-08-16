@@ -454,7 +454,7 @@ func (s *FacialRecognitionService) DeleteFaceFromDatabase(faceID string) error {
 // GetPersonImages returns all images for a specific person
 func (s *FacialRecognitionService) GetPersonImages(firstName, lastName string) []string {
 	personDir := sanitizeDirectoryName(fmt.Sprintf("%s_%s", firstName, lastName))
-	personPath := filepath.Join(s.config.FaceDatabasePath, personDir)
+	personPath := filepath.Join("fnd_conf", personDir)
 
 	var images []string
 
@@ -638,7 +638,7 @@ func (s *FacialRecognitionService) saveImageToFile(imageData []byte, firstName, 
 	personDir := sanitizeDirectoryName(fmt.Sprintf("%s_%s", firstName, lastName))
 
 	// Create full path: face_db/person_name/guid.jpg
-	imagePath := filepath.Join(s.config.FaceDatabasePath, personDir, faceID+".jpg")
+	imagePath := filepath.Join("fnd_conf", personDir, faceID+".jpg")
 
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(imagePath)
@@ -698,7 +698,7 @@ func (s *FacialRecognitionService) cleanupEmptyDirectory(filePath string) {
 
 // loadFaceDatabase loads the face database from file
 func (s *FacialRecognitionService) loadFaceDatabase() error {
-	dbPath := filepath.Join(s.config.FaceDatabasePath, "faces.json")
+	dbPath := "fnd_conf/faces.json"
 
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(dbPath)
@@ -729,7 +729,7 @@ func (s *FacialRecognitionService) loadFaceDatabase() error {
 
 // saveFaceDatabase saves the face database to file
 func (s *FacialRecognitionService) saveFaceDatabase() error {
-	dbPath := filepath.Join(s.config.FaceDatabasePath, "faces.json")
+	dbPath := "fnd_conf/faces.json"
 
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(dbPath)

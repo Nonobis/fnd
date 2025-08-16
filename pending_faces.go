@@ -37,7 +37,7 @@ func NewPendingFacesManager(config *FNDFacialRecognitionConfiguration) *PendingF
 	manager := &PendingFacesManager{
 		config:           config,
 		pendingEvents:    make([]PendingFaceEvent, 0),
-		pendingEventsPath: filepath.Join(config.FaceDatabasePath, "pending_events.json"),
+		pendingEventsPath: "fnd_conf/pending_events.json",
 	}
 
 	// Load existing pending events
@@ -67,7 +67,7 @@ func (m *PendingFacesManager) StorePersonEvent(eventID, camera string, imageData
 	// Create organized directory structure: pending_faces/camera/YYYY-MM-DD/
 	now := time.Now()
 	dateDir := now.Format("2006-01-02")
-	imageDir := filepath.Join(m.config.FaceDatabasePath, "pending_faces", camera, dateDir)
+	imageDir := filepath.Join("fnd_conf", "pending_faces", camera, dateDir)
 
 	// Create directory if it doesn't exist
 	if err := os.MkdirAll(imageDir, 0755); err != nil {

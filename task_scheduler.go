@@ -96,9 +96,9 @@ func NewTaskScheduler(config *FNDTaskSchedulerConfiguration, eventManager *FNDFr
 	
 	scheduler.ctx, scheduler.cancel = context.WithCancel(context.Background())
 	
-	// Set up file paths
-	scheduler.historyFilePath = "task_history.json"
-	scheduler.queueFilePath = "event_queue.json"
+	// Set up file paths - store in fnd_conf directory
+	scheduler.historyFilePath = "fnd_conf/task_history.json"
+	scheduler.queueFilePath = "fnd_conf/event_queue.json"
 	
 	// Load existing data
 	scheduler.loadExecutionHistory()
