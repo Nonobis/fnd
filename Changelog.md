@@ -1,3 +1,48 @@
+## Version 0.1.15 - 16.08.2025
+
+### Changes since v0.1.13
+
+- Merge branch 'main' of https://github.com/Nonobis/fnd
+- Corriger l'initialisation du système d'onglets sur la page de configuration faciale
+- Corriger l'initialisation du système d'onglets sur la page de configuration faciale
+- Améliorer l'interface utilisateur : aligner le design de la page pending faces et corriger la lisibilité de la popup Object Filters
+- Fix runtime panic in background task when pending faces auto-process is disabled
+- Fix runtime panic in background task when pending faces auto-process is disabled
+- feat: add scheduled automatic processing for pending face events with configurable interval and comprehensive logging
+- feat: add scheduled automatic processing for pending face events with configurable interval and comprehensive logging
+- chore: bump version to 0.1.14 and update changelog
+- feat : fix build
+- feat: make MQTT client ID and topic prefix configurable with sensible defaults
+- feat: enhance MQTT logging with detailed debug information for better event capture diagnostics
+- Merge branch 'main' of https://github.com/Nonobis/fnd
+- remove markdown
+- feat: condenser davantage le formulaire MQTT en supprimant les sections
+- feat: condenser le formulaire MQTT pour éviter les ascenseurs
+- feat: ajouter validation des formulaires avec contrôle client-side
+- feat : fix objects filters
+- feat: align modal popups with light theme design
+- add logs
+- feat: add tabs to notification templates and fix preview functionality
+- fix: align facial recognition status card with overview design
+
+### 🐳 Docker Image
+
+This release is available as a Docker image:
+
+**Main image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.15
+```
+
+**Latest image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Direct links:**
+- 📦 [GitHub Package](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.15](ghcr.io/Nonobis/fnd:0.1.15)
+
 ## Version 0.1.14 - 16.08.2025
 
 ### Changes since v0.1.13
