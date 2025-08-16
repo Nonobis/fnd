@@ -34,7 +34,7 @@
   },
   "logging": {
     "maxEntries": 1000,
-    "logLevel": 1,
+    "logLevel": 0,
     "enableFile": true,
     "enableConsole": true
   },

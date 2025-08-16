@@ -58,6 +58,7 @@ func (o *FNDFrigateConnection) handle(_ mqtt.Client, msg mqtt.Message) {
 	switch msg.Topic() {
 	case "frigate/events":
 		LogDebug("FRIGATE", "Processing Frigate event", fmt.Sprintf("Raw payload: %s", string(msg.Payload())))
+		LogInfo("FRIGATE", "Event received", fmt.Sprintf("Topic: %s, Payload length: %d bytes", msg.Topic(), len(msg.Payload())))
 
 		if err := json.Unmarshal(msg.Payload(), &o.lastEventMessage); err != nil {
 			LogError("FRIGATE", "Failed to parse event message", fmt.Sprintf("Payload: %s, Error: %s", string(msg.Payload()), err.Error()))
@@ -78,6 +79,7 @@ func (o *FNDFrigateConnection) handle(_ mqtt.Client, msg mqtt.Message) {
 		}
 	default:
 		LogWarn("MQTT", "Unexpected topic received", fmt.Sprintf("Topic: %s", msg.Topic()))
+		LogDebug("MQTT", "Unexpected message details", fmt.Sprintf("Topic: %s, Payload: %s", msg.Topic(), string(msg.Payload())))
 	}
 }
 
@@ -95,8 +97,10 @@ func setupFNDFrigateConnection(conf *FNDFrigateConfiguration) (*FNDFrigateConnec
 			opts.SetPassword(conf.MqttPassword)
 		}
 		LogInfo("MQTT", "Using authentication", fmt.Sprintf("Username: %s", conf.MqttUsername))
+		LogDebug("MQTT", "Authentication details", fmt.Sprintf("Username: %s, Password set: %t", conf.MqttUsername, conf.MqttPassword != ""))
 	} else {
 		LogInfo("MQTT", "Using anonymous connection", "")
+		LogDebug("MQTT", "Anonymous connection", "No authentication required")
 	}
 
 	opts.SetOrderMatters(false)       // Allow out of order messages (use this option unless in order delivery is essential)
@@ -115,10 +119,12 @@ func setupFNDFrigateConnection(conf *FNDFrigateConfiguration) (*FNDFrigateConnec
 
 	opts.OnConnectionLost = func(cl mqtt.Client, err error) {
 		LogError("MQTT", "Connection lost", err.Error())
+		LogDebug("MQTT", "Connection lost details", fmt.Sprintf("Error: %s, Client connected: %t", err.Error(), cl.IsConnected()))
 	}
 
 	opts.OnConnect = func(c mqtt.Client) {
 		LogInfo("MQTT", "Connection established", fmt.Sprintf("Broker: %s", connection.mqttServerAddress))
+		LogDebug("MQTT", "Connection details", fmt.Sprintf("Client ID: %s, QoS: %d", CLIENTID, QOS))
 
 		t := c.Subscribe("frigate/events", QOS, connection.handle)
 
@@ -128,11 +134,13 @@ func setupFNDFrigateConnection(conf *FNDFrigateConfiguration) (*FNDFrigateConnec
 				LogError("MQTT", "Failed to subscribe", t.Error().Error())
 			} else {
 				LogInfo("MQTT", "Successfully subscribed", "Topic: frigate/events")
+				LogDebug("MQTT", "Subscription details", fmt.Sprintf("Topic: frigate/events, QoS: %d", QOS))
 			}
 		}()
 	}
 	opts.OnReconnecting = func(mqtt.Client, *mqtt.ClientOptions) {
 		LogInfo("MQTT", "Attempting to reconnect", fmt.Sprintf("Broker: %s", connection.mqttServerAddress))
+		LogDebug("MQTT", "Reconnection attempt", fmt.Sprintf("Broker: %s, Time: %s", connection.mqttServerAddress, time.Now().Format("15:04:05")))
 	}
 
 	connection.client = mqtt.NewClient(opts)
@@ -142,9 +150,11 @@ func setupFNDFrigateConnection(conf *FNDFrigateConfiguration) (*FNDFrigateConnec
 	go func() {
 		if token.Wait() && token.Error() != nil {
 			LogError("MQTT", "Connection failed", token.Error().Error())
+			LogDebug("MQTT", "Connection failure details", fmt.Sprintf("Error: %s, Broker: %s", token.Error().Error(), connection.mqttServerAddress))
 			return
 		}
 		LogInfo("MQTT", "Connection successful", "")
+		LogDebug("MQTT", "Connection success details", fmt.Sprintf("Broker: %s, Time: %s", connection.mqttServerAddress, time.Now().Format("15:04:05")))
 	}()
 
 	return connection, nil
@@ -164,6 +174,7 @@ func (connection *FNDFrigateConnection) getStatus() FNDNotificationSinkStatus {
 	if !connection.isConfigurationValid() {
 		s.Good = false
 		s.Message = "Configuration required"
+		LogDebug("FRIGATE", "Status check", "Configuration invalid - using default values")
 		return s
 	}
 
@@ -171,9 +182,11 @@ func (connection *FNDFrigateConnection) getStatus() FNDNotificationSinkStatus {
 	if connection.client.IsConnected() {
 		s.Message = "Connected"
 		s.Good = true
+		LogDebug("FRIGATE", "Status check", "Connection is active")
 	} else {
 		s.Message = "Disconnected"
 		s.Good = false
+		LogDebug("FRIGATE", "Status check", "Connection is inactive")
 	}
 
 	return s
