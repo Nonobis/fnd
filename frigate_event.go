@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -172,18 +173,25 @@ func (e *FNDFrigateEventManager) prepareNotification(msg eventMessage) error {
 		HasVideo: false,
 	}
 
-	// Always get snapshot
-	LogDebug("NOTIFICATION", "Fetching snapshot", fmt.Sprintf("Event ID: %s", msg.Before.Id))
-	jpeg, err := e.api.getSnapshotByID(msg.Before.Id)
-	if err != nil {
-		LogError("NOTIFICATION", "Failed to get snapshot", fmt.Sprintf("Event ID: %s, Error: %s", msg.Before.Id, err.Error()))
-		return err
+	// Skip snapshot retrieval for test events
+	if strings.HasPrefix(msg.Before.Id, "test_event_") {
+		LogDebug("NOTIFICATION", "Skipping snapshot retrieval for test event", fmt.Sprintf("Event ID: %s", msg.Before.Id))
+		// Create a simple test notification without snapshot
+		n.Caption = "[TEST] " + n.Caption
+	} else {
+		// Get snapshot for real events
+		LogDebug("NOTIFICATION", "Fetching snapshot", fmt.Sprintf("Event ID: %s", msg.Before.Id))
+		jpeg, err := e.api.getSnapshotByID(msg.Before.Id)
+		if err != nil {
+			LogError("NOTIFICATION", "Failed to get snapshot", fmt.Sprintf("Event ID: %s, Error: %s", msg.Before.Id, err.Error()))
+			return err
+		}
+		n.JpegData = jpeg
+		LogDebug("NOTIFICATION", "Snapshot retrieved", fmt.Sprintf("Event ID: %s, Size: %d bytes", msg.Before.Id, len(jpeg)))
 	}
-	n.JpegData = jpeg
-	LogDebug("NOTIFICATION", "Snapshot retrieved", fmt.Sprintf("Event ID: %s, Size: %d bytes", msg.Before.Id, len(jpeg)))
 
-	// Try to get video if enabled
-	if e.fConf.VideoEnabled {
+	// Try to get video if enabled (skip for test events)
+	if e.fConf.VideoEnabled && !strings.HasPrefix(msg.Before.Id, "test_event_") {
 		LogDebug("NOTIFICATION", "Video enabled, processing video", fmt.Sprintf("Event ID: %s, VideoUrlOnly: %t", msg.Before.Id, e.fConf.VideoUrlOnly))
 
 		if e.fConf.VideoUrlOnly {
@@ -217,7 +225,11 @@ func (e *FNDFrigateEventManager) prepareNotification(msg eventMessage) error {
 			}
 		}
 	} else {
-		LogDebug("NOTIFICATION", "Video disabled", fmt.Sprintf("Event ID: %s", msg.Before.Id))
+		if strings.HasPrefix(msg.Before.Id, "test_event_") {
+			LogDebug("NOTIFICATION", "Video skipped for test event", fmt.Sprintf("Event ID: %s", msg.Before.Id))
+		} else {
+			LogDebug("NOTIFICATION", "Video disabled", fmt.Sprintf("Event ID: %s", msg.Before.Id))
+		}
 	}
 
 	LogInfo("NOTIFICATION", "Sending notification", fmt.Sprintf("Event ID: %s, HasVideo: %t, HasSnapshot: %t", msg.Before.Id, n.HasVideo, len(n.JpegData) > 0))
@@ -248,6 +260,12 @@ func (e *FNDFrigateEventManager) sendNotification(n FNDNotification) {
 // storePersonEventForLaterAnalysis stores a person event image for later facial analysis
 func (e *FNDFrigateEventManager) storePersonEventForLaterAnalysis(msg eventMessage) error {
 	LogDebug("EVENT", "Storing person event for later analysis", fmt.Sprintf("Event ID: %s, Camera: %s", msg.Before.Id, msg.Before.Camera))
+
+	// Skip snapshot retrieval for test events
+	if strings.HasPrefix(msg.Before.Id, "test_event_") {
+		LogDebug("EVENT", "Skipping snapshot retrieval for test event", fmt.Sprintf("Event ID: %s", msg.Before.Id))
+		return nil
+	}
 
 	// Get snapshot for the event
 	jpeg, err := e.api.getSnapshotByID(msg.Before.Id)
