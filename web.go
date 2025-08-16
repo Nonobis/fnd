@@ -53,12 +53,7 @@ type CooldownInfo struct {
 	LastNotification string // Time of last notification (formatted)
 }
 
-type LogStats struct {
-	EntriesInMemory   int
-	FileSizeHuman     string
-	ActiveSubscribers int
-	MemoryUsageHuman  string
-}
+// LogStats is now defined in logger.go
 
 type NotificationPayload struct {
 	ShowStatus     bool
@@ -992,45 +987,10 @@ func getCooldownInfo(frigateEvent *FNDFrigateEventManager) CooldownInfo {
 
 // getLogStats returns current logging statistics
 func getLogStats(logger *Logger) LogStats {
-	stats := LogStats{}
-
 	if logger == nil {
-		return stats
+		return LogStats{}
 	}
-
-	logger.mutex.RLock()
-	stats.EntriesInMemory = len(logger.entries)
-	logger.mutex.RUnlock()
-
-	logger.subscribeMutex.RLock()
-	stats.ActiveSubscribers = len(logger.subscribers)
-	logger.subscribeMutex.RUnlock()
-
-	// Get file size
-	if fileInfo, err := os.Stat(logger.filePath); err == nil {
-		size := fileInfo.Size()
-		if size < 1024 {
-			stats.FileSizeHuman = fmt.Sprintf("%d B", size)
-		} else if size < 1024*1024 {
-			stats.FileSizeHuman = fmt.Sprintf("%.1f KB", float64(size)/1024)
-		} else {
-			stats.FileSizeHuman = fmt.Sprintf("%.1f MB", float64(size)/(1024*1024))
-		}
-	} else {
-		stats.FileSizeHuman = "N/A"
-	}
-
-	// Estimate memory usage (rough calculation)
-	estimatedSize := stats.EntriesInMemory * 200 // rough estimate per log entry
-	if estimatedSize < 1024 {
-		stats.MemoryUsageHuman = fmt.Sprintf("%d B", estimatedSize)
-	} else if estimatedSize < 1024*1024 {
-		stats.MemoryUsageHuman = fmt.Sprintf("%.1f KB", float64(estimatedSize)/1024)
-	} else {
-		stats.MemoryUsageHuman = fmt.Sprintf("%.1f MB", float64(estimatedSize)/(1024*1024))
-	}
-
-	return stats
+	return logger.GetLogStats()
 }
 
 func (web *FNDWebServer) run(frigateEvent *FNDFrigateEventManager) {

@@ -72,7 +72,8 @@
                                 </label>
                                 <div class="control">
                                     <input class="input is-medium template-field" type="text" name="title" 
-                                           value="{{ .Global.Title }}" placeholder="New Event - Object detected">
+                                           value="{{ .Global.Title }}" placeholder="New Event - Object detected"
+                                           data-validate="template">
                                 </div>
                                 <p class="help">Template for notification title (optional)</p>
                             </div>
@@ -88,7 +89,8 @@
                                 </label>
                                 <div class="control">
                                     <textarea class="textarea is-medium template-field" name="message" rows="4" 
-                                              placeholder="🚨 Object detected on Camera at Time on Date\n\n🎥 Video: VideoURL">{{ .Global.Message }}</textarea>
+                                              placeholder="🚨 Object detected on Camera at Time on Date\n\n🎥 Video: VideoURL"
+                                              data-validate="template">{{ .Global.Message }}</textarea>
                                 </div>
                                 <p class="help">Template for notification message body</p>
                             </div>

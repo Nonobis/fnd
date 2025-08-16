@@ -154,7 +154,8 @@
                             <div class="control has-icons-left">
                                 <input class="input is-medium facial-recognition-field" type="text" name="codeProjectAIHost" 
                                        value="{{.Config.CodeProjectAIHost}}" placeholder="localhost" 
-                                       {{if not .Config.Enabled}}disabled{{end}}>
+                                       {{if not .Config.Enabled}}disabled{{end}}
+                                       data-validate="host" required>
                                 <span class="icon is-small is-left">
                                     <i class="fas fa-link"></i>
                                 </span>
@@ -174,7 +175,8 @@
                             <div class="control has-icons-left">
                                 <input class="input is-medium facial-recognition-field" type="number" name="codeProjectAIPort" 
                                        value="{{.Config.CodeProjectAIPort}}" placeholder="8000" min="1" max="65535"
-                                       {{if not .Config.Enabled}}disabled{{end}}>
+                                       {{if not .Config.Enabled}}disabled{{end}}
+                                       data-validate="port" required>
                                 <span class="icon is-small is-left">
                                     <i class="fas fa-network-wired"></i>
                                 </span>
@@ -214,7 +216,8 @@
                             <div class="control has-icons-left">
                                 <input class="input is-medium facial-recognition-field" type="number" name="codeProjectAITimeout" 
                                        value="{{.Config.CodeProjectAITimeout}}" placeholder="30" min="5" max="300"
-                                       {{if not .Config.Enabled}}disabled{{end}}>
+                                       {{if not .Config.Enabled}}disabled{{end}}
+                                       data-validate="positiveInteger" required>
                                 <span class="icon is-small is-left">
                                     <i class="fas fa-clock"></i>
                                 </span>

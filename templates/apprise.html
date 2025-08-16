@@ -67,7 +67,8 @@
                                     </span>
                                 </label>
                                 <div class="control has-icons-left has-icons-right">
-                                    <input class="input is-medium apprise-field" type="password" name="appriseConfigID" placeholder="••••••••••••••••••••••••••••••••••••••••" {{if not .Active}}disabled{{end}} id="apprise-config">
+                                    <input class="input is-medium apprise-field" type="password" name="appriseConfigID" placeholder="••••••••••••••••••••••••••••••••••••••••" {{if not .Active}}disabled{{end}} id="apprise-config"
+                                           data-validate="token" required>
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-key"></i>
                                     </span>
@@ -96,7 +97,8 @@
                                     </span>
                                 </label>
                                 <div class="control has-icons-left">
-                                    <input class="input is-medium apprise-field" type="text" name="serverURL" placeholder="{{ .ServerURL }}" {{if not .Active}}disabled{{end}}>
+                                    <input class="input is-medium apprise-field" type="text" name="serverURL" placeholder="{{ .ServerURL }}" {{if not .Active}}disabled{{end}}
+                                           data-validate="url" required>
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-server"></i>
                                     </span>
@@ -114,7 +116,8 @@
                                     </span>
                                 </label>
                                 <div class="control has-icons-left">
-                                    <input class="input is-medium apprise-field" type="number" name="timeout" placeholder="{{ .Timeout }}" min="1" max="300" {{if not .Active}}disabled{{end}}>
+                                    <input class="input is-medium apprise-field" type="number" name="timeout" placeholder="{{ .Timeout }}" min="1" max="300" {{if not .Active}}disabled{{end}}
+                                           data-validate="positiveInteger" required>
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-clock"></i>
                                     </span>

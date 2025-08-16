@@ -66,7 +66,8 @@
                                     </span>
                                 </label>
                                 <div class="control has-icons-left">
-                                    <input class="input is-medium gotify-field" type="text" name="serverurl" placeholder="{{ .ServerURL }}" {{if not .Active}}disabled{{end}}>
+                                    <input class="input is-medium gotify-field" type="text" name="serverurl" placeholder="{{ .ServerURL }}" {{if not .Active}}disabled{{end}}
+                                           data-validate="url" required>
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-link"></i>
                                     </span>
@@ -84,7 +85,8 @@
                                     </span>
                                 </label>
                                 <div class="control has-icons-left has-icons-right">
-                                    <input class="input is-medium gotify-field" type="password" name="apptoken" placeholder="••••••••••••••••••••••••••••••••••••••••" {{if not .Active}}disabled{{end}} id="gotify-token">
+                                    <input class="input is-medium gotify-field" type="password" name="apptoken" placeholder="••••••••••••••••••••••••••••••••••••••••" {{if not .Active}}disabled{{end}} id="gotify-token"
+                                           data-validate="token" required>
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-key"></i>
                                     </span>
@@ -113,7 +115,8 @@
                                     </span>
                                 </label>
                                 <div class="control has-icons-left">
-                                    <input class="input is-medium gotify-field" type="number" name="priority" min="0" max="10" value="5" {{if not .Active}}disabled{{end}}>
+                                    <input class="input is-medium gotify-field" type="number" name="priority" min="0" max="10" value="5" {{if not .Active}}disabled{{end}}
+                                           data-validate="positiveInteger" required>
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-exclamation-triangle"></i>
                                     </span>

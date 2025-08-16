@@ -11,7 +11,7 @@
 - LLM need to be fully configuratble and optional. 1 page for configuring all LLM.
 - Add LLM request for determining action done on event for better message
 ✅ Add a system for analysing only event with specific objects (configuration by camera, one or more objects)
-- On every forms, add validation control if not found
+✅ On every forms, add validation control if not found
 ✅ Add Machine learning system for facial recognizion (CodeProject.AI (externally hosted). 
 ✅ Add UI for managing Image/Face with a First Name / Last Name and other information available
 ✅ implement Cooldown in overview

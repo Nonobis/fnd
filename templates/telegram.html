@@ -68,7 +68,8 @@
                                 <div class="control has-icons-left has-icons-right">
                                     <input class="input is-medium telegram-field" type="password" name="token0815" 
                                            placeholder="••••••••••••••••••••••••••••••••••••••••" 
-                                           {{if not .Active}}disabled{{end}} id="telegram-token">
+                                           {{if not .Active}}disabled{{end}} id="telegram-token"
+                                           data-validate="token" required>
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-key"></i>
                                     </span>
@@ -98,7 +99,8 @@
                                 </label>
                                 <div class="control has-icons-left">
                                     <input class="input is-medium telegram-field" type="text" name="chatid" 
-                                           placeholder="{{ .ChatID }}" {{if not .Active}}disabled{{end}}>
+                                           placeholder="{{ .ChatID }}" {{if not .Active}}disabled{{end}}
+                                           data-validate="chatId" required>
                                     <span class="icon is-small is-left">
                                         <i class="fas fa-comments"></i>
                                     </span>

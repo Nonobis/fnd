@@ -25,7 +25,8 @@
                             </span>
                         </label>
                         <div class="control has-icons-left">
-                            <input class="input is-medium" type="number" name="maxEntries" value="{{.Conf.MaxEntries}}" min="100" max="10000" step="100">
+                            <input class="input is-medium" type="number" name="maxEntries" value="{{.Conf.MaxEntries}}" min="100" max="10000" step="100"
+                                   data-validate="positiveInteger" required>
                             <span class="icon is-small is-left">
                                 <i class="fas fa-database"></i>
                             </span>

@@ -11,210 +11,280 @@
                         <span>Frigate Configuration</span>
                     </span>
                 </h1>
-                <p class="subtitle is-6">Configure your Frigate server connection settings</p>
+                <p class="subtitle is-6">Configure your Frigate server connection and MQTT settings</p>
             </div>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="tabs-container">
+        <div class="tabs is-boxed is-medium">
+            <ul>
+                <li class="is-active" id="tab-frigate">
+                    <a onclick="switchTab('frigate')">
+                        <span class="icon">
+                            <i class="fas fa-server"></i>
+                        </span>
+                        <span>Frigate Server</span>
+                    </a>
+                </li>
+                <li id="tab-mqtt">
+                    <a onclick="switchTab('mqtt')">
+                        <span class="icon">
+                            <i class="fas fa-comments"></i>
+                        </span>
+                        <span>MQTT Configuration</span>
+                    </a>
+                </li>
+            </ul>
         </div>
     </div>
 
     <div class="columns is-gapless">
         <!-- Configuration Form -->
         <div class="column is-8">
-            <div class="settings-card">
-                <div class="settings-card-header">
-                    <h2 class="title is-4">
-                        <span class="icon-text">
-                            <span class="icon">
-                                <i class="fas fa-cog"></i>
-                            </span>
-                            <span>Server Settings</span>
-                        </span>
-                    </h2>
-                </div>
-                <div class="settings-card-body">
-            <form hx-post="/htmx/frigate.html" hx-target="#frigate-settings" hx-swap="outerHTML">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label class="label">
-                                    <span class="icon-text">
-                                        <span class="icon">
-                                            <i class="fas fa-server"></i>
-                                        </span>
-                                        <span>{{index .TranslatedText 0}}</span>
-                                    </span>
-                                </label>
-                                <div class="control has-icons-left">
-                                    <input class="input is-medium" type="text" name="host" placeholder="{{ .Conf.Host }}">
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-server"></i>
-                                    </span>
-                                </div>
-                                <p class="help">Frigate server hostname or IP address</p>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="label">
-                                    <span class="icon-text">
-                                        <span class="icon">
-                                            <i class="fas fa-network-wired"></i>
-                                        </span>
-                                        <span>{{index .TranslatedText 1}}</span>
-                                    </span>
-                                </label>
-                                <div class="control has-icons-left">
-                                    <input class="input is-medium" type="text" name="port" placeholder="{{ .Conf.Port }}">
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-network-wired"></i>
-                                    </span>
-                                </div>
-                                <p class="help">Frigate API port (default: 5000)</p>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="label">
-                                    <span class="icon-text">
-                                        <span class="icon">
-                                            <i class="fas fa-comments"></i>
-                                        </span>
-                                        <span>{{index .TranslatedText 2}}</span>
-                                    </span>
-                                </label>
-                                <div class="control has-icons-left">
-                                    <input class="input is-medium" type="text" name="mqttserver" placeholder="{{ .Conf.MqttServer }}">
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-comments"></i>
-                                    </span>
-                                </div>
-                                <p class="help">MQTT broker hostname or IP address</p>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="label">
-                                    <span class="icon-text">
-                                        <span class="icon">
-                                            <i class="fas fa-plug"></i>
-                                        </span>
-                                        <span>{{index .TranslatedText 3}}</span>
-                                    </span>
-                                </label>
-                                <div class="control has-icons-left">
-                                    <input class="input is-medium" type="text" name="mqttport" placeholder="{{ .Conf.MqttPort }}">
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-plug"></i>
-                                    </span>
-                                </div>
-                                <p class="help">MQTT broker port (default: 1883)</p>
-                    </div>
-                </div>
-
-                        <!-- MQTT Authentication Section -->
-                        <div class="form-section">
-                            <h3 class="form-section-title">
-                                <span class="icon-text">
-                                    <span class="icon">
-                                        <i class="fas fa-shield-alt"></i>
-                                    </span>
-                                    <span>{{index .TranslatedText 8}}</span>
+            <!-- Frigate Server Tab -->
+            <div id="tab-content-frigate" class="tab-content">
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <h2 class="title is-4">
+                            <span class="icon-text">
+                                <span class="icon">
+                                    <i class="fas fa-server"></i>
                                 </span>
-                            </h3>
-                            
-                            <div class="form-group">
-                                <label class="label">
-                                    <span class="icon-text">
-                                        <span class="icon">
-                                            <i class="fas fa-user-shield"></i>
-                                        </span>
-                                        <span>{{index .TranslatedText 12}}</span>
-                                    </span>
-                                </label>
-                                <div class="control">
-                                    <label class="radio">
-                                        <input type="radio" name="mqttauth" value="anonymous" {{if .Conf.MqttAnonymous}}checked{{end}} onchange="toggleMqttAuth()">
-                                        <span class="icon-text">
-                                            <span class="icon">
-                                                <i class="fas fa-user-slash"></i>
-                                            </span>
-                                            <span>{{index .TranslatedText 9}}</span>
-                                        </span>
-                                    </label>
-                                </div>
-                    <div class="control">
-                                    <label class="radio">
-                                        <input type="radio" name="mqttauth" value="credentials" {{if not .Conf.MqttAnonymous}}checked{{end}} onchange="toggleMqttAuth()">
-                                        <span class="icon-text">
-                                            <span class="icon">
-                                                <i class="fas fa-user-lock"></i>
-                                            </span>
-                                            <span>Username/Password</span>
-                                        </span>
-                                    </label>
+                                <span>Frigate Server Settings</span>
+                            </span>
+                        </h2>
                     </div>
-                </div>
-
-                            <div id="mqtt-credentials" class="{{if .Conf.MqttAnonymous}}is-hidden{{end}}">
+                    <div class="settings-card-body">
+                        <form hx-post="/htmx/frigate.html" hx-target="#frigate-settings" hx-swap="outerHTML">
+                            <div class="form-grid">
                                 <div class="form-group">
                                     <label class="label">
                                         <span class="icon-text">
                                             <span class="icon">
-                                                <i class="fas fa-user"></i>
+                                                <i class="fas fa-server"></i>
                                             </span>
-                                            <span>{{index .TranslatedText 10}}</span>
+                                            <span>{{index .TranslatedText 0}}</span>
                                         </span>
                                     </label>
                                     <div class="control has-icons-left">
-                                        <input class="input is-medium mqtt-auth-field" type="text" name="mqttusername" placeholder="{{ .Conf.MqttUsername }}" {{if .Conf.MqttAnonymous}}disabled{{end}}>
+                                        <input class="input is-medium" type="text" name="host" placeholder="{{ .Conf.Host }}" 
+                                               data-validate="host" required>
                                         <span class="icon is-small is-left">
-                                            <i class="fas fa-user"></i>
+                                            <i class="fas fa-server"></i>
                                         </span>
                                     </div>
-                                    <p class="help">MQTT username for authentication</p>
+                                    <p class="help">Frigate server hostname or IP address</p>
                                 </div>
 
                                 <div class="form-group">
                                     <label class="label">
                                         <span class="icon-text">
                                             <span class="icon">
-                                                <i class="fas fa-lock"></i>
+                                                <i class="fas fa-network-wired"></i>
                                             </span>
-                                            <span>{{index .TranslatedText 11}}</span>
+                                            <span>{{index .TranslatedText 1}}</span>
                                         </span>
                                     </label>
-                                    <div class="control has-icons-left has-icons-right">
-                                        <input class="input is-medium mqtt-auth-field" type="password" name="mqttpassword" placeholder="••••••••••••••••••••" {{if .Conf.MqttAnonymous}}disabled{{end}} id="mqtt-password">
+                                    <div class="control has-icons-left">
+                                        <input class="input is-medium" type="text" name="port" placeholder="{{ .Conf.Port }}" 
+                                               data-validate="port" required>
                                         <span class="icon is-small is-left">
-                                            <i class="fas fa-lock"></i>
-                                        </span>
-                                        <span class="icon is-small is-right toggle-password" onclick="togglePasswordVisibility('mqtt-password', this)">
-                                            <i class="fas fa-eye"></i>
+                                            <i class="fas fa-network-wired"></i>
                                         </span>
                                     </div>
-                                    <p class="help">MQTT password (optional if username is set)</p>
+                                    <p class="help">Frigate API port (default: 5000)</p>
                                 </div>
-                    </div>
-                </div>
-
-                        <div class="form-actions">
-                            <button class="button is-primary is-medium is-rounded">
-                                <span class="icon">
-                                    <i class="fas fa-save"></i>
-                                </span>
-                                <span>{{index .TranslatedText 4}}</span>
-                            </button>
-                        </div>
-
-                        {{ if .ShowStatus }}
-                        <div class="status-message mt-4">
-                            <div class="notification {{.Color}} is-light">
-                                <span class="icon">
-                                    <i class="fas {{ if eq .Color "is-success"}}fa-check-circle{{ else }}fa-exclamation-triangle{{ end }}"></i>
-                                </span>
-                                <span>{{.StatusMessage}}</span>
                             </div>
-                        </div>
-                        {{ end }}
-                    </form>
-                </div>
+
+                            <div class="form-actions">
+                                <button class="button is-primary is-medium is-rounded">
+                                    <span class="icon">
+                                        <i class="fas fa-save"></i>
+                                    </span>
+                                    <span>{{index .TranslatedText 4}}</span>
+                                </button>
+                            </div>
+
+                            {{ if .ShowStatus }}
+                            <div class="status-message mt-4">
+                                <div class="notification {{.Color}} is-light">
+                                    <span class="icon">
+                                        <i class="fas {{ if eq .Color "is-success"}}fa-check-circle{{ else }}fa-exclamation-triangle{{ end }}"></i>
+                                    </span>
+                                    <span>{{.StatusMessage}}</span>
+                                </div>
+                            </div>
+                            {{ end }}
+                        </form>
                     </div>
                 </div>
+            </div>
+
+            <!-- MQTT Configuration Tab -->
+            <div id="tab-content-mqtt" class="tab-content" style="display: none;">
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <h2 class="title is-4">
+                            <span class="icon-text">
+                                <span class="icon">
+                                    <i class="fas fa-comments"></i>
+                                </span>
+                                <span>MQTT Configuration</span>
+                            </span>
+                        </h2>
+                    </div>
+                    <div class="settings-card-body">
+                        <form hx-post="/htmx/frigate.html" hx-target="#frigate-settings" hx-swap="outerHTML">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="label">
+                                        <span class="icon-text">
+                                            <span class="icon">
+                                                <i class="fas fa-comments"></i>
+                                            </span>
+                                            <span>{{index .TranslatedText 2}}</span>
+                                        </span>
+                                    </label>
+                                    <div class="control has-icons-left">
+                                        <input class="input is-medium" type="text" name="mqttserver" placeholder="{{ .Conf.MqttServer }}">
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-comments"></i>
+                                        </span>
+                                    </div>
+                                    <p class="help">MQTT broker hostname or IP address</p>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="label">
+                                        <span class="icon-text">
+                                            <span class="icon">
+                                                <i class="fas fa-plug"></i>
+                                            </span>
+                                            <span>{{index .TranslatedText 3}}</span>
+                                        </span>
+                                    </label>
+                                    <div class="control has-icons-left">
+                                        <input class="input is-medium" type="text" name="mqttport" placeholder="{{ .Conf.MqttPort }}">
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-plug"></i>
+                                        </span>
+                                    </div>
+                                    <p class="help">MQTT broker port (default: 1883)</p>
+                                </div>
+                            </div>
+
+                            <!-- MQTT Authentication Section -->
+                            <div class="form-section">
+                                <h3 class="form-section-title">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-shield-alt"></i>
+                                        </span>
+                                        <span>{{index .TranslatedText 8}}</span>
+                                    </span>
+                                </h3>
+                                
+                                <div class="form-group">
+                                    <label class="label">
+                                        <span class="icon-text">
+                                            <span class="icon">
+                                                <i class="fas fa-user-shield"></i>
+                                            </span>
+                                            <span>{{index .TranslatedText 12}}</span>
+                                        </span>
+                                    </label>
+                                    <div class="control">
+                                        <label class="radio">
+                                            <input type="radio" name="mqttauth" value="anonymous" {{if .Conf.MqttAnonymous}}checked{{end}} onchange="toggleMqttAuth()">
+                                            <span class="icon-text">
+                                                <span class="icon">
+                                                    <i class="fas fa-user-slash"></i>
+                                                </span>
+                                                <span>{{index .TranslatedText 9}}</span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <div class="control">
+                                        <label class="radio">
+                                            <input type="radio" name="mqttauth" value="credentials" {{if not .Conf.MqttAnonymous}}checked{{end}} onchange="toggleMqttAuth()">
+                                            <span class="icon-text">
+                                                <span class="icon">
+                                                    <i class="fas fa-user-lock"></i>
+                                                </span>
+                                                <span>Username/Password</span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div id="mqtt-credentials" class="{{if .Conf.MqttAnonymous}}is-hidden{{end}}">
+                                    <div class="form-group">
+                                        <label class="label">
+                                            <span class="icon-text">
+                                                <span class="icon">
+                                                    <i class="fas fa-user"></i>
+                                                </span>
+                                                <span>{{index .TranslatedText 10}}</span>
+                                            </span>
+                                        </label>
+                                        <div class="control has-icons-left">
+                                            <input class="input is-medium mqtt-auth-field" type="text" name="mqttusername" placeholder="{{ .Conf.MqttUsername }}" {{if .Conf.MqttAnonymous}}disabled{{end}}>
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-user"></i>
+                                            </span>
+                                        </div>
+                                        <p class="help">MQTT username for authentication</p>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="label">
+                                            <span class="icon-text">
+                                                <span class="icon">
+                                                    <i class="fas fa-lock"></i>
+                                                </span>
+                                                <span>{{index .TranslatedText 11}}</span>
+                                            </span>
+                                        </label>
+                                        <div class="control has-icons-left has-icons-right">
+                                            <input class="input is-medium mqtt-auth-field" type="password" name="mqttpassword" placeholder="••••••••••••••••••••" {{if .Conf.MqttAnonymous}}disabled{{end}} id="mqtt-password">
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-lock"></i>
+                                            </span>
+                                            <span class="icon is-small is-right toggle-password" onclick="togglePasswordVisibility('mqtt-password', this)">
+                                                <i class="fas fa-eye"></i>
+                                            </span>
+                                        </div>
+                                        <p class="help">MQTT password (optional if username is set)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button class="button is-primary is-medium is-rounded">
+                                    <span class="icon">
+                                        <i class="fas fa-save"></i>
+                                    </span>
+                                    <span>{{index .TranslatedText 4}}</span>
+                                </button>
+                            </div>
+
+                            {{ if .ShowStatus }}
+                            <div class="status-message mt-4">
+                                <div class="notification {{.Color}} is-light">
+                                    <span class="icon">
+                                        <i class="fas {{ if eq .Color "is-success"}}fa-check-circle{{ else }}fa-exclamation-triangle{{ end }}"></i>
+                                    </span>
+                                    <span>{{.StatusMessage}}</span>
+                                </div>
+                            </div>
+                            {{ end }}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Help Section -->
         <div class="column is-4">
@@ -230,45 +300,61 @@
                     </h3>
                 </div>
                 <div class="help-card-body">
-                    <div class="help-item">
-                        <h4 class="help-title">
-                            <span class="icon">
-                                <i class="fas fa-server"></i>
-                            </span>
-                            <span>Host</span>
-                        </h4>
-                        <p class="help-text">Frigate server hostname or IP address (e.g., 192.168.1.100 or frigate.local)</p>
-                </div>
+                    <!-- Frigate Server Help -->
+                    <div id="help-frigate" class="help-section">
+                        <div class="help-item">
+                            <h4 class="help-title">
+                                <span class="icon">
+                                    <i class="fas fa-server"></i>
+                                </span>
+                                <span>Host</span>
+                            </h4>
+                            <p class="help-text">Frigate server hostname or IP address (e.g., 192.168.1.100 or frigate.local)</p>
+                        </div>
 
-                    <div class="help-item">
-                        <h4 class="help-title">
-                            <span class="icon">
-                                <i class="fas fa-network-wired"></i>
-                            </span>
-                            <span>Port</span>
-                        </h4>
-                        <p class="help-text">Frigate API port, typically 5000 for standard installations</p>
+                        <div class="help-item">
+                            <h4 class="help-title">
+                                <span class="icon">
+                                    <i class="fas fa-network-wired"></i>
+                                </span>
+                                <span>Port</span>
+                            </h4>
+                            <p class="help-text">Frigate API port, typically 5000 for standard installations</p>
+                        </div>
                     </div>
 
-                    <div class="help-item">
-                        <h4 class="help-title">
-                            <span class="icon">
-                                <i class="fas fa-comments"></i>
-                            </span>
-                            <span>MQTT Server</span>
-                        </h4>
-                        <p class="help-text">MQTT broker hostname or IP address for real-time events</p>
-                    </div>
+                    <!-- MQTT Help -->
+                    <div id="help-mqtt" class="help-section" style="display: none;">
+                        <div class="help-item">
+                            <h4 class="help-title">
+                                <span class="icon">
+                                    <i class="fas fa-comments"></i>
+                                </span>
+                                <span>MQTT Server</span>
+                            </h4>
+                            <p class="help-text">MQTT broker hostname or IP address for real-time events</p>
+                        </div>
 
-                    <div class="help-item">
-                        <h4 class="help-title">
-                            <span class="icon">
-                                <i class="fas fa-plug"></i>
-                            </span>
-                            <span>MQTT Port</span>
-                        </h4>
-                        <p class="help-text">MQTT broker port, usually 1883 for unencrypted connections</p>
-        </div>
+                        <div class="help-item">
+                            <h4 class="help-title">
+                                <span class="icon">
+                                    <i class="fas fa-plug"></i>
+                                </span>
+                                <span>MQTT Port</span>
+                            </h4>
+                            <p class="help-text">MQTT broker port, usually 1883 for unencrypted connections</p>
+                        </div>
+
+                        <div class="help-item">
+                            <h4 class="help-title">
+                                <span class="icon">
+                                    <i class="fas fa-shield-alt"></i>
+                                </span>
+                                <span>Authentication</span>
+                            </h4>
+                            <p class="help-text">Choose between anonymous access or username/password authentication</p>
+                        </div>
+                    </div>
 
                     <div class="notification is-info is-light mt-4">
                         <strong>💡 Tip:</strong> Ensure your Frigate server is accessible from this machine and MQTT broker is properly configured.
@@ -278,7 +364,72 @@
         </div>
     </div>
 
+    <style>
+    .tabs-container {
+        margin-bottom: 2rem;
+    }
+    
+    .tabs.is-boxed {
+        border-radius: 8px;
+        background: #f8f9fa;
+        padding: 0.5rem;
+        border: 1px solid #dee2e6;
+    }
+    
+    .tabs.is-boxed li a {
+        border-radius: 6px;
+        border: 1px solid transparent;
+        transition: all 0.3s ease;
+    }
+    
+    .tabs.is-boxed li.is-active a {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        border-color: #2980b9;
+        color: white;
+        box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+    }
+    
+    .tabs.is-boxed li:not(.is-active) a:hover {
+        background: rgba(52, 152, 219, 0.1);
+        border-color: #3498db;
+        color: #3498db;
+    }
+    
+    .tab-content {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .help-section {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+    </style>
+
     <script>
+        function switchTab(tabName) {
+            // Update tab navigation
+            document.querySelectorAll('.tabs li').forEach(tab => {
+                tab.classList.remove('is-active');
+            });
+            document.getElementById(`tab-${tabName}`).classList.add('is-active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(`tab-content-${tabName}`).style.display = 'block';
+            
+            // Update help section
+            document.querySelectorAll('.help-section').forEach(help => {
+                help.style.display = 'none';
+            });
+            document.getElementById(`help-${tabName}`).style.display = 'block';
+        }
+
         function toggleMqttAuth() {
             const isAnonymous = document.querySelector('input[name="mqttauth"]:checked').value === 'anonymous';
             const credentialsDiv = document.getElementById('mqtt-credentials');

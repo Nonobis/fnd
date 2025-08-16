@@ -10,10 +10,11 @@ import (
 )
 
 type FNDConfiguration struct {
-	Frigate FNDFrigateConfiguration
-	Notify  FNDNotificationConfiguration
-	Logging FNDLoggingConfiguration
+	Frigate           FNDFrigateConfiguration
+	Notify            FNDNotificationConfiguration
+	Logging           FNDLoggingConfiguration
 	FacialRecognition FNDFacialRecognitionConfiguration
+	Sentry            SentryConfig
 }
 
 type FNDFrigateConfiguration struct {
@@ -89,19 +90,19 @@ type NotificationTemplate struct {
 
 // TemplateVariables represents available variables for templates
 type TemplateVariables struct {
-	Camera      string
-	Object      string
-	Date        string
-	Time        string
-	VideoURL    string
-	HasVideo    bool
-	EventID     string
-	HasSnapshot bool
-	SnapshotURL string
-	HasFaces    bool
+	Camera          string
+	Object          string
+	Date            string
+	Time            string
+	VideoURL        string
+	HasVideo        bool
+	EventID         string
+	HasSnapshot     bool
+	SnapshotURL     string
+	HasFaces        bool
 	RecognizedFaces string
-	UnknownFaces string
-	FaceCount   int
+	UnknownFaces    string
+	FaceCount       int
 }
 
 // Logging configuration constants
@@ -136,43 +137,43 @@ const (
 
 // FNDFacialRecognitionConfiguration represents the facial recognition configuration
 type FNDFacialRecognitionConfiguration struct {
-	Enabled              bool   `json:"enabled"`
-	CodeProjectAIHost    string `json:"codeProjectAIHost"`
-	CodeProjectAIPort    int    `json:"codeProjectAIPort"`
-	CodeProjectAIUseSSL  bool   `json:"codeProjectAIUseSSL"`
-	CodeProjectAITimeout int    `json:"codeProjectAITimeout"`
-	FaceDetectionEnabled bool   `json:"faceDetectionEnabled"`
-	FaceRecognitionEnabled bool `json:"faceRecognitionEnabled"`
-	FaceDatabasePath     string `json:"faceDatabasePath"`
-	
+	Enabled                bool   `json:"enabled"`
+	CodeProjectAIHost      string `json:"codeProjectAIHost"`
+	CodeProjectAIPort      int    `json:"codeProjectAIPort"`
+	CodeProjectAIUseSSL    bool   `json:"codeProjectAIUseSSL"`
+	CodeProjectAITimeout   int    `json:"codeProjectAITimeout"`
+	FaceDetectionEnabled   bool   `json:"faceDetectionEnabled"`
+	FaceRecognitionEnabled bool   `json:"faceRecognitionEnabled"`
+	FaceDatabasePath       string `json:"faceDatabasePath"`
+
 	m sync.Mutex
 }
 
 // FaceRecord represents a face record in the database
 type FaceRecord struct {
-	ID          string    `json:"id"`
-	FirstName   string    `json:"firstName"`
-	LastName    string    `json:"lastName"`
-	Email       string    `json:"email"`
-	Phone       string    `json:"phone"`
-	Notes       string    `json:"notes"`
-	FaceID      string    `json:"faceId"`
-	ImagePath   string    `json:"imagePath"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
-	IsActive    bool      `json:"isActive"`
+	ID        string    `json:"id"`
+	FirstName string    `json:"firstName"`
+	LastName  string    `json:"lastName"`
+	Email     string    `json:"email"`
+	Phone     string    `json:"phone"`
+	Notes     string    `json:"notes"`
+	FaceID    string    `json:"faceId"`
+	ImagePath string    `json:"imagePath"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	IsActive  bool      `json:"isActive"`
 }
 
 // FaceDatabase represents the face database structure
 type FaceDatabase struct {
 	Faces []FaceRecord `json:"faces"`
-	
+
 	m sync.RWMutex
 }
 
 func LoadFNDConf(filename string) *FNDConfiguration {
 	LogDebug("CONFIG", "Loading configuration", fmt.Sprintf("File: %s", filename))
-	
+
 	conf, err := NewFNDConfigurationFromFile(filename)
 	if err != nil {
 		LogWarn("CONFIG", "No configuration found, using default", err.Error())
@@ -180,14 +181,14 @@ func LoadFNDConf(filename string) *FNDConfiguration {
 	} else {
 		LogInfo("CONFIG", "Configuration loaded successfully", fmt.Sprintf("File: %s", filename))
 	}
-	
+
 	LogDebug("CONFIG", "Configuration details", fmt.Sprintf("Frigate host: %s, MQTT server: %s, Language: %s", conf.Frigate.Host, conf.Frigate.MqttServer, conf.Frigate.Language))
 	return conf
 }
 
 func NEWDefaultFNDConfiguration() *FNDConfiguration {
 	LogDebug("CONFIG", "Creating default configuration", "")
-	
+
 	conf := &FNDConfiguration{
 		Frigate: FNDFrigateConfiguration{
 			Host:           "frigate",
@@ -218,43 +219,48 @@ func NEWDefaultFNDConfiguration() *FNDConfiguration {
 		},
 		Logging: NewDefaultLoggingConfiguration(),
 		FacialRecognition: FNDFacialRecognitionConfiguration{
-			Enabled: false,
-			CodeProjectAIHost: "localhost",
-			CodeProjectAIPort: 8000,
-			CodeProjectAIUseSSL: false,
-			CodeProjectAITimeout: 30,
-			FaceDetectionEnabled: true,
+			Enabled:                false,
+			CodeProjectAIHost:      "localhost",
+			CodeProjectAIPort:      32168,
+			CodeProjectAIUseSSL:    false,
+			CodeProjectAITimeout:   30,
+			FaceDetectionEnabled:   true,
 			FaceRecognitionEnabled: true,
-			FaceDatabasePath: "./face_db",
+			FaceDatabasePath:       "face_db/faces.json",
+		},
+		Sentry: SentryConfig{
+			Enabled:     false,
+			DSN:         "",
+			Environment: "production",
+			Debug:       false,
 		},
 	}
-	
-	LogDebug("CONFIG", "Default configuration created", fmt.Sprintf("Frigate host: %s, Cooldown: %d, Language: %s", conf.Frigate.Host, conf.Frigate.Cooldown, conf.Frigate.Language))
+
 	return conf
 }
 
 // NewDefaultLoggingConfiguration creates a default logging configuration
 func NewDefaultLoggingConfiguration() FNDLoggingConfiguration {
 	LogDebug("CONFIG", "Creating default logging configuration", "")
-	
+
 	config := FNDLoggingConfiguration{
 		MaxEntries:    DEFAULT_MAX_LOG_ENTRIES,
 		LogLevel:      DEFAULT_LOG_LEVEL,
 		EnableFile:    true,
 		EnableConsole: true,
 	}
-	
+
 	LogDebug("CONFIG", "Default logging configuration created", fmt.Sprintf("MaxEntries: %d, LogLevel: %d, EnableFile: %t, EnableConsole: %t", config.MaxEntries, config.LogLevel, config.EnableFile, config.EnableConsole))
 	return config
 }
 
 func NEWDefaultFNDNotificationConfigurationMap() FNDNotificationConfigurationMap {
 	LogDebug("CONFIG", "Creating default notification configuration map", "")
-	
+
 	config := FNDNotificationConfigurationMap{
 		Map: make(map[string]string),
 	}
-	
+
 	LogDebug("CONFIG", "Default notification configuration map created", "")
 	return config
 }
@@ -262,7 +268,7 @@ func NEWDefaultFNDNotificationConfigurationMap() FNDNotificationConfigurationMap
 // NewDefaultAppriseConfig creates a default Apprise configuration
 func NewDefaultAppriseConfig() AppriseConfig {
 	LogDebug("CONFIG", "Creating default Apprise configuration", "")
-	
+
 	config := AppriseConfig{
 		Enabled:   false,
 		ConfigID:  "",
@@ -270,7 +276,7 @@ func NewDefaultAppriseConfig() AppriseConfig {
 		Timeout:   30,
 		Format:    "text",
 	}
-	
+
 	LogDebug("CONFIG", "Default Apprise configuration created", fmt.Sprintf("Enabled: %t, ServerURL: %s, Timeout: %d", config.Enabled, config.ServerURL, config.Timeout))
 	return config
 }
@@ -278,7 +284,7 @@ func NewDefaultAppriseConfig() AppriseConfig {
 // ToMap converts AppriseConfig to a map for backward compatibility
 func (ac *AppriseConfig) ToMap() map[string]string {
 	LogDebug("CONFIG", "Converting AppriseConfig to map", fmt.Sprintf("Enabled: %t, ConfigID: %s", ac.Enabled, ac.ConfigID))
-	
+
 	configMap := map[string]string{
 		AppriseEnabledKey:   fmt.Sprintf("%t", ac.Enabled),
 		AppriseConfigIDKey:  ac.ConfigID,
@@ -286,7 +292,7 @@ func (ac *AppriseConfig) ToMap() map[string]string {
 		AppriseTimeoutKey:   fmt.Sprintf("%d", ac.Timeout),
 		AppriseFormatKey:    ac.Format,
 	}
-	
+
 	LogDebug("CONFIG", "AppriseConfig converted to map", fmt.Sprintf("Map size: %d", len(configMap)))
 	return configMap
 }
@@ -294,7 +300,7 @@ func (ac *AppriseConfig) ToMap() map[string]string {
 // FromMap populates AppriseConfig from a map for backward compatibility
 func (ac *AppriseConfig) FromMap(m map[string]string) {
 	LogDebug("CONFIG", "Populating AppriseConfig from map", fmt.Sprintf("Map size: %d", len(m)))
-	
+
 	if enabled, exists := m[AppriseEnabledKey]; exists {
 		ac.Enabled = enabled == "true"
 		LogDebug("CONFIG", "AppriseConfig enabled set", fmt.Sprintf("Value: %t", ac.Enabled))
@@ -319,13 +325,13 @@ func (ac *AppriseConfig) FromMap(m map[string]string) {
 		ac.Format = format
 		LogDebug("CONFIG", "AppriseConfig Format set", fmt.Sprintf("Value: %s", ac.Format))
 	}
-	
+
 	LogDebug("CONFIG", "AppriseConfig populated from map", fmt.Sprintf("Enabled: %t, ConfigID: %s, ServerURL: %s", ac.Enabled, ac.ConfigID, ac.ServerURL))
 }
 
 func NewFNDConfigurationFromFile(filename string) (*FNDConfiguration, error) {
 	LogDebug("CONFIG", "Loading configuration from file", fmt.Sprintf("File: %s", filename))
-	
+
 	conf := NEWDefaultFNDConfiguration()
 	_, err := os.Stat(filename)
 	if err != nil {
@@ -353,7 +359,7 @@ func NewFNDConfigurationFromFile(filename string) (*FNDConfiguration, error) {
 
 func (conf *FNDConfiguration) WriteToFile(filename string) error {
 	LogDebug("CONFIG", "Writing configuration to file", fmt.Sprintf("File: %s", filename))
-	
+
 	file, err := json.MarshalIndent(conf, "", " ")
 	if err != nil {
 		LogError("CONFIG", "Failed to marshal configuration to JSON", fmt.Sprintf("File: %s, Error: %s", filename, err.Error()))
@@ -375,7 +381,7 @@ func (conf *FNDConfiguration) WriteToFile(filename string) error {
 // If the Camera doesnt exists, add a Default one and return that
 func (fConf *FNDFrigateConfiguration) checkOrAddCamera(name string) CameraConfig {
 	LogDebug("CAMERA", "Checking or adding camera", fmt.Sprintf("Camera name: %s", name))
-	
+
 	fConf.m.Lock()
 	defer fConf.m.Unlock()
 
@@ -397,7 +403,7 @@ func (fConf *FNDFrigateConfiguration) checkOrAddCamera(name string) CameraConfig
 
 func (fConf *FNDFrigateConfiguration) activateCameras(activeList []string) {
 	LogDebug("CAMERA", "Updating camera activation", fmt.Sprintf("Active list: %v, Total cameras: %d", activeList, len(fConf.Cameras)))
-	
+
 	fConf.m.Lock()
 	defer fConf.m.Unlock()
 
@@ -436,18 +442,18 @@ func (fConf *FNDFrigateConfiguration) activateCameras(activeList []string) {
 // NewDefaultFacialRecognitionConfiguration creates a default facial recognition configuration
 func NewDefaultFacialRecognitionConfiguration() FNDFacialRecognitionConfiguration {
 	LogDebug("CONFIG", "Creating default facial recognition configuration", "")
-	
+
 	config := FNDFacialRecognitionConfiguration{
-		Enabled:              false,
-		CodeProjectAIHost:    "localhost",
-		CodeProjectAIPort:    8000,
-		CodeProjectAIUseSSL:  false,
-		CodeProjectAITimeout: 30,
-		FaceDetectionEnabled: true,
+		Enabled:                false,
+		CodeProjectAIHost:      "localhost",
+		CodeProjectAIPort:      8000,
+		CodeProjectAIUseSSL:    false,
+		CodeProjectAITimeout:   30,
+		FaceDetectionEnabled:   true,
 		FaceRecognitionEnabled: true,
-		FaceDatabasePath:     "./face_db",
+		FaceDatabasePath:       "./face_db",
 	}
-	
+
 	LogDebug("CONFIG", "Default facial recognition configuration created", fmt.Sprintf("Enabled: %t, Host: %s, Port: %d", config.Enabled, config.CodeProjectAIHost, config.CodeProjectAIPort))
 	return config
 }
@@ -455,7 +461,7 @@ func NewDefaultFacialRecognitionConfiguration() FNDFacialRecognitionConfiguratio
 // PopulateFacialRecognitionConfigFromMap populates facial recognition configuration from a map
 func (frc *FNDFacialRecognitionConfiguration) PopulateFacialRecognitionConfigFromMap(m map[string]string) {
 	LogDebug("CONFIG", "Populating facial recognition configuration from map", fmt.Sprintf("Map keys: %v", getMapKeys(m)))
-	
+
 	if enabled, exists := m[FacialRecognitionEnabledKey]; exists {
 		frc.Enabled = enabled == "true"
 		LogDebug("CONFIG", "FacialRecognitionConfig Enabled set", fmt.Sprintf("Value: %t", frc.Enabled))
@@ -496,7 +502,7 @@ func (frc *FNDFacialRecognitionConfiguration) PopulateFacialRecognitionConfigFro
 		frc.FaceDatabasePath = faceDatabasePath
 		LogDebug("CONFIG", "FacialRecognitionConfig FaceDatabasePath set", fmt.Sprintf("Value: %s", frc.FaceDatabasePath))
 	}
-	
+
 	LogDebug("CONFIG", "FacialRecognitionConfig populated from map", fmt.Sprintf("Enabled: %t, Host: %s, Port: %d", frc.Enabled, frc.CodeProjectAIHost, frc.CodeProjectAIPort))
 }
 
@@ -513,14 +519,14 @@ func getMapKeys(m map[string]string) []string {
 func (c *FNDConfiguration) GetCameraConfig(cameraName string) CameraConfig {
 	c.Frigate.m.Lock()
 	defer c.Frigate.m.Unlock()
-	
+
 	if config, exists := c.Frigate.Cameras[cameraName]; exists {
 		return config
 	}
-	
+
 	// Default configuration with object filter disabled
 	return CameraConfig{
-		Name: cameraName, 
+		Name:   cameraName,
 		Active: true,
 		ObjectFilter: ObjectFilter{
 			Enabled: false,
@@ -532,24 +538,24 @@ func (c *FNDConfiguration) GetCameraConfig(cameraName string) CameraConfig {
 // ShouldAnalyzeObject checks if an object should be analyzed for a specific camera
 func (c *FNDConfiguration) ShouldAnalyzeObject(cameraName, objectType string) bool {
 	cameraConfig := c.GetCameraConfig(cameraName)
-	
+
 	// If camera is not active, don't analyze
 	if !cameraConfig.Active {
 		return false
 	}
-	
+
 	// If object filter is not enabled, analyze all objects
 	if !cameraConfig.ObjectFilter.Enabled {
 		return true
 	}
-	
+
 	// Check if the object type is in the allowed list
 	for _, allowedObject := range cameraConfig.ObjectFilter.Objects {
 		if allowedObject == objectType {
 			return true
 		}
 	}
-	
+
 	return false
 }
 

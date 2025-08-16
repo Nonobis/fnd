@@ -1951,3 +1951,44 @@ body {
 .modal-card-body .settings-card-body {
     padding: 0 !important;
 }
+
+/* Form Validation Styling */
+.validation-error {
+    color: #cc0f35 !important;
+    font-size: 0.875rem !important;
+    margin-top: 0.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+}
+
+.validation-error::before {
+    content: "⚠️";
+    font-size: 0.75rem;
+}
+
+.input.is-danger {
+    border-color: #cc0f35 !important;
+    box-shadow: 0 0 0 0.125em rgba(204, 15, 53, 0.25) !important;
+}
+
+.textarea.is-danger {
+    border-color: #cc0f35 !important;
+    box-shadow: 0 0 0 0.125em rgba(204, 15, 53, 0.25) !important;
+}
+
+.form-validation-error {
+    margin-bottom: 1rem !important;
+    border-left: 4px solid #cc0f35 !important;
+}
+
+/* Validation success styling */
+.input.is-success {
+    border-color: #48c774 !important;
+    box-shadow: 0 0 0 0.125em rgba(72, 199, 116, 0.25) !important;
+}
+
+.textarea.is-success {
+    border-color: #48c774 !important;
+    box-shadow: 0 0 0 0.125em rgba(72, 199, 116, 0.25) !important;
+}

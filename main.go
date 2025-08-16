@@ -37,13 +37,37 @@ func main() {
 	}
 
 	conf := LoadFNDConf(configuration_path)
-	
+
 	// Initialize logger with configuration
 	err = InitializeLogger(&conf.Logging)
 	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
 		panic(err)
 	}
+
+	// Initialize Sentry (before other components)
+	if conf.Sentry.Enabled {
+		// Try to get DSN from environment if not set in config
+		if conf.Sentry.DSN == "" {
+			conf.Sentry.DSN = GetSentryDSNFromEnv()
+		}
+
+		// Try to get environment from environment variable
+		if conf.Sentry.Environment == "" {
+			conf.Sentry.Environment = GetSentryEnvironmentFromEnv()
+		}
+
+		err := InitializeSentry(conf.Sentry)
+		if err != nil {
+			LogWarn("MAIN", "Failed to initialize Sentry", err.Error())
+		} else {
+			defer CloseSentry()
+		}
+	}
+
+	// Set up panic handler for Sentry
+	SetupPanicHandler()
+
 	LogInfo("SYSTEM", "Application starting", fmt.Sprintf("Version: %s", version))
 
 	// ###################################
@@ -66,7 +90,7 @@ func main() {
 
 	go web.run(&connection.eventManager)
 	LogInfo("WEB", "Web server started", "")
-	
+
 	bg := RunBackgroundTask(&connection.api, conf, notify, configuration_path)
 	LogInfo("BACKGROUND", "Background tasks started", "")
 
@@ -81,10 +105,10 @@ func main() {
 	LogInfo("SYSTEM", "Shutdown signal received", "Starting graceful shutdown")
 	bg.cancel()
 	LogInfo("BACKGROUND", "Background tasks stopped", "")
-	
+
 	connection.Disconnect()
 	LogInfo("FRIGATE", "Frigate connection closed", "")
-	
+
 	web.stop()
 	LogInfo("WEB", "Web server stopped", "")
 
@@ -96,6 +120,6 @@ func main() {
 	} else {
 		LogInfo("CONFIG", "Configuration saved successfully", "")
 	}
-	
+
 	CloseLogger()
 }

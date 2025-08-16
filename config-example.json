@@ -1,73 +1,57 @@
 {
-  "Frigate": {
-    "Host": "frigate",
-    "Port": "5000",
-    "MqttServer": "mqtt-server",
-    "MqttPort": "1883",
-    "Cooldown": 60,
-    "Cameras": {
-      "camera1": {
-        "name": "camera1",
-        "active": true,
-        "objectFilter": {
-          "enabled": false,
-          "objects": []
-        }
-      },
-      "camera2": {
-        "name": "camera2",
-        "active": true,
-        "objectFilter": {
-          "enabled": true,
-          "objects": ["person", "car"]
-        }
-      }
-    },
-    "Language": "en",
-    "VideoEnabled": true,
-    "VideoUrlOnly": false,
-    "MaxVideoSizeMB": 10,
-    "ExternalURL": "https://votre-domaine.com/frigate"
+  "frigate": {
+    "host": "frigate",
+    "port": "5000",
+    "mqttServer": "mqtt-server",
+    "mqttPort": "1883",
+    "mqttUsername": "",
+    "mqttPassword": "",
+    "mqttAnonymous": true,
+    "cooldown": 60,
+    "cameras": {},
+    "language": "en",
+    "videoEnabled": true,
+    "videoUrlOnly": false,
+    "maxVideoSizeMB": 10,
+    "externalURL": ""
   },
-  "Notify": {
-    "Conf": {
-      "Web": {
-        "Map": {
-          "enabled": "true"
-        }
-      },
-      "Telegram": {
-        "Map": {
-          "enabled": "false",
-          "token": "",
-          "chatid": ""
-        }
-      },
-      "Gotify": {
-        "Map": {
-          "enabled": "false",
-          "serverurl": "http://gotify:80",
-          "apptoken": "",
-          "priority": "5"
-        }
-      }
-    },
+  "notify": {
+    "conf": {},
     "apprise": {
       "enabled": false,
       "configID": "",
-      "serverURL": "http://apprise:8000",
+      "serverURL": "",
       "timeout": 30,
       "format": "text"
+    },
+    "templates": {
+      "global": {
+        "title": "New Event",
+        "message": "A new event has occurred: {{.Object}} at {{.Camera}} on {{.Date}} {{.Time}}{{if .HasVideo}}\n🎥 Video: {{.VideoURL}}{{end}}{{if .HasSnapshot}}\n📸 Snapshot attached{{end}}{{if .HasFaces}}\n👤 Faces detected: {{.FaceCount}}{{if .RecognizedFaces}}\n✅ Recognized: {{.RecognizedFaces}}{{end}}{{if .UnknownFaces}}\n❓ Unknown: {{.UnknownFaces}}{{end}}{{end}}"
+      },
+      "perService": {}
     }
   },
-  "FacialRecognition": {
+  "logging": {
+    "maxEntries": 1000,
+    "logLevel": 1,
+    "enableFile": true,
+    "enableConsole": true
+  },
+  "facialRecognition": {
     "enabled": false,
     "codeProjectAIHost": "localhost",
-    "codeProjectAIPort": 8000,
+    "codeProjectAIPort": 32168,
     "codeProjectAIUseSSL": false,
     "codeProjectAITimeout": 30,
     "faceDetectionEnabled": true,
     "faceRecognitionEnabled": true,
-    "faceDatabasePath": "./face_db"
+    "faceDatabasePath": "face_db/faces.json"
+  },
+  "sentry": {
+    "enabled": false,
+    "dsn": "",
+    "environment": "production",
+    "debug": false
   }
 }
