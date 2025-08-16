@@ -118,6 +118,12 @@
                 </a>
             </li>
             <li>
+                <a href="#" onclick="showTab('pending-faces', event); return false;">
+                    <span class="icon"><i class="fas fa-clock"></i></span>
+                    <span>Pending Faces</span>
+                </a>
+            </li>
+            <li>
                 <a href="#" onclick="showTab('setup', event); return false;">
                     <span class="icon"><i class="fas fa-book"></i></span>
                     <span>Setup Guide</span>
@@ -564,6 +570,106 @@
                         </span>
                         <span><strong>Need help?</strong> Visit the <a href="https://github.com/codeproject/CodeProject.AI-Server" target="_blank">CodeProject.AI documentation</a> for detailed setup instructions.</span>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Faces Auto-Processing Tab -->
+    <div class="tab-content" id="pending-faces-tab">
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <h2 class="title is-4">
+                    <span class="icon-text">
+                        <span class="icon">
+                            <i class="fas fa-clock"></i>
+                        </span>
+                        <span>Pending Faces Auto-Processing</span>
+                    </span>
+                </h2>
+            </div>
+            <div class="settings-card-body">
+                <div class="notification is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-info-circle"></i>
+                    </span>
+                    <span><strong>Automatic Processing:</strong> When facial recognition is disabled, person events are stored for later analysis. Enable automatic processing to analyze these events periodically using CodeProject.AI.</span>
+                </div>
+
+                <form hx-post="/api/facial-recognition/pending-faces-config" hx-target="#facial-recognition-settings" hx-swap="outerHTML" id="pending-faces-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="label">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-robot"></i>
+                                    </span>
+                                    <span>Auto-Processing</span>
+                                </span>
+                            </label>
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="pendingFacesAutoProcess" value="true" 
+                                           {{if .Config.PendingFacesAutoProcess}}checked{{end}}
+                                           {{if not .Config.Enabled}}disabled{{end}}>
+                                    Enable automatic processing of pending face events
+                                </label>
+                            </div>
+                            <p class="help-text">When enabled, pending face events will be automatically processed every few hours</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="label">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
+                                    <span>Processing Interval</span>
+                                </span>
+                            </label>
+                            <div class="control has-icons-left">
+                                <input class="input is-medium" type="number" name="pendingFacesInterval" 
+                                       value="{{.Config.PendingFacesInterval}}" placeholder="6" min="1" max="168"
+                                       {{if not .Config.Enabled}}disabled{{end}}
+                                       {{if not .Config.PendingFacesAutoProcess}}disabled{{end}}
+                                       required>
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                            </div>
+                            <p class="help-text">Interval in hours between automatic processing runs (1-168 hours)</p>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="control">
+                            <button type="submit" class="button is-primary is-medium" 
+                                    {{if not .Config.Enabled}}disabled{{end}}>
+                                <span class="icon">
+                                    <i class="fas fa-save"></i>
+                                </span>
+                                <span>Save Configuration</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="notification is-warning is-light">
+                    <span class="icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </span>
+                    <span><strong>Note:</strong> Automatic processing requires both facial recognition service and CodeProject.AI to be enabled and properly configured.</span>
+                </div>
+
+                <div class="box">
+                    <h4 class="title is-6">How it works</h4>
+                    <ol>
+                        <li>When facial recognition is disabled, person events are automatically stored</li>
+                        <li>Enable automatic processing in this section</li>
+                        <li>Set the desired processing interval (e.g., every 6 hours)</li>
+                        <li>The system will automatically process all pending events at the specified interval</li>
+                        <li>Results are stored with the original events for review</li>
+                    </ol>
                 </div>
             </div>
         </div>

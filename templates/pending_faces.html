@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Faces - FND</title>
+    <link rel="stylesheet" href="/static/bulma.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="/static/htmx.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="section">
+            <h1 class="title">
+                <i class="fas fa-clock"></i>
+                Pending Face Events
+            </h1>
+            <p class="subtitle">Manage person events waiting for facial analysis</p>
+
+            <!-- Statistics Cards -->
+            <div class="columns is-multiline mb-4">
+                <div class="column is-3">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="content">
+                                <p class="heading">Total Events</p>
+                                <p class="title" id="total-events">{{.Stats.total}}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-3">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="content">
+                                <p class="heading">Pending</p>
+                                <p class="title has-text-warning" id="pending-events">{{.Stats.pending}}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-3">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="content">
+                                <p class="heading">Processed</p>
+                                <p class="title has-text-success" id="processed-events">{{.Stats.processed}}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-3">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="content">
+                                <p class="heading">Actions</p>
+                                <div class="buttons">
+                                    <button class="button is-info is-small" onclick="loadPendingFaces()">
+                                        <span class="icon"><i class="fas fa-sync"></i></span>
+                                        <span>Refresh</span>
+                                    </button>
+                                    <button class="button is-danger is-small" onclick="cleanupOldEvents()">
+                                        <span class="icon"><i class="fas fa-trash"></i></span>
+                                        <span>Cleanup</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="box">
+                <div class="columns is-multiline">
+                    <div class="column is-3">
+                        <div class="field">
+                            <label class="label">Camera</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="camera-filter" onchange="loadPendingFaces()">
+                                        <option value="">All Cameras</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-3">
+                        <div class="field">
+                            <label class="label">Status</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="status-filter" onchange="loadPendingFaces()">
+                                        <option value="">All Events</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="processed">Processed</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-6">
+                        <div class="field">
+                            <label class="label">Search</label>
+                            <div class="control">
+                                <input class="input" type="text" id="search-input" placeholder="Search by event ID or camera..." onkeyup="filterEvents()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Events List -->
+            <div id="events-container">
+                <div class="has-text-centered">
+                    <p class="has-text-grey">Loading events...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Event Details -->
+    <div class="modal" id="event-modal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Event Details</p>
+                <button class="delete" aria-label="close" onclick="closeEventModal()"></button>
+            </header>
+            <section class="modal-card-body" id="event-modal-content">
+                <!-- Content will be loaded here -->
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" id="process-event-btn" onclick="processEvent()">
+                    <span class="icon"><i class="fas fa-brain"></i></span>
+                    <span>Process with AI</span>
+                </button>
+                <button class="button is-danger" id="delete-event-btn" onclick="deleteEvent()">
+                    <span class="icon"><i class="fas fa-trash"></i></span>
+                    <span>Delete</span>
+                </button>
+                <button class="button" onclick="closeEventModal()">Cancel</button>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        let currentEventId = null;
+        let allEvents = [];
+
+        // Load pending faces on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPendingFaces();
+            loadCameras();
+        });
+
+        function loadPendingFaces() {
+            const camera = document.getElementById('camera-filter').value;
+            const status = document.getElementById('status-filter').value;
+            
+            let url = '/api/pending_faces';
+            const params = new URLSearchParams();
+            if (camera) params.append('camera', camera);
+            if (status) params.append('status', status);
+            if (params.toString()) url += '?' + params.toString();
+
+            fetch(url)
+                .then(response => response.json())
+                .then(events => {
+                    allEvents = events;
+                    displayEvents(events);
+                    updateStats();
+                })
+                .catch(error => {
+                    console.error('Error loading events:', error);
+                    document.getElementById('events-container').innerHTML = 
+                        '<div class="notification is-danger">Failed to load events</div>';
+                });
+        }
+
+        function loadCameras() {
+            fetch('/api/object_filters/cameras')
+                .then(response => response.json())
+                .then(cameras => {
+                    const select = document.getElementById('camera-filter');
+                    cameras.forEach(camera => {
+                        const option = document.createElement('option');
+                        option.value = camera.Name;
+                        option.textContent = camera.Name;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading cameras:', error));
+        }
+
+        function displayEvents(events) {
+            const container = document.getElementById('events-container');
+            
+            if (events.length === 0) {
+                container.innerHTML = '<div class="notification is-info">No events found</div>';
+                return;
+            }
+
+            let html = '<div class="columns is-multiline">';
+            
+            events.forEach(event => {
+                const statusClass = event.processed ? 'is-success' : 'is-warning';
+                const statusText = event.processed ? 'Processed' : 'Pending';
+                const statusIcon = event.processed ? 'fa-check-circle' : 'fa-clock';
+                
+                html += `
+                    <div class="column is-4">
+                        <div class="card event-card" data-event-id="${event.id}">
+                            <div class="card-image">
+                                <figure class="image is-4by3">
+                                    <img src="/api/pending_faces/${event.id}/image" 
+                                         alt="Event image" 
+                                         style="object-fit: cover; cursor: pointer;"
+                                         onclick="showEventDetails('${event.id}')">
+                                </figure>
+                            </div>
+                            <div class="card-content">
+                                <div class="content">
+                                    <div class="columns is-mobile">
+                                        <div class="column">
+                                            <p class="has-text-weight-bold">${event.camera}</p>
+                                            <p class="is-size-7 has-text-grey">${formatDate(event.timestamp)}</p>
+                                        </div>
+                                        <div class="column is-narrow">
+                                            <span class="tag ${statusClass}">
+                                                <span class="icon is-small">
+                                                    <i class="fas ${statusIcon}"></i>
+                                                </span>
+                                                <span>${statusText}</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p class="is-size-7 has-text-grey">Event ID: ${event.eventId}</p>
+                                    ${event.processed && event.notes ? `<p class="is-size-7">${event.notes}</p>` : ''}
+                                </div>
+                            </div>
+                            <footer class="card-footer">
+                                <a class="card-footer-item" onclick="showEventDetails('${event.id}')">
+                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                    <span>View</span>
+                                </a>
+                                ${!event.processed ? `
+                                    <a class="card-footer-item" onclick="processEvent('${event.id}')">
+                                        <span class="icon"><i class="fas fa-brain"></i></span>
+                                        <span>Process</span>
+                                    </a>
+                                ` : ''}
+                                <a class="card-footer-item" onclick="deleteEvent('${event.id}')">
+                                    <span class="icon"><i class="fas fa-trash"></i></span>
+                                    <span>Delete</span>
+                                </a>
+                            </footer>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function showEventDetails(eventId) {
+            currentEventId = eventId;
+            const event = allEvents.find(e => e.id === eventId);
+            if (!event) return;
+
+            const modal = document.getElementById('event-modal');
+            const content = document.getElementById('event-modal-content');
+            const processBtn = document.getElementById('process-event-btn');
+            const deleteBtn = document.getElementById('delete-event-btn');
+
+            content.innerHTML = `
+                <div class="columns">
+                    <div class="column is-6">
+                        <img src="/api/pending_faces/${event.id}/image" alt="Event image" style="width: 100%;">
+                    </div>
+                    <div class="column is-6">
+                        <table class="table is-fullwidth">
+                            <tbody>
+                                <tr><td><strong>Event ID:</strong></td><td>${event.eventId}</td></tr>
+                                <tr><td><strong>Camera:</strong></td><td>${event.camera}</td></tr>
+                                <tr><td><strong>Timestamp:</strong></td><td>${formatDate(event.timestamp)}</td></tr>
+                                <tr><td><strong>Status:</strong></td><td>
+                                    <span class="tag ${event.processed ? 'is-success' : 'is-warning'}">
+                                        ${event.processed ? 'Processed' : 'Pending'}
+                                    </span>
+                                </td></tr>
+                                ${event.processed ? `<tr><td><strong>Processed:</strong></td><td>${formatDate(event.processedAt)}</td></tr>` : ''}
+                            </tbody>
+                        </table>
+                        ${event.notes ? `
+                            <div class="content">
+                                <h6>Processing Notes:</h6>
+                                <pre style="white-space: pre-wrap; font-size: 0.8em;">${event.notes}</pre>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            // Show/hide buttons based on status
+            processBtn.style.display = event.processed ? 'none' : 'inline-block';
+            deleteBtn.style.display = 'inline-block';
+
+            modal.classList.add('is-active');
+        }
+
+        function closeEventModal() {
+            document.getElementById('event-modal').classList.remove('is-active');
+            currentEventId = null;
+        }
+
+        function processEvent(eventId) {
+            const id = eventId || currentEventId;
+            if (!id) return;
+
+            if (!confirm('Process this event with facial recognition AI?')) return;
+
+            fetch(`/api/pending_faces/process/${id}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        alert('Event processed successfully!');
+                        closeEventModal();
+                        loadPendingFaces();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error processing event:', error);
+                    alert('Failed to process event');
+                });
+        }
+
+        function deleteEvent(eventId) {
+            const id = eventId || currentEventId;
+            if (!id) return;
+
+            if (!confirm('Are you sure you want to delete this event?')) return;
+
+            fetch(`/api/pending_faces/${id}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        alert('Event deleted successfully!');
+                        closeEventModal();
+                        loadPendingFaces();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting event:', error);
+                    alert('Failed to delete event');
+                });
+        }
+
+        function cleanupOldEvents() {
+            const days = prompt('Enter number of days for cleanup (default: 30):', '30');
+            if (!days) return;
+
+            if (!confirm(`Delete processed events older than ${days} days?`)) return;
+
+            fetch(`/api/pending_faces/cleanup?days=${days}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        alert('Cleanup completed successfully!');
+                        loadPendingFaces();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error during cleanup:', error);
+                    alert('Failed to perform cleanup');
+                });
+        }
+
+        function updateStats() {
+            fetch('/api/pending_faces/stats')
+                .then(response => response.json())
+                .then(stats => {
+                    document.getElementById('total-events').textContent = stats.total;
+                    document.getElementById('pending-events').textContent = stats.pending;
+                    document.getElementById('processed-events').textContent = stats.processed;
+                })
+                .catch(error => console.error('Error updating stats:', error));
+        }
+
+        function filterEvents() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const filtered = allEvents.filter(event => 
+                event.eventId.toLowerCase().includes(searchTerm) ||
+                event.camera.toLowerCase().includes(searchTerm)
+            );
+            displayEvents(filtered);
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+
+        // Close modal when clicking on background
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-background')) {
+                closeEventModal();
+            }
+        });
+    </script>
+</body>
+</html>

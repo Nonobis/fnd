@@ -41,6 +41,7 @@ type FNDNotificationManager struct {
 	
 	//facial recognition
 	facialRecognitionService *FacialRecognitionService
+	pendingFacesManager      *PendingFacesManager
 }
 
 func NewFNDNotificationManager(conf FNDNotificationConfiguration, facialRecognitionConfig *FNDFacialRecognitionConfiguration) *FNDNotificationManager {
@@ -54,6 +55,12 @@ func NewFNDNotificationManager(conf FNDNotificationConfiguration, facialRecognit
 	if facialRecognitionConfig != nil && facialRecognitionConfig.Enabled {
 		manager.facialRecognitionService = NewFacialRecognitionService(facialRecognitionConfig)
 		LogInfo("NOTIFY", "Facial recognition service initialized", "")
+	}
+	
+	// Initialize pending faces manager
+	if facialRecognitionConfig != nil {
+		manager.pendingFacesManager = NewPendingFacesManager(facialRecognitionConfig)
+		LogInfo("NOTIFY", "Pending faces manager initialized", "")
 	}
 	
 	return manager
@@ -329,4 +336,14 @@ func (m *FNDNotificationManager) updateNotificationWithFacialRecognition(n *FNDN
 	if recognitionInfo.Len() > 0 {
 		n.Caption += recognitionInfo.String()
 	}
+}
+
+// GetPendingFacesManager returns the pending faces manager
+func (m *FNDNotificationManager) GetPendingFacesManager() *PendingFacesManager {
+	return m.pendingFacesManager
+}
+
+// GetFacialRecognitionService returns the facial recognition service
+func (m *FNDNotificationManager) GetFacialRecognitionService() *FacialRecognitionService {
+	return m.facialRecognitionService
 }

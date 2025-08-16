@@ -42,13 +42,13 @@ type eventMessage struct {
 	} `json:"after"`
 }
 
-func newFrigateConnection(conf *FNDFrigateConfiguration) *FNDFrigateConnection {
+func newFrigateConnection(conf *FNDFrigateConfiguration, facialRecognitionConfig *FNDFacialRecognitionConfiguration) *FNDFrigateConnection {
 	con := &FNDFrigateConnection{
 		mqttServerAddress: "tcp://" + conf.MqttServer + ":" + conf.MqttPort,
 		config:            conf,
 		api:               *NewFNDFrigateApi("http://"+conf.Host+":"+conf.Port, conf.ExternalURL),
 	}
-	con.eventManager = *NewFNDFrigateEventManager(&con.api, conf)
+	con.eventManager = *NewFNDFrigateEventManager(&con.api, conf, facialRecognitionConfig)
 	return con
 
 }
@@ -91,9 +91,9 @@ func (o *FNDFrigateConnection) handle(_ mqtt.Client, msg mqtt.Message) {
 	}
 }
 
-func setupFNDFrigateConnection(conf *FNDFrigateConfiguration) (*FNDFrigateConnection, error) {
+func setupFNDFrigateConnection(conf *FNDFrigateConfiguration, facialRecognitionConfig *FNDFacialRecognitionConfiguration) (*FNDFrigateConnection, error) {
 
-	connection := newFrigateConnection(conf)
+	connection := newFrigateConnection(conf, facialRecognitionConfig)
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(connection.mqttServerAddress)
 	// Use configured client ID or default

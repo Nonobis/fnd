@@ -14,18 +14,27 @@ type FNDFrigateEventManager struct {
 
 	lastNotificationSent time.Time
 	fConf                *FNDFrigateConfiguration
+	pendingFacesManager  *PendingFacesManager
 
 	m sync.Mutex
 }
 
-func NewFNDFrigateEventManager(api *FNDFrigateApi, fConf *FNDFrigateConfiguration) *FNDFrigateEventManager {
-	return &FNDFrigateEventManager{
+func NewFNDFrigateEventManager(api *FNDFrigateApi, fConf *FNDFrigateConfiguration, facialRecognitionConfig *FNDFacialRecognitionConfiguration) *FNDFrigateEventManager {
+	manager := &FNDFrigateEventManager{
 		api:                  api,
 		activeEvents:         make(map[string]eventMessage),
 		notificationChannel:  make(chan FNDNotification, 100),
 		lastNotificationSent: time.Now(),
 		fConf:                fConf,
 	}
+	
+	// Initialize pending faces manager if facial recognition config is available
+	if facialRecognitionConfig != nil {
+		manager.pendingFacesManager = NewPendingFacesManager(facialRecognitionConfig)
+		LogInfo("EVENT", "Pending faces manager initialized", "")
+	}
+	
+	return manager
 }
 
 func (e *FNDFrigateEventManager) addNewEventMessage(msg eventMessage) error {
@@ -47,6 +56,13 @@ func (e *FNDFrigateEventManager) addNewEventMessage(msg eventMessage) error {
 		LogInfo("EVENT", "Adding new event", fmt.Sprintf("Event ID: %s, Camera: %s, Label: %s, Score: %.2f",
 			msg.Before.Id, msg.Before.Camera, msg.Before.Label, msg.Before.Score))
 		e.activeEvents[msg.Before.Id] = msg
+
+		// Store person events for later facial analysis if facial recognition is disabled
+		if msg.Before.Label == "person" && e.pendingFacesManager != nil {
+			if err := e.storePersonEventForLaterAnalysis(msg); err != nil {
+				LogWarn("EVENT", "Failed to store person event for later analysis", err.Error())
+			}
+		}
 
 		var err error
 		if e.shouldSendNotification(msg) {
@@ -204,6 +220,21 @@ func (e *FNDFrigateEventManager) sendNotification(n FNDNotification) {
 
 	e.notificationChannel <- n
 	LogDebug("NOTIFICATION", "Notification queued", fmt.Sprintf("Caption: %s, Queue length: %d/%d", n.Caption, queueLength+1, queueCapacity))
+}
+
+// storePersonEventForLaterAnalysis stores a person event image for later facial analysis
+func (e *FNDFrigateEventManager) storePersonEventForLaterAnalysis(msg eventMessage) error {
+	LogDebug("EVENT", "Storing person event for later analysis", fmt.Sprintf("Event ID: %s, Camera: %s", msg.Before.Id, msg.Before.Camera))
+
+	// Get snapshot for the event
+	jpeg, err := e.api.getSnapshotByID(msg.Before.Id)
+	if err != nil {
+		LogError("EVENT", "Failed to get snapshot for pending storage", err.Error())
+		return err
+	}
+
+	// Store in pending faces manager
+	return e.pendingFacesManager.StorePersonEvent(msg.Before.Id, msg.Before.Camera, jpeg)
 }
 
 func (e *FNDFrigateEventManager) shutdown() {

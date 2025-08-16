@@ -72,7 +72,7 @@ func main() {
 
 	// ###################################
 
-	connection, err := setupFNDFrigateConnection(&conf.Frigate)
+	connection, err := setupFNDFrigateConnection(&conf.Frigate, &conf.FacialRecognition)
 	if err != nil {
 		LogError("FRIGATE", "Failed to setup Frigate connection", err.Error())
 		fmt.Println(err.Error())

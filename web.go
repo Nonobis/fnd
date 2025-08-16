@@ -941,6 +941,40 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		web.handleObjectFiltersAvailableObjects(c)
 	})
 
+	// Pending Faces Handlers
+
+	r.GET("/htmx/pending_faces.html", func(c *gin.Context) {
+		web.handlePendingFacesPage(c)
+	})
+
+	r.GET("/api/pending_faces", func(c *gin.Context) {
+		web.handlePendingFacesList(c)
+	})
+
+	r.GET("/api/pending_faces/stats", func(c *gin.Context) {
+		web.handlePendingFacesStats(c)
+	})
+
+	r.POST("/api/pending_faces/process/:id", func(c *gin.Context) {
+		web.handlePendingFacesProcess(c)
+	})
+
+	r.DELETE("/api/pending_faces/:id", func(c *gin.Context) {
+		web.handlePendingFacesDelete(c)
+	})
+
+	r.GET("/api/pending_faces/:id/image", func(c *gin.Context) {
+		web.handlePendingFacesImage(c)
+	})
+
+	r.GET("/api/pending_faces/cleanup", func(c *gin.Context) {
+		web.handlePendingFacesCleanup(c)
+	})
+
+	r.POST("/api/facial-recognition/pending-faces-config", func(c *gin.Context) {
+		web.handlePendingFacesConfig(c)
+	})
+
 	return &web
 }
 
@@ -2125,4 +2159,234 @@ func (web *FNDWebServer) handleObjectFiltersAvailableObjects(c *gin.Context) {
 
 	objects := GetAvailableObjects()
 	c.JSON(200, objects)
+}
+
+// Pending Faces Handlers
+
+func (web *FNDWebServer) handlePendingFacesPage(c *gin.Context) {
+	LogDebug("WEB", "Handling pending faces page", "")
+
+	if web.notifyManager == nil || web.notifyManager.pendingFacesManager == nil {
+		c.Status(http.StatusServiceUnavailable)
+		return
+	}
+
+	// Get pending events stats
+	stats := web.notifyManager.pendingFacesManager.GetPendingEventsStats()
+
+	t := template.Must(template.ParseFS(templateFS, "templates/pending_faces.html"))
+	t.Execute(c.Writer, gin.H{
+		"Stats": stats,
+	})
+}
+
+func (web *FNDWebServer) handlePendingFacesList(c *gin.Context) {
+	LogDebug("WEB", "Handling pending faces list", "")
+
+	if web.notifyManager == nil || web.notifyManager.pendingFacesManager == nil {
+		c.JSON(500, gin.H{"error": "Pending faces manager not available"})
+		return
+	}
+
+	// Get filter parameters
+	camera := c.Query("camera")
+	status := c.Query("status") // "pending", "processed", or "all"
+
+	var events []PendingFaceEvent
+	if camera != "" {
+		events = web.notifyManager.pendingFacesManager.GetPendingEventsByCamera(camera)
+	} else {
+		events = web.notifyManager.pendingFacesManager.GetPendingEvents()
+	}
+
+	// Filter by status if specified
+	if status == "pending" {
+		var pendingEvents []PendingFaceEvent
+		for _, event := range events {
+			if !event.Processed {
+				pendingEvents = append(pendingEvents, event)
+			}
+		}
+		events = pendingEvents
+	} else if status == "processed" {
+		var processedEvents []PendingFaceEvent
+		for _, event := range events {
+			if event.Processed {
+				processedEvents = append(processedEvents, event)
+			}
+		}
+		events = processedEvents
+	}
+
+	c.JSON(200, events)
+}
+
+func (web *FNDWebServer) handlePendingFacesStats(c *gin.Context) {
+	LogDebug("WEB", "Handling pending faces stats", "")
+
+	if web.notifyManager == nil || web.notifyManager.pendingFacesManager == nil {
+		c.JSON(500, gin.H{"error": "Pending faces manager not available"})
+		return
+	}
+
+	stats := web.notifyManager.pendingFacesManager.GetPendingEventsStats()
+	c.JSON(200, stats)
+}
+
+func (web *FNDWebServer) handlePendingFacesProcess(c *gin.Context) {
+	pendingID := c.Param("id")
+	LogDebug("WEB", "Handling pending faces process", fmt.Sprintf("Pending ID: %s", pendingID))
+
+	if web.notifyManager == nil || web.notifyManager.pendingFacesManager == nil {
+		c.JSON(500, gin.H{"error": "Pending faces manager not available"})
+		return
+	}
+
+	if web.notifyManager.facialRecognitionService == nil {
+		c.JSON(500, gin.H{"error": "Facial recognition service not available"})
+		return
+	}
+
+	// Process the pending event with AI
+	err := web.notifyManager.pendingFacesManager.ProcessPendingEventWithAI(pendingID, web.notifyManager.facialRecognitionService)
+	if err != nil {
+		LogError("WEB", "Failed to process pending event", err.Error())
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	LogInfo("WEB", "Pending event processed successfully", fmt.Sprintf("Pending ID: %s", pendingID))
+	c.JSON(200, gin.H{"message": "Event processed successfully"})
+}
+
+func (web *FNDWebServer) handlePendingFacesDelete(c *gin.Context) {
+	pendingID := c.Param("id")
+	LogDebug("WEB", "Handling pending faces delete", fmt.Sprintf("Pending ID: %s", pendingID))
+
+	if web.notifyManager == nil || web.notifyManager.pendingFacesManager == nil {
+		c.JSON(500, gin.H{"error": "Pending faces manager not available"})
+		return
+	}
+
+	// Delete the pending event
+	err := web.notifyManager.pendingFacesManager.DeletePendingEvent(pendingID)
+	if err != nil {
+		LogError("WEB", "Failed to delete pending event", err.Error())
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	LogInfo("WEB", "Pending event deleted successfully", fmt.Sprintf("Pending ID: %s", pendingID))
+	c.JSON(200, gin.H{"message": "Event deleted successfully"})
+}
+
+func (web *FNDWebServer) handlePendingFacesImage(c *gin.Context) {
+	pendingID := c.Param("id")
+	LogDebug("WEB", "Handling pending faces image request", fmt.Sprintf("Pending ID: %s", pendingID))
+
+	if web.notifyManager == nil || web.notifyManager.pendingFacesManager == nil {
+		c.Status(http.StatusServiceUnavailable)
+		return
+	}
+
+	// Get the pending event
+	event := web.notifyManager.pendingFacesManager.GetPendingEventByID(pendingID)
+	if event == nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	// Check if image file exists
+	if _, err := os.Stat(event.ImagePath); os.IsNotExist(err) {
+		LogDebug("WEB", "Pending face image not found", event.ImagePath)
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	// Set appropriate headers
+	c.Header("Content-Type", "image/jpeg")
+	c.Header("Cache-Control", "public, max-age=3600") // Cache for 1 hour
+
+	// Serve the file
+	c.File(event.ImagePath)
+}
+
+func (web *FNDWebServer) handlePendingFacesCleanup(c *gin.Context) {
+	LogDebug("WEB", "Handling pending faces cleanup", "")
+
+	if web.notifyManager == nil || web.notifyManager.pendingFacesManager == nil {
+		c.JSON(500, gin.H{"error": "Pending faces manager not available"})
+		return
+	}
+
+	// Get days parameter (default to 30 days)
+	daysStr := c.DefaultQuery("days", "30")
+	days, err := strconv.Atoi(daysStr)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid days parameter"})
+		return
+	}
+
+	// Cleanup old processed events
+	err = web.notifyManager.pendingFacesManager.CleanupOldProcessedEvents(days)
+	if err != nil {
+		LogError("WEB", "Failed to cleanup old events", err.Error())
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	LogInfo("WEB", "Pending faces cleanup completed", fmt.Sprintf("Days: %d", days))
+	c.JSON(200, gin.H{"message": "Cleanup completed successfully"})
+}
+
+func (web *FNDWebServer) handlePendingFacesConfig(c *gin.Context) {
+	LogDebug("WEB", "Handling pending faces configuration update", "")
+
+	if web.notifyManager == nil {
+		c.JSON(500, gin.H{"error": "Notification manager not available"})
+		return
+	}
+
+	// Parse form data
+	if err := c.Request.ParseForm(); err != nil {
+		LogError("WEB", "Failed to parse form data", err.Error())
+		c.JSON(400, gin.H{"error": "Invalid form data"})
+		return
+	}
+
+	// Get current configuration
+	config := web.globalConf.FacialRecognition
+
+	// Update pending faces auto-process setting
+	autoProcess := c.PostForm("pendingFacesAutoProcess") == "true"
+	LogInfo("WEB", "Updating pending faces auto-process setting", fmt.Sprintf("Enabled: %t", autoProcess))
+	config.PendingFacesAutoProcess = autoProcess
+
+	// Update processing interval
+	intervalStr := c.PostForm("pendingFacesInterval")
+	if intervalStr != "" {
+		if interval, err := strconv.Atoi(intervalStr); err == nil && interval >= 1 && interval <= 168 {
+			LogInfo("WEB", "Updating pending faces processing interval", fmt.Sprintf("Interval: %d hours", interval))
+			config.PendingFacesInterval = interval
+		} else {
+			LogWarn("WEB", "Invalid pending faces interval value", fmt.Sprintf("Value: %s, Error: %v", intervalStr, err))
+			c.JSON(400, gin.H{"error": "Invalid interval value (must be 1-168 hours)"})
+			return
+		}
+	}
+
+	// Update the configuration
+	web.globalConf.FacialRecognition = config
+
+	// Save configuration to file
+	if err := web.saveConfiguration(); err != nil {
+		LogError("WEB", "Failed to save configuration", err.Error())
+		c.JSON(500, gin.H{"error": "Failed to save configuration"})
+		return
+	}
+
+	LogInfo("WEB", "Pending faces configuration updated successfully", fmt.Sprintf("AutoProcess: %t, Interval: %d hours", autoProcess, config.PendingFacesInterval))
+
+	// Redirect back to facial recognition page
+	c.Redirect(http.StatusSeeOther, "/facial-recognition")
 }

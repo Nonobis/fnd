@@ -135,6 +135,8 @@ const (
 	FaceDetectionEnabledKey     = "faceDetectionEnabled"
 	FaceRecognitionEnabledKey   = "faceRecognitionEnabled"
 	FaceDatabasePathKey         = "faceDatabasePath"
+	PendingFacesAutoProcessKey  = "pendingFacesAutoProcess"
+	PendingFacesIntervalKey     = "pendingFacesInterval"
 )
 
 // FNDFacialRecognitionConfiguration represents the facial recognition configuration
@@ -147,6 +149,8 @@ type FNDFacialRecognitionConfiguration struct {
 	FaceDetectionEnabled   bool   `json:"faceDetectionEnabled"`
 	FaceRecognitionEnabled bool   `json:"faceRecognitionEnabled"`
 	FaceDatabasePath       string `json:"faceDatabasePath"`
+	PendingFacesAutoProcess bool   `json:"pendingFacesAutoProcess"`
+	PendingFacesInterval   int    `json:"pendingFacesInterval"` // Interval in hours
 
 	m sync.Mutex
 }
@@ -231,6 +235,8 @@ func NEWDefaultFNDConfiguration() *FNDConfiguration {
 			FaceDetectionEnabled:   true,
 			FaceRecognitionEnabled: true,
 			FaceDatabasePath:       "face_db/faces.json",
+			PendingFacesAutoProcess: false,
+			PendingFacesInterval:   6, // Default: 6 hours
 		},
 		Sentry: SentryConfig{
 			Enabled:     false,
@@ -456,6 +462,8 @@ func NewDefaultFacialRecognitionConfiguration() FNDFacialRecognitionConfiguratio
 		FaceDetectionEnabled:   true,
 		FaceRecognitionEnabled: true,
 		FaceDatabasePath:       "./face_db",
+		PendingFacesAutoProcess: false,
+		PendingFacesInterval:   6, // Default: 6 hours
 	}
 
 	LogDebug("CONFIG", "Default facial recognition configuration created", fmt.Sprintf("Enabled: %t, Host: %s, Port: %d", config.Enabled, config.CodeProjectAIHost, config.CodeProjectAIPort))
@@ -506,8 +514,20 @@ func (frc *FNDFacialRecognitionConfiguration) PopulateFacialRecognitionConfigFro
 		frc.FaceDatabasePath = faceDatabasePath
 		LogDebug("CONFIG", "FacialRecognitionConfig FaceDatabasePath set", fmt.Sprintf("Value: %s", frc.FaceDatabasePath))
 	}
+	if pendingFacesAutoProcess, exists := m[PendingFacesAutoProcessKey]; exists {
+		frc.PendingFacesAutoProcess = pendingFacesAutoProcess == "true"
+		LogDebug("CONFIG", "FacialRecognitionConfig PendingFacesAutoProcess set", fmt.Sprintf("Value: %t", frc.PendingFacesAutoProcess))
+	}
+	if pendingFacesInterval, exists := m[PendingFacesIntervalKey]; exists {
+		if interval, err := strconv.Atoi(pendingFacesInterval); err == nil {
+			frc.PendingFacesInterval = interval
+			LogDebug("CONFIG", "FacialRecognitionConfig PendingFacesInterval set", fmt.Sprintf("Value: %d hours", frc.PendingFacesInterval))
+		} else {
+			LogWarn("CONFIG", "Invalid pending faces interval value in FacialRecognitionConfig", fmt.Sprintf("Value: %s, Error: %s", pendingFacesInterval, err.Error()))
+		}
+	}
 
-	LogDebug("CONFIG", "FacialRecognitionConfig populated from map", fmt.Sprintf("Enabled: %t, Host: %s, Port: %d", frc.Enabled, frc.CodeProjectAIHost, frc.CodeProjectAIPort))
+	LogDebug("CONFIG", "FacialRecognitionConfig populated from map", fmt.Sprintf("Enabled: %t, Host: %s, Port: %d, AutoProcess: %t, Interval: %d hours", frc.Enabled, frc.CodeProjectAIHost, frc.CodeProjectAIPort, frc.PendingFacesAutoProcess, frc.PendingFacesInterval))
 }
 
 // getMapKeys is a helper function to get keys from a map for logging
