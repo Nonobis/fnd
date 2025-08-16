@@ -1,124 +1,149 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pending Faces - FND</title>
-    <link rel="stylesheet" href="/static/bulma.min.css">
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="/static/htmx.min.js"></script>
-</head>
-<body>
-    <div class="container">
-        <div class="section">
-            <h1 class="title">
-                <i class="fas fa-clock"></i>
-                Pending Face Events
-            </h1>
-            <p class="subtitle">Manage person events waiting for facial analysis</p>
+<div class="pending-faces-container">
+    <!-- Header Section -->
+    <div class="pending-faces-header">
+        <div class="pending-faces-header-content">
+            <div class="pending-faces-header-text">
+                <h1 class="pending-faces-title">
+                    <span class="icon-text">
+                        <span class="icon">
+                            <i class="fas fa-clock"></i>
+                        </span>
+                        <span>Pending Face Events</span>
+                    </span>
+                </h1>
+                <p class="pending-faces-subtitle">Manage person events waiting for facial analysis</p>
+            </div>
+        </div>
+    </div>
 
-            <!-- Statistics Cards -->
-            <div class="columns is-multiline mb-4">
-                <div class="column is-3">
-                    <div class="card">
-                        <div class="card-content">
-                            <div class="content">
-                                <p class="heading">Total Events</p>
-                                <p class="title" id="total-events">{{.Stats.total}}</p>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Statistics Section -->
+    <div class="stats-section">
+        <h2 class="section-title">
+            <span class="section-icon">
+                <i class="fas fa-chart-bar"></i>
+            </span>
+            <span class="section-text">Statistics</span>
+        </h2>
+        
+        <div class="stats-grid">
+            <div class="stats-card">
+                <div class="stats-card-header">
+                    <span class="stats-name">Total Events</span>
+                    <span class="stats-icon">
+                        <i class="fas fa-list"></i>
+                    </span>
                 </div>
-                <div class="column is-3">
-                    <div class="card">
-                        <div class="card-content">
-                            <div class="content">
-                                <p class="heading">Pending</p>
-                                <p class="title has-text-warning" id="pending-events">{{.Stats.pending}}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="column is-3">
-                    <div class="card">
-                        <div class="card-content">
-                            <div class="content">
-                                <p class="heading">Processed</p>
-                                <p class="title has-text-success" id="processed-events">{{.Stats.processed}}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="column is-3">
-                    <div class="card">
-                        <div class="card-content">
-                            <div class="content">
-                                <p class="heading">Actions</p>
-                                <div class="buttons">
-                                    <button class="button is-info is-small" onclick="loadPendingFaces()">
-                                        <span class="icon"><i class="fas fa-sync"></i></span>
-                                        <span>Refresh</span>
-                                    </button>
-                                    <button class="button is-danger is-small" onclick="cleanupOldEvents()">
-                                        <span class="icon"><i class="fas fa-trash"></i></span>
-                                        <span>Cleanup</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="stats-card-body">
+                    <p class="stats-value" id="total-events">{{.Stats.total}}</p>
                 </div>
             </div>
-
-            <!-- Filters -->
-            <div class="box">
-                <div class="columns is-multiline">
-                    <div class="column is-3">
-                        <div class="field">
-                            <label class="label">Camera</label>
-                            <div class="control">
-                                <div class="select is-fullwidth">
-                                    <select id="camera-filter" onchange="loadPendingFaces()">
-                                        <option value="">All Cameras</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column is-3">
-                        <div class="field">
-                            <label class="label">Status</label>
-                            <div class="control">
-                                <div class="select is-fullwidth">
-                                    <select id="status-filter" onchange="loadPendingFaces()">
-                                        <option value="">All Events</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="processed">Processed</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column is-6">
-                        <div class="field">
-                            <label class="label">Search</label>
-                            <div class="control">
-                                <input class="input" type="text" id="search-input" placeholder="Search by event ID or camera..." onkeyup="filterEvents()">
-                            </div>
-                        </div>
-                    </div>
+            
+            <div class="stats-card">
+                <div class="stats-card-header">
+                    <span class="stats-name">Pending</span>
+                    <span class="stats-icon has-text-warning">
+                        <i class="fas fa-clock"></i>
+                    </span>
+                </div>
+                <div class="stats-card-body">
+                    <p class="stats-value has-text-warning" id="pending-events">{{.Stats.pending}}</p>
                 </div>
             </div>
-
-            <!-- Events List -->
-            <div id="events-container">
-                <div class="has-text-centered">
-                    <p class="has-text-grey">Loading events...</p>
+            
+            <div class="stats-card">
+                <div class="stats-card-header">
+                    <span class="stats-name">Processed</span>
+                    <span class="stats-icon has-text-success">
+                        <i class="fas fa-check-circle"></i>
+                    </span>
+                </div>
+                <div class="stats-card-body">
+                    <p class="stats-value has-text-success" id="processed-events">{{.Stats.processed}}</p>
+                </div>
+            </div>
+            
+            <div class="stats-card">
+                <div class="stats-card-header">
+                    <span class="stats-name">Actions</span>
+                    <span class="stats-icon">
+                        <i class="fas fa-cogs"></i>
+                    </span>
+                </div>
+                <div class="stats-card-body">
+                    <div class="stats-actions">
+                        <button class="button is-info is-small" onclick="loadPendingFaces()">
+                            <span class="icon"><i class="fas fa-sync"></i></span>
+                            <span>Refresh</span>
+                        </button>
+                        <button class="button is-danger is-small" onclick="cleanupOldEvents()">
+                            <span class="icon"><i class="fas fa-trash"></i></span>
+                            <span>Cleanup</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+        <h2 class="section-title">
+            <span class="section-icon">
+                <i class="fas fa-filter"></i>
+            </span>
+            <span class="section-text">Filters</span>
+        </h2>
+        
+        <div class="filters-grid">
+            <div class="filter-item">
+                <label class="filter-label">Camera</label>
+                <div class="filter-control">
+                    <div class="select is-fullwidth">
+                        <select id="camera-filter" onchange="loadPendingFaces()">
+                            <option value="">All Cameras</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="filter-item">
+                <label class="filter-label">Status</label>
+                <div class="filter-control">
+                    <div class="select is-fullwidth">
+                        <select id="status-filter" onchange="loadPendingFaces()">
+                            <option value="">All Events</option>
+                            <option value="pending">Pending</option>
+                            <option value="processed">Processed</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="filter-item filter-search">
+                <label class="filter-label">Search</label>
+                <div class="filter-control">
+                    <input class="input" type="text" id="search-input" placeholder="Search by event ID or camera..." onkeyup="filterEvents()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Events Section -->
+    <div class="events-section">
+        <h2 class="section-title">
+            <span class="section-icon">
+                <i class="fas fa-images"></i>
+            </span>
+            <span class="section-text">Events</span>
+        </h2>
+        
+        <div id="events-container">
+            <div class="events-loading">
+                <p class="has-text-grey">Loading events...</p>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- Modal for Event Details -->
     <div class="modal" id="event-modal">
@@ -416,5 +441,314 @@
             }
         });
     </script>
-</body>
-</html>
+
+<style>
+/* Pending Faces Page Styles - Aligned with site design */
+.pending-faces-container {
+    padding: 1.5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header Section */
+.pending-faces-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pending-faces-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.pending-faces-title {
+    color: white !important;
+    font-size: 2rem !important;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.pending-faces-subtitle {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* Section Titles */
+.section-title {
+    display: flex;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #363636;
+}
+
+.section-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.2rem;
+}
+
+.section-text {
+    font-weight: 600;
+}
+
+/* Statistics Section */
+.stats-section {
+    margin-bottom: 2rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.stats-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #667eea;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stats-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.stats-name {
+    font-weight: 600;
+    color: #363636;
+    font-size: 1rem;
+}
+
+.stats-icon {
+    font-size: 1.5rem;
+}
+
+.stats-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #363636;
+    margin: 0;
+}
+
+.stats-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Filters Section */
+.filters-section {
+    margin-bottom: 2rem;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-search {
+    grid-column: span 2;
+}
+
+.filter-label {
+    font-weight: 600;
+    color: #363636;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.filter-control {
+    flex: 1;
+}
+
+/* Events Section */
+.events-section {
+    margin-bottom: 2rem;
+}
+
+.events-loading {
+    text-align: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Event Cards */
+.event-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.event-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.event-card .card-image {
+    position: relative;
+    overflow: hidden;
+}
+
+.event-card .card-image img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    transition: transform 0.2s ease;
+}
+
+.event-card:hover .card-image img {
+    transform: scale(1.05);
+}
+
+.event-card .card-content {
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.event-card .card-footer {
+    border-top: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+.event-card .card-footer-item {
+    padding: 0.75rem;
+    text-align: center;
+    color: #4a4a4a;
+    transition: background-color 0.2s ease;
+}
+
+.event-card .card-footer-item:hover {
+    background-color: #f0f0f0;
+    color: #3273dc;
+}
+
+/* Modal Styles */
+.modal-card {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.modal-card-head {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.modal-card-title {
+    color: white !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .pending-faces-container {
+        padding: 1rem;
+    }
+    
+    .pending-faces-header {
+        padding: 1.5rem;
+    }
+    
+    .pending-faces-title {
+        font-size: 1.5rem !important;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-search {
+        grid-column: span 1;
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
+    }
+    
+    .section-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .stats-card,
+    .filters-grid,
+    .events-loading,
+    .event-card {
+        background: #2d3748;
+        color: #e2e8f0;
+    }
+    
+    .stats-name,
+    .filter-label {
+        color: #e2e8f0;
+    }
+    
+    .stats-value {
+        color: #f7fafc;
+    }
+    
+    .event-card .card-footer {
+        background: #4a5568;
+        border-top-color: #4a5568;
+    }
+    
+    .event-card .card-footer-item {
+        color: #e2e8f0;
+    }
+    
+    .event-card .card-footer-item:hover {
+        background-color: #4a5568;
+        color: #63b3ed;
+    }
+}
+</style>
