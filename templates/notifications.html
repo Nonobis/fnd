@@ -16,60 +16,106 @@
         </div>
     </div>
 
-    <div class="columns">
-        <!-- Configuration Form -->
-        <div class="column is-8">
-            <form hx-post="/htmx/notifications.html" hx-target="#notifications-settings" hx-swap="outerHTML">
-                <!-- Cooldown Settings -->
-                <div class="settings-card mb-5">
-                    <div class="settings-card-header">
-                        <h2 class="title is-4">
-                            <span class="icon-text">
-                                <span class="icon">
-                                    <i class="fas fa-clock"></i>
-                                </span>
-                                <span>Timing Settings</span>
+    <!-- Tabs Navigation -->
+    <div class="tabs is-boxed is-medium">
+        <ul>
+            <li class="is-active">
+                <a data-tab="timing">
+                    <span class="icon">
+                        <i class="fas fa-clock"></i>
+                    </span>
+                    <span>Timing Settings</span>
+                </a>
+            </li>
+            <li>
+                <a data-tab="cameras">
+                    <span class="icon">
+                        <i class="fas fa-video"></i>
+                    </span>
+                    <span>Camera Settings</span>
+                </a>
+            </li>
+            <li>
+                <a data-tab="test">
+                    <span class="icon">
+                        <i class="fas fa-paper-plane"></i>
+                    </span>
+                    <span>Test Notifications</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Tab Contents -->
+    <div class="tab-contents">
+        <!-- Timing Settings Tab -->
+        <div id="timing" class="tab-content is-active">
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h2 class="title is-4">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-clock"></i>
                             </span>
-                        </h2>
-                    </div>
-                    <div class="settings-card-body">
-                        <div class="form-group">
-                            <label class="label">
-                                <span class="icon-text">
-                                    <span class="icon">
+                            <span>Timing Settings</span>
+                        </span>
+                    </h2>
+                    <p class="subtitle is-6">Configure notification timing and cooldown periods</p>
+                </div>
+                <div class="settings-card-body">
+                    <form hx-post="/htmx/notifications.html" hx-target="#notifications-settings" hx-swap="outerHTML">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="label">
+                                    <span class="icon-text">
+                                        <span class="icon">
+                                            <i class="fas fa-stopwatch"></i>
+                                        </span>
+                                        <span>{{index .TranslatedText 1}}</span>
+                                    </span>
+                                </label>
+                                <div class="control has-icons-left has-icons-right">
+                                    <input class="input is-medium" type="number" name="cooldown0815" placeholder="{{ .Conf.Cooldown }}" min="0" max="3600">
+                                    <span class="icon is-small is-left">
                                         <i class="fas fa-stopwatch"></i>
                                     </span>
-                                    <span>{{index .TranslatedText 1}}</span>
-                                </span>
-                            </label>
-                            <div class="control has-icons-left has-icons-right">
-                                <input class="input is-medium" type="number" name="cooldown0815" placeholder="{{ .Conf.Cooldown }}" min="0" max="3600">
-                                <span class="icon is-small is-left">
-                                    <i class="fas fa-stopwatch"></i>
-                                </span>
-                                <span class="icon is-small is-right">
-                                    <i class="fas fa-clock"></i>
-                                </span>
+                                    <span class="icon is-small is-right">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
+                                </div>
+                                <p class="help">Time in seconds between notifications for the same camera</p>
                             </div>
-                            <p class="help">Time in seconds between notifications for the same camera</p>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Camera Settings -->
-                <div class="settings-card">
-                    <div class="settings-card-header">
-                        <h2 class="title is-4">
-                            <span class="icon-text">
+                        <div class="form-actions">
+                            <button class="button is-primary is-medium" type="submit">
                                 <span class="icon">
-                                    <i class="fas fa-video"></i>
+                                    <i class="fas fa-save"></i>
                                 </span>
-                                <span>{{index .TranslatedText 2}}</span>
+                                <span>Save Timing Settings</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera Settings Tab -->
+        <div id="cameras" class="tab-content">
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h2 class="title is-4">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-video"></i>
                             </span>
-                        </h2>
-                        <p class="subtitle is-6">Select which cameras should send notifications</p>
-                    </div>
-                    <div class="settings-card-body">
+                            <span>{{index .TranslatedText 2}}</span>
+                        </span>
+                    </h2>
+                    <p class="subtitle is-6">Select which cameras should send notifications</p>
+                </div>
+                <div class="settings-card-body">
+                    <form hx-post="/htmx/notifications.html" hx-target="#notifications-settings" hx-swap="outerHTML">
                         {{ if .Conf.Cameras }}
                         <div class="camera-grid">
                             {{ range .Conf.Cameras}}
@@ -98,148 +144,442 @@
                         </div>
                         {{ else }}
                         <div class="empty-state">
-                            <div class="empty-state-icon">
-                                <i class="fas fa-video-slash"></i>
+                            <div class="has-text-centered py-6">
+                                <span class="icon is-large has-text-grey-light">
+                                    <i class="fas fa-video fa-3x"></i>
+                                </span>
+                                <p class="has-text-grey">No cameras found</p>
+                                <p class="has-text-grey-light">Make sure Frigate is properly configured and accessible</p>
                             </div>
-                            <h3 class="empty-state-title">No cameras found</h3>
-                            <p class="empty-state-message">Please configure your Frigate server first to see available cameras.</p>
                         </div>
                         {{ end }}
-                    </div>
-                </div>
 
-                <div class="form-actions mt-5">
-                    <button class="button is-primary is-medium is-rounded">
-                        <span class="icon">
-                            <i class="fas fa-save"></i>
-                        </span>
-                        <span>{{index .TranslatedText 3}}</span>
-                    </button>
-                    <button type="button" class="button is-info is-medium is-rounded ml-3" onclick="showTemplates()">
-                        <span class="icon">
-                            <i class="fas fa-edit"></i>
-                        </span>
-                        <span>Templates</span>
-                    </button>
+                        <div class="form-actions">
+                            <button class="button is-primary is-medium" type="submit">
+                                <span class="icon">
+                                    <i class="fas fa-save"></i>
+                                </span>
+                                <span>Save Camera Settings</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
-
-                {{ if .ShowStatus }}
-                <div class="status-message mt-4">
-                    <div class="notification {{.Color}} is-light">
-                        <span class="icon">
-                            <i class="fas {{ if eq .Color "is-success"}}fa-check-circle{{ else }}fa-exclamation-triangle{{ end }}"></i>
-                        </span>
-                        <span>{{.StatusMessage}}</span>
-                    </div>
-                </div>
-                {{ end }}
-            </form>
+            </div>
         </div>
 
-        <!-- Help Section -->
-        <div class="column is-4">
-            <div class="help-card">
-                <div class="help-card-header">
-                    <h3 class="title is-5">
+        <!-- Test Notifications Tab -->
+        <div id="test" class="tab-content">
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h2 class="title is-4">
                         <span class="icon-text">
                             <span class="icon">
-                                <i class="fas fa-question-circle"></i>
+                                <i class="fas fa-paper-plane"></i>
                             </span>
-                            <span>Help & Information</span>
+                            <span>Test Notifications</span>
                         </span>
-                    </h3>
+                    </h2>
+                    <p class="subtitle is-6">Test your notification configuration</p>
                 </div>
-                <div class="help-card-body">
-                    <div class="help-item">
-                        <h4 class="help-title">
-                            <span class="icon">
-                                <i class="fas fa-stopwatch"></i>
-                            </span>
-                            <span>Cooldown Period</span>
-                        </h4>
-                        <p class="help-text">Prevents spam by setting a minimum time between notifications from the same camera. Recommended: 30-300 seconds.</p>
-                    </div>
-
-                    <div class="help-item">
-                        <h4 class="help-title">
-                            <span class="icon">
-                                <i class="fas fa-video"></i>
-                            </span>
-                            <span>Active Cameras</span>
-                        </h4>
-                        <p class="help-text">Only cameras marked as "Active" will send notifications. Inactive cameras will still record but won't trigger alerts.</p>
-                    </div>
-
-                    <div class="notification is-info is-light">
-                        <strong>💡 Tip:</strong> Start with a longer cooldown period and adjust based on your needs. Too short may result in notification spam.
-                    </div>
-
-                    <div class="notification is-warning is-light">
-                        <strong>⚠️ Note:</strong> Changes require the Frigate server to be properly configured and running.
+                <div class="settings-card-body">
+                    <div class="columns">
+                        <div class="column is-6">
+                            <h3 class="title is-5">Send Test Notification</h3>
+                            <div class="field">
+                                <label class="label">Test Message</label>
+                                <div class="control">
+                                    <textarea class="textarea" id="test-message" rows="3" placeholder="🚨 Test notification from FND&#10;&#10;This is a test message to verify your notification configuration is working correctly."></textarea>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="control">
+                                    <button class="button is-info" onclick="sendTestNotification()">
+                                        <span class="icon">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </span>
+                                        <span>Send Test Notification</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column is-6">
+                            <h3 class="title is-5">Notification Status</h3>
+                            <div id="notification-status">
+                                <div class="notification is-info is-light">
+                                    <span class="icon">
+                                        <i class="fas fa-info-circle"></i>
+                                    </span>
+                                    <span>Ready to send test notifications</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h4 class="title is-6">Cooldown Status</h4>
+                                <div id="cooldown-status">
+                                    <div class="notification is-success is-light">
+                                        <span class="icon">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <span>{{index .TranslatedText 3}}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Templates Modal -->
-    <div id="templates-modal" class="modal">
-        <div class="modal-background" onclick="hideTemplates()"></div>
-        <div class="modal-card" style="width: 90%; max-width: 1200px;">
-            <header class="modal-card-head">
-                <p class="modal-card-title">
-                    <span class="icon-text">
-                        <span class="icon">
-                            <i class="fas fa-edit"></i>
-                        </span>
-                        <span>Notification Templates</span>
-                    </span>
-                </p>
-                <button class="delete" aria-label="close" onclick="hideTemplates()"></button>
-            </header>
-            <section class="modal-card-body" id="templates-content">
-                <!-- Content will be loaded here -->
-            </section>
-        </div>
-    </div>
 </div>
 
+<style>
+/* Tab styles */
+.tab-content {
+    display: none;
+}
+
+.tab-content.is-active {
+    display: block;
+}
+
+.tabs ul {
+    border-bottom-color: #dbdbdb;
+}
+
+.tabs a {
+    border-bottom: 1px solid #dbdbdb;
+    margin-bottom: -1px;
+}
+
+.tabs a:hover {
+    border-bottom-color: #4a4a4a;
+    color: #4a4a4a;
+}
+
+.tabs li.is-active a {
+    border-bottom-color: #3273dc;
+    color: #3273dc;
+}
+
+/* Settings card styles */
+.settings-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.settings-card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.settings-card-body {
+    padding: 1.5rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-actions {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f0f0;
+}
+
+.camera-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.camera-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 1rem;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.camera-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: #4facfe;
+}
+
+.camera-card-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.camera-icon {
+    font-size: 2rem;
+    color: #6c757d;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.camera-info {
+    flex: 1;
+}
+
+.camera-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.camera-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.camera-status {
+    text-align: right;
+}
+
+.status-indicator {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-indicator.is-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-indicator.is-inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Switch styles */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #4facfe;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #4facfe;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.empty-state .icon {
+    margin-bottom: 1rem;
+}
+
+/* Ensure all text is black */
+#notifications-settings {
+    color: #000000;
+}
+
+#notifications-settings .label {
+    color: #000000;
+}
+
+#notifications-settings .help {
+    color: #000000;
+}
+
+#notifications-settings .subtitle {
+    color: #000000;
+}
+
+#notifications-settings .input {
+    color: #000000;
+}
+
+#notifications-settings .textarea {
+    color: #000000;
+}
+
+#notifications-settings .notification {
+    color: #000000;
+}
+</style>
+
 <script>
-function showTemplates() {
-    fetch('/htmx/notification_templates.html')
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('templates-content').innerHTML = html;
-            document.getElementById('templates-modal').classList.add('is-active');
-        })
-        .catch(error => {
-            console.error('Error loading templates:', error);
-            showNotification('Error loading templates', 'danger');
-        });
+// Tab functionality
+function initializeTabs() {
+    console.log('Initializing notification tabs...');
+    const tabLinks = document.querySelectorAll('.tabs a[data-tab]');
+    console.log('Found tab links:', tabLinks.length);
+    
+    if (tabLinks.length === 0) {
+        console.warn('No tab links found');
+        return;
+    }
+    
+    tabLinks.forEach(link => {
+        // Remove any existing event listeners
+        link.removeEventListener('click', handleTabClick);
+        link.addEventListener('click', handleTabClick);
+        console.log('Added event listener to tab:', link.getAttribute('data-tab'));
+    });
+    
+    // Ensure first tab is active by default
+    const firstTab = document.querySelector('.tabs li.is-active');
+    if (!firstTab) {
+        const firstTabLink = tabLinks[0];
+        if (firstTabLink) {
+            firstTabLink.parentElement.classList.add('is-active');
+            const targetContent = document.getElementById(firstTabLink.getAttribute('data-tab'));
+            if (targetContent) {
+                targetContent.classList.add('is-active');
+            }
+        }
+    }
 }
 
-function hideTemplates() {
-    document.getElementById('templates-modal').classList.remove('is-active');
+function handleTabClick(e) {
+    e.preventDefault();
+    console.log('Tab clicked:', this.getAttribute('data-tab'));
+    
+    const targetTab = this.getAttribute('data-tab');
+    
+    // Remove active class from all tabs and contents
+    document.querySelectorAll('.tabs li').forEach(li => li.classList.remove('is-active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('is-active'));
+    
+    // Add active class to clicked tab and corresponding content
+    this.parentElement.classList.add('is-active');
+    const targetContent = document.getElementById(targetTab);
+    if (targetContent) {
+        targetContent.classList.add('is-active');
+        console.log('Activated tab content:', targetTab);
+    } else {
+        console.error('Tab content not found:', targetTab);
+    }
 }
 
-function showNotification(message, type) {
-    const notification = document.createElement('div');
-    notification.className = `notification is-${type}`;
-    notification.style.position = 'fixed';
-    notification.style.top = '20px';
-    notification.style.right = '20px';
-    notification.style.zIndex = '1001';
-    notification.innerHTML = `
-        <button class="delete" onclick="this.parentElement.remove()"></button>
-        ${message}
+function sendTestNotification() {
+    const message = document.getElementById('test-message').value || '🚨 Test notification from FND\n\nThis is a test message to verify your notification configuration is working correctly.';
+    const statusDiv = document.getElementById('notification-status');
+    
+    // Show loading state
+    statusDiv.innerHTML = `
+        <div class="notification is-info is-light">
+            <span class="icon">
+                <i class="fas fa-spinner fa-spin"></i>
+            </span>
+            <span>Sending test notification...</span>
+        </div>
     `;
     
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
+    fetch('/api/notifications/test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: message })
+    })
+    .then(response => {
+        if (response.ok) {
+            statusDiv.innerHTML = `
+                <div class="notification is-success is-light">
+                    <span class="icon">
+                        <i class="fas fa-check-circle"></i>
+                    </span>
+                    <span>Test notification sent successfully!</span>
+                </div>
+            `;
+        } else {
+            throw new Error('Failed to send notification');
         }
-    }, 5000);
+    })
+    .catch(error => {
+        console.error('Error sending test notification:', error);
+        statusDiv.innerHTML = `
+            <div class="notification is-danger is-light">
+                <span class="icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </span>
+                <span>Failed to send test notification. Please check your configuration.</span>
+            </div>
+        `;
+    });
 }
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing notifications page...');
+    initializeTabs();
+});
+
+// Also try to initialize immediately if DOM is already loaded
+if (document.readyState !== 'loading') {
+    console.log('DOM already loaded, initializing notifications immediately...');
+    initializeTabs();
+}
+
+// HTMX event listener for when content is loaded
+document.addEventListener('htmx:afterSwap', function(event) {
+    console.log('HTMX content loaded, initializing notifications tabs...');
+    initializeTabs();
+});
 </script>

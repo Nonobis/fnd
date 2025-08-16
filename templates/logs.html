@@ -40,133 +40,400 @@
                                     <span>{{index .TranslatedText 6}}</span>
                                 </button>
                             </div>
-                            <div class="control">
-                                <button class="button is-success" onclick="showLogSettings()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="section pt-0">
+        <div class="container">
+            <div class="tabs is-boxed is-medium">
+                <ul>
+                    <li class="is-active">
+                        <a data-tab="live-logs">
+                            <span class="icon">
+                                <i class="fas fa-stream"></i>
+                            </span>
+                            <span>Live Logs</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a data-tab="filters">
+                            <span class="icon">
+                                <i class="fas fa-filter"></i>
+                            </span>
+                            <span>Filters & Search</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a data-tab="settings">
+                            <span class="icon">
+                                <i class="fas fa-cog"></i>
+                            </span>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a data-tab="export">
+                            <span class="icon">
+                                <i class="fas fa-file-export"></i>
+                            </span>
+                            <span>Export & Management</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Contents -->
+    <div class="tab-contents">
+        <!-- Live Logs Tab -->
+        <div id="live-logs" class="tab-content is-active">
+            <div class="section pt-0">
+                <div class="container">
+                    <div class="box" style="max-height: 70vh; overflow-y: auto;">
+                        <div id="logs-content">
+                            <table class="table is-fullwidth is-striped is-hoverable logs-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 150px;" class="sortable" onclick="sortTable(0)">
+                                            {{index .TranslatedText 4}}
+                                            <span class="sort-icon">⇅</span>
+                                        </th>
+                                        <th style="width: 80px;" class="sortable" onclick="sortTable(1)">
+                                            {{index .TranslatedText 1}}
+                                            <span class="sort-icon">⇅</span>
+                                        </th>
+                                        <th style="width: 120px;" class="sortable" onclick="sortTable(2)">
+                                            {{index .TranslatedText 2}}
+                                            <span class="sort-icon">⇅</span>
+                                        </th>
+                                        <th class="sortable" onclick="sortTable(3)">
+                                            {{index .TranslatedText 3}}
+                                            <span class="sort-icon">⇅</span>
+                                        </th>
+                                        <th style="width: 60px;">{{index .TranslatedText 5}}</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logs-tbody">
+                                    {{range .Logs}}
+                                    <tr class="log-entry" data-level="{{.Level}}" data-component="{{.Component}}" data-timestamp="{{.Timestamp.Format "2006-01-02 15:04:05"}}">
+                                        <td class="timestamp">{{.Timestamp.Format "15:04:05 02/01"}}</td>
+                                        <td>
+                                            <span class="tag log-level-{{.Level}}">{{.Level}}</span>
+                                        </td>
+                                        <td class="component">{{.Component}}</td>
+                                        <td class="message">{{.Message}}</td>
+                                        <td class="details-cell">
+                                            {{if .Details}}
+                                            <button class="button is-small is-light" onclick="showDetails('{{.ID}}')">
+                                                <span class="icon is-small">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </span>
+                                            </button>
+                                            <div id="details-{{.ID}}" class="details-content" style="display: none;">
+                                                <div class="box mt-2">
+                                                    <pre>{{.Details}}</pre>
+                                                </div>
+                                            </div>
+                                            {{end}}
+                                        </td>
+                                    </tr>
+                                    {{end}}
+                                </tbody>
+                            </table>
+                            {{if not .Logs}}
+                            <div class="has-text-centered py-6">
+                                <span class="icon is-large has-text-grey-light">
+                                    <i class="fas fa-inbox fa-3x"></i>
+                                </span>
+                                <p class="has-text-grey">No logs available</p>
+                            </div>
+                            {{end}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Tab -->
+        <div id="filters" class="tab-content">
+            <div class="section pt-0">
+                <div class="container">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h2 class="title is-4">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-filter"></i>
+                                    </span>
+                                    <span>Filters & Search</span>
+                                </span>
+                            </h2>
+                            <p class="subtitle is-6">Configure filters to focus on specific log entries</p>
+                        </div>
+                        <div class="settings-card-body">
+                            <div class="columns">
+                                <div class="column is-4">
+                                    <div class="field">
+                                        <label class="label">{{index .TranslatedText 9}}</label>
+                                        <div class="control">
+                                            <div class="select is-fullwidth">
+                                                <select id="level-filter" onchange="applyFilters()">
+                                                    <option value="">{{index .TranslatedText 11}}</option>
+                                                    <option value="DEBUG">DEBUG</option>
+                                                    <option value="INFO">INFO</option>
+                                                    <option value="WARN">WARN</option>
+                                                    <option value="ERROR">ERROR</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="column is-4">
+                                    <div class="field">
+                                        <label class="label">{{index .TranslatedText 10}}</label>
+                                        <div class="control">
+                                            <div class="select is-fullwidth">
+                                                <select id="component-filter" onchange="applyFilters()">
+                                                    <option value="">{{index .TranslatedText 12}}</option>
+                                                    {{range .Components}}
+                                                    <option value="{{.}}">{{.}}</option>
+                                                    {{end}}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="column is-4">
+                                    <div class="field">
+                                        <label class="label">Search</label>
+                                        <div class="control has-icons-left">
+                                            <input class="input" type="text" id="search-filter" placeholder="Search logs..." oninput="applyFilters()">
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Advanced Filters -->
+                            <div class="mt-5">
+                                <h3 class="title is-5">Advanced Filters</h3>
+                                <div class="columns">
+                                    <div class="column is-6">
+                                        <div class="field">
+                                            <label class="label">Date Range</label>
+                                            <div class="control">
+                                                <input class="input" type="datetime-local" id="date-from" onchange="applyFilters()">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="column is-6">
+                                        <div class="field">
+                                            <label class="label">To</label>
+                                            <div class="control">
+                                                <input class="input" type="datetime-local" id="date-to" onchange="applyFilters()">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="control">
+                                        <button class="button is-info" onclick="clearFilters()">
+                                            <span class="icon">
+                                                <i class="fas fa-times"></i>
+                                            </span>
+                                            <span>Clear All Filters</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+            <div class="section pt-0">
+                <div class="container">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h2 class="title is-4">
+                                <span class="icon-text">
                                     <span class="icon">
                                         <i class="fas fa-cog"></i>
                                     </span>
-                                    <span>Settings</span>
-                                </button>
+                                    <span>Log Settings</span>
+                                </span>
+                            </h2>
+                            <p class="subtitle is-6">Configure log retention, levels, and display options</p>
+                        </div>
+                        <div class="settings-card-body">
+                            <div class="columns">
+                                <div class="column is-6">
+                                    <div class="field">
+                                        <label class="label">Log Level</label>
+                                        <div class="control">
+                                            <div class="select is-fullwidth">
+                                                <select id="log-level-setting">
+                                                    <option value="DEBUG">DEBUG</option>
+                                                    <option value="INFO" selected>INFO</option>
+                                                    <option value="WARN">WARN</option>
+                                                    <option value="ERROR">ERROR</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <p class="help">Minimum log level to display</p>
+                                    </div>
+                                </div>
+                                <div class="column is-6">
+                                    <div class="field">
+                                        <label class="label">Max Log Entries</label>
+                                        <div class="control">
+                                            <input class="input" type="number" id="max-entries" value="1000" min="100" max="10000">
+                                        </div>
+                                        <p class="help">Maximum number of log entries to keep in memory</p>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="section pt-0">
-        <div class="container">
-            <div class="columns">
-                <div class="column is-4">
-                    <div class="field">
-                        <label class="label">{{index .TranslatedText 9}}</label>
-                        <div class="control">
-                            <div class="select is-fullwidth">
-                                <select id="level-filter" onchange="applyFilters()">
-                                    <option value="">{{index .TranslatedText 11}}</option>
-                                    <option value="DEBUG">DEBUG</option>
-                                    <option value="INFO">INFO</option>
-                                    <option value="WARN">WARN</option>
-                                    <option value="ERROR">ERROR</option>
-                                </select>
+                            <div class="columns">
+                                <div class="column is-6">
+                                    <div class="field">
+                                        <label class="label">Auto Refresh Interval</label>
+                                        <div class="control">
+                                            <input class="input" type="number" id="refresh-interval" value="5" min="1" max="60">
+                                        </div>
+                                        <p class="help">Seconds between automatic log refreshes</p>
+                                    </div>
+                                </div>
+                                <div class="column is-6">
+                                    <div class="field">
+                                        <label class="label">Log Retention (Days)</label>
+                                        <div class="control">
+                                            <input class="input" type="number" id="retention-days" value="30" min="1" max="365">
+                                        </div>
+                                        <p class="help">How long to keep log files</p>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="column is-4">
-                    <div class="field">
-                        <label class="label">{{index .TranslatedText 10}}</label>
-                        <div class="control">
-                            <div class="select is-fullwidth">
-                                <select id="component-filter" onchange="applyFilters()">
-                                    <option value="">{{index .TranslatedText 12}}</option>
-                                    {{range .Components}}
-                                    <option value="{{.}}">{{.}}</option>
-                                    {{end}}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="column is-4">
-                    <div class="field">
-                        <label class="label">Search</label>
-                        <div class="control has-icons-left">
-                            <input class="input" type="text" id="search-filter" placeholder="Search logs..." oninput="applyFilters()">
-                            <span class="icon is-small is-left">
-                                <i class="fas fa-search"></i>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Logs Table -->
-    <div class="section pt-0">
-        <div class="container">
-            <div class="box" style="max-height: 70vh; overflow-y: auto;">
-                <div id="logs-content">
-                    <table class="table is-fullwidth is-striped is-hoverable logs-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 150px;" class="sortable" onclick="sortTable(0)">
-                                    {{index .TranslatedText 4}}
-                                    <span class="sort-icon">⇅</span>
-                                </th>
-                                <th style="width: 80px;" class="sortable" onclick="sortTable(1)">
-                                    {{index .TranslatedText 1}}
-                                    <span class="sort-icon">⇅</span>
-                                </th>
-                                <th style="width: 120px;" class="sortable" onclick="sortTable(2)">
-                                    {{index .TranslatedText 2}}
-                                    <span class="sort-icon">⇅</span>
-                                </th>
-                                <th class="sortable" onclick="sortTable(3)">
-                                    {{index .TranslatedText 3}}
-                                    <span class="sort-icon">⇅</span>
-                                </th>
-                                <th style="width: 60px;">{{index .TranslatedText 5}}</th>
-                            </tr>
-                        </thead>
-                        <tbody id="logs-tbody">
-                            {{range .Logs}}
-                            <tr class="log-entry" data-level="{{.Level}}" data-component="{{.Component}}" data-timestamp="{{.Timestamp.Format "2006-01-02 15:04:05"}}">
-                                <td class="timestamp">{{.Timestamp.Format "15:04:05 02/01"}}</td>
-                                <td>
-                                    <span class="tag log-level-{{.Level}}">{{.Level}}</span>
-                                </td>
-                                <td class="component">{{.Component}}</td>
-                                <td class="message">{{.Message}}</td>
-                                <td class="details-cell">
-                                    {{if .Details}}
-                                    <button class="button is-small is-light" onclick="showDetails('{{.ID}}')">
-                                        <span class="icon is-small">
-                                            <i class="fas fa-info-circle"></i>
+                            <div class="field">
+                                <div class="control">
+                                    <button class="button is-primary" onclick="saveLogSettings()">
+                                        <span class="icon">
+                                            <i class="fas fa-save"></i>
                                         </span>
+                                        <span>Save Settings</span>
                                     </button>
-                                    <div id="details-{{.ID}}" class="details-content" style="display: none;">
-                                        <div class="box mt-2">
-                                            <pre>{{.Details}}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Tab -->
+        <div id="export" class="tab-content">
+            <div class="section pt-0">
+                <div class="container">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <h2 class="title is-4">
+                                <span class="icon-text">
+                                    <span class="icon">
+                                        <i class="fas fa-file-export"></i>
+                                    </span>
+                                    <span>Export & Management</span>
+                                </span>
+                            </h2>
+                            <p class="subtitle is-6">Export logs and manage log files</p>
+                        </div>
+                        <div class="settings-card-body">
+                            <div class="columns">
+                                <div class="column is-6">
+                                    <h3 class="title is-5">Export Options</h3>
+                                    <div class="field">
+                                        <label class="label">Export Format</label>
+                                        <div class="control">
+                                            <div class="select is-fullwidth">
+                                                <select id="export-format">
+                                                    <option value="json">JSON</option>
+                                                    <option value="csv">CSV</option>
+                                                    <option value="txt">Plain Text</option>
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
-                                    {{end}}
-                                </td>
-                            </tr>
-                            {{end}}
-                        </tbody>
-                    </table>
-                    {{if not .Logs}}
-                    <div class="has-text-centered py-6">
-                        <span class="icon is-large has-text-grey-light">
-                            <i class="fas fa-inbox fa-3x"></i>
-                        </span>
-                        <p class="has-text-grey">No logs available</p>
+                                    <div class="field">
+                                        <label class="label">Date Range</label>
+                                        <div class="control">
+                                            <input class="input" type="date" id="export-date-from">
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">To</label>
+                                        <div class="control">
+                                            <input class="input" type="date" id="export-date-to">
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <div class="control">
+                                            <button class="button is-primary" onclick="exportLogs()">
+                                                <span class="icon">
+                                                    <i class="fas fa-download"></i>
+                                                </span>
+                                                <span>Export Logs</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="column is-6">
+                                    <h3 class="title is-5">Log Management</h3>
+                                    <div class="field">
+                                        <div class="control">
+                                            <button class="button is-warning" onclick="clearLogs()">
+                                                <span class="icon">
+                                                    <i class="fas fa-trash"></i>
+                                                </span>
+                                                <span>Clear All Logs</span>
+                                            </button>
+                                        </div>
+                                        <p class="help">This will permanently delete all current logs</p>
+                                    </div>
+                                    <div class="field">
+                                        <div class="control">
+                                            <button class="button is-info" onclick="rotateLogs()">
+                                                <span class="icon">
+                                                    <i class="fas fa-sync"></i>
+                                                </span>
+                                                <span>Rotate Log Files</span>
+                                            </button>
+                                        </div>
+                                        <p class="help">Archive current logs and start fresh</p>
+                                    </div>
+                                    <div class="field">
+                                        <div class="control">
+                                            <button class="button is-light" onclick="showLogStats()">
+                                                <span class="icon">
+                                                    <i class="fas fa-chart-bar"></i>
+                                                </span>
+                                                <span>View Statistics</span>
+                                            </button>
+                                        </div>
+                                        <p class="help">View log statistics and usage information</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    {{end}}
                 </div>
             </div>
         </div>
@@ -179,27 +446,6 @@
             <i class="fas fa-wifi"></i>
         </span>
         <strong>Live updates active</strong>
-    </div>
-
-    <!-- Log Settings Modal -->
-    <div id="log-settings-modal" class="modal">
-        <div class="modal-background" onclick="hideLogSettings()"></div>
-        <div class="modal-card" style="width: 98%; max-width: 1600px;">
-            <header class="modal-card-head">
-                <p class="modal-card-title">
-                    <span class="icon-text">
-                        <span class="icon">
-                            <i class="fas fa-cog"></i>
-                        </span>
-                        <span>Log Settings</span>
-                    </span>
-                </p>
-                <button class="delete" aria-label="close" onclick="hideLogSettings()"></button>
-            </header>
-            <section class="modal-card-body" id="log-settings-content">
-                <!-- Content will be loaded here -->
-            </section>
-        </div>
     </div>
 </div>
 
@@ -226,6 +472,53 @@
 
 .logs-container .subtitle {
     color: #6c757d;
+}
+
+/* Tab styles */
+.tab-content {
+    display: none;
+}
+
+.tab-content.is-active {
+    display: block;
+}
+
+.tabs ul {
+    border-bottom-color: #dbdbdb;
+}
+
+.tabs a {
+    border-bottom: 1px solid #dbdbdb;
+    margin-bottom: -1px;
+}
+
+.tabs a:hover {
+    border-bottom-color: #4a4a4a;
+    color: #4a4a4a;
+}
+
+.tabs li.is-active a {
+    border-bottom-color: #3273dc;
+    color: #3273dc;
+}
+
+/* Settings card styles */
+.settings-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.settings-card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.settings-card-body {
+    padding: 1.5rem;
 }
 
 .logs-table {
@@ -383,25 +676,25 @@
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
- .field .control .select select,
- .field .control .input {
-     border-radius: 8px;
-     border: 2px solid #e9ecef;
-     background: rgba(255, 255, 255, 0.9);
-     transition: all 0.3s ease;
-     color: #495057;
- }
- 
- .field .control .select select:focus,
- .field .control .input:focus {
-     border-color: #4facfe;
-     box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
- }
- 
- .field .control .select select option {
-     background: white;
-     color: #495057;
- }
+.field .control .select select,
+.field .control .input {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    background: rgba(255, 255, 255, 0.9);
+    transition: all 0.3s ease;
+    color: #495057;
+}
+
+.field .control .select select:focus,
+.field .control .input:focus {
+    border-color: #4facfe;
+    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+.field .control .select select option {
+    background: white;
+    color: #495057;
+}
 
 .button {
     border-radius: 8px;
@@ -507,45 +800,98 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
- /* Notification styling */
- .notification {
-     border-radius: 12px;
-     border: none;
-     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
- }
- 
- /* Sorting styles */
- .sortable {
-     cursor: pointer;
-     user-select: none;
-     position: relative;
- }
- 
- .sortable:hover {
-     background: linear-gradient(135deg, #5a6268 0%, #3d4448 100%) !important;
- }
- 
- .sort-icon {
-     font-size: 0.8rem;
-     margin-left: 0.5rem;
-     opacity: 0.7;
- }
- 
- .sortable.asc .sort-icon::after {
-     content: "↑";
-     color: #4facfe;
- }
- 
- .sortable.desc .sort-icon::after {
-     content: "↓";
-     color: #4facfe;
- }
+/* Notification styling */
+.notification {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Sorting styles */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.sortable:hover {
+    background: linear-gradient(135deg, #5a6268 0%, #3d4448 100%) !important;
+}
+
+.sort-icon {
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+    opacity: 0.7;
+}
+
+.sortable.asc .sort-icon::after {
+    content: "↑";
+    color: #4facfe;
+}
+
+.sortable.desc .sort-icon::after {
+    content: "↓";
+    color: #4facfe;
+}
 </style>
 
 <script>
 let autoRefreshInterval;
 let eventSource;
 let isAutoRefreshActive = false;
+
+// Tab functionality
+function initializeTabs() {
+    console.log('Initializing tabs...');
+    const tabLinks = document.querySelectorAll('.tabs a[data-tab]');
+    console.log('Found tab links:', tabLinks.length);
+    
+    if (tabLinks.length === 0) {
+        console.warn('No tab links found');
+        return;
+    }
+    
+    tabLinks.forEach(link => {
+        // Remove any existing event listeners
+        link.removeEventListener('click', handleTabClick);
+        link.addEventListener('click', handleTabClick);
+        console.log('Added event listener to tab:', link.getAttribute('data-tab'));
+    });
+    
+    // Ensure first tab is active by default
+    const firstTab = document.querySelector('.tabs li.is-active');
+    if (!firstTab) {
+        const firstTabLink = tabLinks[0];
+        if (firstTabLink) {
+            firstTabLink.parentElement.classList.add('is-active');
+            const targetContent = document.getElementById(firstTabLink.getAttribute('data-tab'));
+            if (targetContent) {
+                targetContent.classList.add('is-active');
+            }
+        }
+    }
+}
+
+function handleTabClick(e) {
+    e.preventDefault();
+    console.log('Tab clicked:', this.getAttribute('data-tab'));
+    
+    const targetTab = this.getAttribute('data-tab');
+    
+    // Remove active class from all tabs and contents
+    document.querySelectorAll('.tabs li').forEach(li => li.classList.remove('is-active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('is-active'));
+    
+    // Add active class to clicked tab and corresponding content
+    this.parentElement.classList.add('is-active');
+    const targetContent = document.getElementById(targetTab);
+    if (targetContent) {
+        targetContent.classList.add('is-active');
+        console.log('Activated tab content:', targetTab);
+    } else {
+        console.error('Tab content not found:', targetTab);
+    }
+}
 
 function toggleAutoRefresh() {
     const button = document.getElementById('auto-refresh-toggle');
@@ -692,6 +1038,15 @@ function applyFilters() {
     });
 }
 
+function clearFilters() {
+    document.getElementById('level-filter').value = '';
+    document.getElementById('component-filter').value = '';
+    document.getElementById('search-filter').value = '';
+    document.getElementById('date-from').value = '';
+    document.getElementById('date-to').value = '';
+    applyFilters();
+}
+
 function showDetails(logId) {
     const detailsDiv = document.getElementById('details-' + logId);
     if (detailsDiv.style.display === 'none') {
@@ -723,25 +1078,78 @@ function downloadLogs() {
     window.open('/api/logs/download', '_blank');
 }
 
-function hideLiveIndicator() {
-    document.getElementById('live-indicator').classList.add('is-hidden');
+function exportLogs() {
+    const format = document.getElementById('export-format').value;
+    const dateFrom = document.getElementById('export-date-from').value;
+    const dateTo = document.getElementById('export-date-to').value;
+    
+    let url = `/api/logs/export?format=${format}`;
+    if (dateFrom) url += `&from=${dateFrom}`;
+    if (dateTo) url += `&to=${dateTo}`;
+    
+    window.open(url, '_blank');
 }
 
-function showLogSettings() {
-    fetch('/htmx/log_settings.html?modal=true')
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('log-settings-content').innerHTML = html;
-            document.getElementById('log-settings-modal').classList.add('is-active');
+function rotateLogs() {
+    if (confirm('Are you sure you want to rotate log files?')) {
+        fetch('/api/logs/rotate', { method: 'POST' })
+            .then(response => {
+                if (response.ok) {
+                    showNotification('Log files rotated successfully', 'success');
+                } else {
+                    showNotification('Failed to rotate log files', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error rotating logs:', error);
+                showNotification('Error rotating log files', 'danger');
+            });
+    }
+}
+
+function showLogStats() {
+    fetch('/api/logs/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Display stats in a modal or notification
+            showNotification(`Total logs: ${data.total}, Errors: ${data.errors}, Warnings: ${data.warnings}`, 'info');
         })
         .catch(error => {
-            console.error('Error loading log settings:', error);
-            showNotification('Error loading log settings', 'danger');
+            console.error('Error fetching log stats:', error);
+            showNotification('Error fetching log statistics', 'danger');
         });
 }
 
-function hideLogSettings() {
-    document.getElementById('log-settings-modal').classList.remove('is-active');
+function saveLogSettings() {
+    const settings = {
+        logLevel: document.getElementById('log-level-setting').value,
+        maxEntries: document.getElementById('max-entries').value,
+        refreshInterval: document.getElementById('refresh-interval').value,
+        retentionDays: document.getElementById('retention-days').value
+    };
+    
+    fetch('/api/logs/settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(response => {
+        if (response.ok) {
+            showNotification('Log settings saved successfully', 'success');
+        } else {
+            showNotification('Failed to save log settings', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving log settings:', error);
+        showNotification('Error saving log settings', 'danger');
+    });
+}
+
+function hideLiveIndicator() {
+    document.getElementById('live-indicator').classList.add('is-hidden');
 }
 
 function showNotification(message, type) {
@@ -840,8 +1248,38 @@ function getCellValue(row, columnIndex) {
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
-    // Load initial logs
-    refreshLogs();
+    console.log('DOM loaded, initializing logs page...');
+    setTimeout(() => {
+        initializeTabs();
+        refreshLogs();
+    }, 100);
+});
+
+// Also try to initialize immediately if DOM is already loaded
+if (document.readyState !== 'loading') {
+    console.log('DOM already loaded, initializing logs immediately...');
+    setTimeout(() => {
+        initializeTabs();
+        refreshLogs();
+    }, 100);
+}
+
+// HTMX event listener for when content is loaded
+document.addEventListener('htmx:afterSwap', function(event) {
+    console.log('HTMX content loaded, initializing logs tabs...');
+    setTimeout(() => {
+        initializeTabs();
+        refreshLogs();
+    }, 100);
+});
+
+// Additional event listener for htmx:load
+document.addEventListener('htmx:load', function(event) {
+    console.log('HTMX load event, initializing logs tabs...');
+    setTimeout(() => {
+        initializeTabs();
+        refreshLogs();
+    }, 100);
 });
 
 // Cleanup on page unload

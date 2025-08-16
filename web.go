@@ -870,10 +870,6 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		web.handleFacialRecognitionPage(c)
 	})
 
-	r.GET("/face-management", func(c *gin.Context) {
-		web.handleFaceManagementPage(c)
-	})
-
 	r.POST("/api/facial-recognition/toggle", func(c *gin.Context) {
 		web.handleFacialRecognitionToggle(c)
 	})
@@ -1382,25 +1378,6 @@ func (web *FNDWebServer) handleFacialRecognitionPage(c *gin.Context) {
 	err = tmpl.Execute(c.Writer, data)
 	if err != nil {
 		LogError("WEB", "Failed to execute facial recognition template", err.Error())
-		c.String(500, "Internal server error")
-		return
-	}
-}
-
-func (web *FNDWebServer) handleFaceManagementPage(c *gin.Context) {
-	LogDebug("WEB", "Handling face management page", "")
-
-	tmpl, err := template.ParseFS(templateFS, "templates/face_management.html")
-	if err != nil {
-		LogError("WEB", "Failed to parse face management template", err.Error())
-		c.String(500, "Internal server error")
-		return
-	}
-
-	data := struct{}{}
-	err = tmpl.Execute(c.Writer, data)
-	if err != nil {
-		LogError("WEB", "Failed to execute face management template", err.Error())
 		c.String(500, "Internal server error")
 		return
 	}
@@ -2445,7 +2422,7 @@ func (web *FNDWebServer) handleTaskSchedulerHistory(c *gin.Context) {
 		LogWarn("WEB", "Task scheduler not available for history", "")
 		history = []TaskExecution{}
 	}
-	
+
 	// Create HTML response
 	var historyHTML strings.Builder
 	if len(history) == 0 {
@@ -2465,13 +2442,13 @@ func (web *FNDWebServer) handleTaskSchedulerHistory(c *gin.Context) {
 				statusClass = "running"
 				statusIcon = "fa-spinner fa-spin"
 			}
-			
+
 			// Format completion time
 			completionTime := "N/A"
 			if execution.CompletedAt != nil {
 				completionTime = execution.CompletedAt.Format("2006-01-02 15:04:05")
 			}
-			
+
 			historyHTML.WriteString(fmt.Sprintf(`<div class="execution-item %s">
 				<div class="columns is-multiline">
 					<div class="column is-3">
@@ -2502,7 +2479,7 @@ func (web *FNDWebServer) handleTaskSchedulerHistory(c *gin.Context) {
 		}
 		historyHTML.WriteString(`</div>`)
 	}
-	
+
 	c.Data(200, "text/html", []byte(historyHTML.String()))
 }
 
@@ -2523,7 +2500,7 @@ func (web *FNDWebServer) handleTaskSchedulerQueue(c *gin.Context) {
 			"maxSize":   1000,
 		}
 	}
-	
+
 	// Create HTML response for queue stats
 	queueStatsHTML := fmt.Sprintf(`<div class="queue-stats">
 		<div class="stat-card">
@@ -2547,7 +2524,7 @@ func (web *FNDWebServer) handleTaskSchedulerQueue(c *gin.Context) {
 			<div class="stat-label">Max Size</div>
 		</div>
 	</div>`, stats["total"], stats["pending"], stats["completed"], stats["failed"], stats["maxSize"])
-	
+
 	c.Data(200, "text/html", []byte(queueStatsHTML))
 }
 

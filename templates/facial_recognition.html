@@ -107,12 +107,7 @@
                     <span>Features</span>
                 </a>
             </li>
-            <li>
-                <a href="#" onclick="showTab('database', event); return false;">
-                    <span class="icon"><i class="fas fa-database"></i></span>
-                    <span>Database</span>
-                </a>
-            </li>
+
             <li>
                 <a href="#" onclick="showTab('faces', event); return false;">
                     <span class="icon"><i class="fas fa-users"></i></span>
@@ -328,35 +323,7 @@
         </div>
     </div>
 
-    <div class="tab-content" id="database-tab">
-        <div class="settings-card">
-            <div class="settings-card-header">
-                <h2 class="title is-4">
-                    <span class="icon-text">
-                        <span class="icon">
-                            <i class="fas fa-database"></i>
-                        </span>
-                        <span>Database Configuration</span>
-                    </span>
-                </h2>
-            </div>
-            <div class="settings-card-body">
-                <form hx-post="/api/facial-recognition/config" hx-target="#facial-recognition-settings" hx-swap="outerHTML">
-                    <div class="form-grid">
-                    </div>
 
-                    <div class="form-actions">
-                        <button class="button is-primary" type="submit" {{if not .Config.Enabled}}disabled{{end}}>
-                            <span class="icon">
-                                <i class="fas fa-save"></i>
-                            </span>
-                            <span>Save Database Settings</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <div class="tab-content" id="faces-tab">
         <div class="settings-card">

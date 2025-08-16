@@ -634,6 +634,31 @@
     color: #000000;
 }
 
+/* Ensure execution history text is black */
+#task-scheduler-settings .execution-item {
+    color: #000000;
+}
+
+#task-scheduler-settings .execution-item .title {
+    color: #000000;
+}
+
+#task-scheduler-settings .execution-item .subtitle {
+    color: #000000;
+}
+
+#task-scheduler-settings .execution-item p {
+    color: #000000;
+}
+
+#task-scheduler-settings .execution-item span {
+    color: #000000;
+}
+
+#task-scheduler-settings .execution-item .tag {
+    color: #000000;
+}
+
 /* Sub-tab styles */
 .subtab-content {
     display: none;
@@ -668,12 +693,30 @@ function initializeTabs() {
     const tabLinks = document.querySelectorAll('.tabs a[data-tab]');
     console.log('Found tab links:', tabLinks.length);
     
+    if (tabLinks.length === 0) {
+        console.warn('No tab links found');
+        return;
+    }
+    
     tabLinks.forEach(link => {
         // Remove any existing event listeners
         link.removeEventListener('click', handleTabClick);
         link.addEventListener('click', handleTabClick);
         console.log('Added event listener to tab:', link.getAttribute('data-tab'));
     });
+    
+    // Ensure first tab is active by default
+    const firstTab = document.querySelector('.tabs li.is-active');
+    if (!firstTab) {
+        const firstTabLink = tabLinks[0];
+        if (firstTabLink) {
+            firstTabLink.parentElement.classList.add('is-active');
+            const targetContent = document.getElementById(firstTabLink.getAttribute('data-tab'));
+            if (targetContent) {
+                targetContent.classList.add('is-active');
+            }
+        }
+    }
 }
 
 function handleTabClick(e) {
@@ -767,16 +810,42 @@ function handleSubTabClick(e) {
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing tabs...');
-    initializeTabs();
-    loadTabContent('overview');
+    setTimeout(() => {
+        initializeTabs();
+        initializeSubTabs(); // Initialize sub-tabs immediately
+        loadTabContent('overview');
+    }, 100);
 });
 
 // Also try to initialize immediately if DOM is already loaded
 if (document.readyState !== 'loading') {
     console.log('DOM already loaded, initializing tabs immediately...');
-    initializeTabs();
-    loadTabContent('overview');
+    setTimeout(() => {
+        initializeTabs();
+        initializeSubTabs(); // Initialize sub-tabs immediately
+        loadTabContent('overview');
+    }, 100);
 }
+
+// HTMX event listener for when content is loaded
+document.addEventListener('htmx:afterSwap', function(event) {
+    console.log('HTMX content loaded, initializing task scheduler tabs...');
+    setTimeout(() => {
+        initializeTabs();
+        initializeSubTabs(); // Initialize sub-tabs immediately
+        loadTabContent('overview');
+    }, 100);
+});
+
+// Additional event listener for htmx:load
+document.addEventListener('htmx:load', function(event) {
+    console.log('HTMX load event, initializing task scheduler tabs...');
+    setTimeout(() => {
+        initializeTabs();
+        initializeSubTabs(); // Initialize sub-tabs immediately
+        loadTabContent('overview');
+    }, 100);
+});
 
 // Pagination variables
 let currentPage = 1;
