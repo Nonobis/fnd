@@ -97,6 +97,7 @@ jobs:
           type=ref,event=branch
           type=ref,event=pr
           type=raw,value=${{ steps.new_version.outputs.new_version }},enable=${{ steps.new_version.outputs.should_release == 'true' }}
+          type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && steps.new_version.outputs.should_release == 'true' && github.event_name != 'pull_request' }}
         labels: |
           org.opencontainers.image.title=FND
           org.opencontainers.image.description=Frigate Notification Daemon
@@ -122,17 +123,7 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Tag as latest (after successful build)
-      if: github.ref == 'refs/heads/main' && steps.new_version.outputs.should_release == 'true' && github.event_name != 'pull_request'
-      run: |
-        echo "Tagging image as latest after successful build..."
-        # Convert repository name to lowercase for Docker compatibility
-        LOWER_IMAGE_NAME=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-        echo "Using lowercase image name: $LOWER_IMAGE_NAME"
-        docker pull ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:${{ steps.new_version.outputs.new_version }}
-        docker tag ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:${{ steps.new_version.outputs.new_version }} ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:latest
-        docker push ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:latest
-        echo "✅ Successfully tagged and pushed as latest"
+
 
     - name: Generate changelog
       if: steps.new_version.outputs.should_release == 'true'
