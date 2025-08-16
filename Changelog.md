@@ -1,3 +1,31 @@
+## Version 0.1.20 - 16.08.2025
+
+### Changes since v0.1.18
+
+- Merge branch 'main' of https://github.com/Nonobis/fnd
+- feat : fix colour on IHM
+- chore: bump version to 0.1.19 and update changelog
+- Merge branch 'main' of https://github.com/Nonobis/fnd
+- feat: add a mqtt client test button
+
+### 🐳 Docker Image
+
+This release is available as a Docker image:
+
+**Main image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.20
+```
+
+**Latest image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Direct links:**
+- 📦 [GitHub Package](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.20](ghcr.io/Nonobis/fnd:0.1.20)
+
 ## Version 0.1.19 - 16.08.2025
 
 ### Changes since v0.1.17
