@@ -1,3 +1,33 @@
+## Version 0.1.16 - 16.08.2025
+
+### Changes since v0.1.15
+
+- Standardiser les chemins de stockage - tous les fichiers JSON et DB dans fnd_conf/
+- Corriger les problèmes de la page Task Scheduler - onglets et boutons d'exécution
+- update gitignore
+- Corriger le crash de la page Task Scheduler - utiliser template.ParseFS au lieu de c.HTML
+- Implémenter le système de tâches planifiées avec file d'attente d'événements et interface de gestion
+- Merge branch 'main' of https://github.com/Nonobis/fnd
+- Corriger l'initialisation des onglets sur la page des templates de notification
+
+### 🐳 Docker Image
+
+This release is available as a Docker image:
+
+**Main image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.16
+```
+
+**Latest image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Direct links:**
+- 📦 [GitHub Package](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.16](ghcr.io/Nonobis/fnd:0.1.16)
+
 ## Version 0.1.15 - 16.08.2025
 
 ### Changes since v0.1.13
