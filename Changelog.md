@@ -1,3 +1,34 @@
+## Version 0.1.27 - 16.08.2025
+
+### Changes since v0.1.25
+
+- Merge branch 'main' of https://github.com/Nonobis/fnd
+- feat: consolidate log categories and constants - centralize all hardcoded strings in constants.go
+- fix: correct log management issues - add proper shutdown, fix debug pollution, improve error handling and performance
+- chore: bump version to 0.1.26 and update changelog
+- Merge branch 'main' of https://github.com/Nonobis/fnd
+- feat: enhance Sentry SDK integration for comprehensive error tracking across UI, code, and services
+- feat : consoliding process
+- Correction des erreurs de compilation et amélioration de la robustesse
+
+### 🐳 Docker Image
+
+This release is available as a Docker image:
+
+**Main image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.27
+```
+
+**Latest image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Direct links:**
+- 📦 [GitHub Package](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.27](ghcr.io/Nonobis/fnd:0.1.27)
+
 ## Version 0.1.26 - 16.08.2025
 
 ### Changes since v0.1.24
