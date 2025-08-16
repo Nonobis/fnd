@@ -1,3 +1,39 @@
+## Version 0.1.14 - 16.08.2025
+
+### Changes since v0.1.13
+
+- feat : fix build
+- feat: make MQTT client ID and topic prefix configurable with sensible defaults
+- feat: enhance MQTT logging with detailed debug information for better event capture diagnostics
+- Merge branch 'main' of https://github.com/Nonobis/fnd
+- remove markdown
+- feat: condenser davantage le formulaire MQTT en supprimant les sections
+- feat: condenser le formulaire MQTT pour éviter les ascenseurs
+- feat: ajouter validation des formulaires avec contrôle client-side
+- feat : fix objects filters
+- feat: align modal popups with light theme design
+- add logs
+- feat: add tabs to notification templates and fix preview functionality
+- fix: align facial recognition status card with overview design
+
+### 🐳 Docker Image
+
+This release is available as a Docker image:
+
+**Main image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.14
+```
+
+**Latest image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Direct links:**
+- 📦 [GitHub Package](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.14](ghcr.io/Nonobis/fnd:0.1.14)
+
 ## Version 0.1.13 - 16.08.2025
 
 ### Changes since v0.1.11
