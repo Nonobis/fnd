@@ -1,3 +1,0 @@
-- Implement LLM (OpenAI/Gemini/Ollama) configuration for LLM-Vision interpretation of snapshot, if activated this interpretation is a description of the snapshot added to template with a custom tag
-- LLM need to be fully configuratble and optional. 1 page for configuring all LLM.
-- Add LLM request for determining action done on event for better message
