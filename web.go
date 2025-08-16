@@ -2432,19 +2432,72 @@ func (web *FNDWebServer) handleTaskSchedulerHistory(c *gin.Context) {
 
 	// Get limit parameter (default to 50)
 	limitStr := c.DefaultQuery("limit", "50")
-	limit, err := strconv.Atoi(limitStr)
+	_, err := strconv.Atoi(limitStr)
 	if err != nil {
-		limit = 50
+		// Use default limit if parsing fails
 	}
 
 	// For now, return empty history until we integrate task scheduler properly
 	history := []TaskExecution{}
 	
-	c.JSON(200, gin.H{
-		"history": history,
-		"total":   len(history),
-		"limit":   limit,
-	})
+	// Create HTML response
+	var historyHTML strings.Builder
+	if len(history) == 0 {
+		historyHTML.WriteString(`<div class="notification is-info is-light">
+			<span class="icon"><i class="fas fa-info-circle"></i></span>
+			<span>No task execution history available yet.</span>
+		</div>`)
+	} else {
+		historyHTML.WriteString(`<div class="execution-history">`)
+		for _, execution := range history {
+			statusClass := "completed"
+			statusIcon := "fa-check-circle"
+			if execution.Status == "failed" {
+				statusClass = "failed"
+				statusIcon = "fa-times-circle"
+			} else if execution.Status == "running" {
+				statusClass = "running"
+				statusIcon = "fa-spinner fa-spin"
+			}
+			
+			// Format completion time
+			completionTime := "N/A"
+			if execution.CompletedAt != nil {
+				completionTime = execution.CompletedAt.Format("2006-01-02 15:04:05")
+			}
+			
+			historyHTML.WriteString(fmt.Sprintf(`<div class="execution-item %s">
+				<div class="columns is-multiline">
+					<div class="column is-3">
+						<strong>%s</strong>
+					</div>
+					<div class="column is-2">
+						<span class="tag is-small">
+							<span class="icon is-small">
+								<i class="fas %s"></i>
+							</span>
+							<span>%s</span>
+						</span>
+					</div>
+					<div class="column is-2">
+						%s
+					</div>
+					<div class="column is-3">
+						%s
+					</div>
+					<div class="column is-2">
+						%s
+					</div>
+				</div>
+			</div>`, statusClass, execution.TaskType, statusIcon, execution.Status,
+				execution.StartedAt.Format("2006-01-02 15:04:05"),
+				completionTime,
+				execution.Duration.String()))
+		}
+		historyHTML.WriteString(`</div>`)
+	}
+	
+	c.Data(200, "text/html", []byte(historyHTML.String()))
 }
 
 func (web *FNDWebServer) handleTaskSchedulerQueue(c *gin.Context) {
@@ -2459,7 +2512,31 @@ func (web *FNDWebServer) handleTaskSchedulerQueue(c *gin.Context) {
 		"maxSize":   1000,
 	}
 	
-	c.JSON(200, stats)
+	// Create HTML response for queue stats
+	queueStatsHTML := fmt.Sprintf(`<div class="queue-stats">
+		<div class="stat-card">
+			<div class="stat-number">%v</div>
+			<div class="stat-label">Total Events</div>
+		</div>
+		<div class="stat-card">
+			<div class="stat-number">%v</div>
+			<div class="stat-label">Pending</div>
+		</div>
+		<div class="stat-card">
+			<div class="stat-number">%v</div>
+			<div class="stat-label">Completed</div>
+		</div>
+		<div class="stat-card">
+			<div class="stat-number">%v</div>
+			<div class="stat-label">Failed</div>
+		</div>
+		<div class="stat-card">
+			<div class="stat-number">%v</div>
+			<div class="stat-label">Max Size</div>
+		</div>
+	</div>`, stats["total"], stats["pending"], stats["completed"], stats["failed"], stats["maxSize"])
+	
+	c.Data(200, "text/html", []byte(queueStatsHTML))
 }
 
 func (web *FNDWebServer) handleTaskSchedulerExecute(c *gin.Context) {
@@ -2562,16 +2639,22 @@ func (web *FNDWebServer) handleTaskSchedulerConfig(c *gin.Context) {
 
 	LogInfo("WEB", "Task scheduler configuration updated successfully", "")
 
-	c.JSON(200, gin.H{"message": "Configuration updated successfully"})
+	successHTML := `<div class="notification is-success is-light">
+		<span class="icon"><i class="fas fa-check-circle"></i></span>
+		<span>Configuration updated successfully</span>
+		<button class="delete" onclick="this.parentElement.remove()"></button>
+	</div>`
+	c.Data(200, "text/html", []byte(successHTML))
 }
 
 func (web *FNDWebServer) handleTaskSchedulerPurgeHistory(c *gin.Context) {
 	LogDebug("WEB", "Handling task scheduler history purge", "")
 
 	// For now, return success until we integrate task scheduler properly
-	c.JSON(200, gin.H{
-		"message": "History purge completed",
-		"purged":  0,
-		"retained": 0,
-	})
+	successHTML := `<div class="notification is-success is-light">
+		<span class="icon"><i class="fas fa-check-circle"></i></span>
+		<span>History purge completed successfully</span>
+		<button class="delete" onclick="this.parentElement.remove()"></button>
+	</div>`
+	c.Data(200, "text/html", []byte(successHTML))
 }

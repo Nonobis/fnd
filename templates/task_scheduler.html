@@ -502,6 +502,11 @@
 <script>
 // Tab functionality
 document.addEventListener('DOMContentLoaded', function() {
+    initializeTabs();
+    loadTabContent('overview');
+});
+
+function initializeTabs() {
     const tabLinks = document.querySelectorAll('.tabs a[data-tab]');
     const tabContents = document.querySelectorAll('.tab-content');
 
@@ -517,32 +522,40 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Add active class to clicked tab and corresponding content
             this.parentElement.classList.add('is-active');
-            document.getElementById(targetTab).classList.add('is-active');
+            const targetContent = document.getElementById(targetTab);
+            if (targetContent) {
+                targetContent.classList.add('is-active');
+            }
             
             // Load content based on tab
             loadTabContent(targetTab);
         });
     });
-    
-    // Load initial content
-    loadTabContent('overview');
-});
+}
 
 function loadTabContent(tabName) {
+    console.log('Loading tab content:', tabName);
+    
     switch(tabName) {
         case 'overview':
             // Load queue stats
-            htmx.ajax('GET', '/api/task_scheduler/queue', {target: '#queue-stats'});
-            // Load recent activity
-            htmx.ajax('GET', '/api/task_scheduler/history?limit=10', {target: '#recent-activity'});
+            if (typeof htmx !== 'undefined') {
+                htmx.ajax('GET', '/api/task_scheduler/queue', {target: '#queue-stats'});
+                // Load recent activity
+                htmx.ajax('GET', '/api/task_scheduler/history?limit=10', {target: '#recent-activity'});
+            }
             break;
         case 'history':
             // Load full history
-            htmx.ajax('GET', '/api/task_scheduler/history?limit=50', {target: '#execution-history'});
+            if (typeof htmx !== 'undefined') {
+                htmx.ajax('GET', '/api/task_scheduler/history?limit=50', {target: '#execution-history'});
+            }
             break;
         case 'queue':
             // Load queue details
-            htmx.ajax('GET', '/api/task_scheduler/queue', {target: '#event-queue-details'});
+            if (typeof htmx !== 'undefined') {
+                htmx.ajax('GET', '/api/task_scheduler/queue', {target: '#event-queue-details'});
+            }
             break;
     }
 }
@@ -551,8 +564,17 @@ function loadTabContent(tabName) {
 setInterval(function() {
     const activeTab = document.querySelector('.tab-content.is-active');
     if (activeTab && activeTab.id === 'overview') {
-        htmx.ajax('GET', '/api/task_scheduler/queue', {target: '#queue-stats'});
-        htmx.ajax('GET', '/api/task_scheduler/history?limit=10', {target: '#recent-activity'});
+        if (typeof htmx !== 'undefined') {
+            htmx.ajax('GET', '/api/task_scheduler/queue', {target: '#queue-stats'});
+            htmx.ajax('GET', '/api/task_scheduler/history?limit=10', {target: '#recent-activity'});
+        }
     }
 }, 30000);
+
+// Ensure tabs work on page load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeTabs);
+} else {
+    initializeTabs();
+}
 </script>
