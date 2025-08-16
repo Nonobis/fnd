@@ -1,3 +1,28 @@
+## Version 0.1.21 - 16.08.2025
+
+### Changes since v0.1.20
+
+- Fix log settings API endpoint missing - add /api/logs/settings endpoint for JavaScript form submission
+- fix: afficher les détails complets de l'événement de test MQTT dans l'interface utilisateur
+
+### 🐳 Docker Image
+
+This release is available as a Docker image:
+
+**Main image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.21
+```
+
+**Latest image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Direct links:**
+- 📦 [GitHub Package](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.21](ghcr.io/Nonobis/fnd:0.1.21)
+
 ## Version 0.1.20 - 16.08.2025
 
 ### Changes since v0.1.18
