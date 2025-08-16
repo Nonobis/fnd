@@ -66,9 +66,12 @@
                     </h2>
                 </div>
                 <div class="settings-card-body">
+                    <!-- Task Execution Result (Notifications at top) -->
+                    <div id="task-execution-result" class="mt-4"></div>
+
                     <div class="columns is-multiline">
                         <!-- Task Status Cards -->
-                        <div class="column is-3">
+                        <div class="column is-4">
                             <div class="box has-text-centered">
                                 <div class="icon is-large">
                                     <i class="fas fa-clock fa-2x has-text-info"></i>
@@ -86,7 +89,7 @@
                             </div>
                         </div>
 
-                        <div class="column is-3">
+                        <div class="column is-4">
                             <div class="box has-text-centered">
                                 <div class="icon is-large">
                                     <i class="fas fa-users fa-2x has-text-success"></i>
@@ -104,7 +107,7 @@
                             </div>
                         </div>
 
-                        <div class="column is-3">
+                        <div class="column is-4">
                             <div class="box has-text-centered">
                                 <div class="icon is-large">
                                     <i class="fas fa-trash fa-2x has-text-warning"></i>
@@ -121,225 +124,284 @@
                                 </button>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="column is-3">
-                            <div class="box has-text-centered">
-                                <div class="icon is-large">
-                                    <i class="fas fa-database fa-2x has-text-primary"></i>
+                    <!-- Event Queue in a row format -->
+                    <div class="mt-5">
+                        <h3 class="title is-5">
+                            <span class="icon-text">
+                                <span class="icon">
+                                    <i class="fas fa-database"></i>
+                                </span>
+                                <span>Event Queue Status</span>
+                            </span>
+                        </h3>
+                        <div class="box">
+                            <div id="queue-stats">
+                                <div class="notification is-info is-light">
+                                    <span class="icon">
+                                        <i class="fas fa-info-circle"></i>
+                                    </span>
+                                    <span>Loading queue statistics...</span>
                                 </div>
-                                <h3 class="title is-5">Event Queue</h3>
-                                <div id="queue-stats">
-                                    <p class="subtitle is-6">Loading...</p>
-                                </div>
+                            </div>
+                            <div class="mt-3">
                                 <button class="button is-primary is-small"
                                         hx-get="/api/task_scheduler/queue"
                                         hx-target="#queue-stats">
                                     <span class="icon">
                                         <i class="fas fa-sync"></i>
                                     </span>
-                                    <span>Refresh</span>
+                                    <span>Refresh Queue Stats</span>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Task Execution Result -->
-                    <div id="task-execution-result" class="mt-4"></div>
-
-                    <!-- Recent Activity -->
-                    <div class="mt-5">
-                        <h3 class="title is-5">
-                            <span class="icon-text">
-                                <span class="icon">
-                                    <i class="fas fa-history"></i>
-                                </span>
-                                <span>Recent Activity</span>
-                            </span>
-                        </h3>
-                        <div id="recent-activity">
-                            <div class="notification is-info is-light">
-                                <span class="icon">
-                                    <i class="fas fa-info-circle"></i>
-                                </span>
-                                <span>Loading recent activity...</span>
-                            </div>
-                        </div>
-                    </div>
+                    
                 </div>
             </div>
         </div>
 
-        <!-- Configuration Tab -->
-        <div id="configuration" class="tab-content">
-            <div class="settings-card">
-                <div class="settings-card-header">
-                    <h2 class="title is-4">
-                        <span class="icon-text">
-                            <span class="icon">
-                                <i class="fas fa-cogs"></i>
-                            </span>
-                            <span>Task Configuration</span>
-                        </span>
-                    </h2>
-                </div>
-                <div class="settings-card-body">
-                    <form hx-post="/api/task_scheduler/config" hx-target="#config-result">
-                        <div class="form-grid">
-                            <!-- Event Processing Configuration -->
-                            <div class="form-group">
-                                <label class="label">
-                                    <span class="icon-text">
-                                        <span class="icon">
-                                            <i class="fas fa-clock"></i>
-                                        </span>
-                                        <span>Event Processing Interval</span>
-                                    </span>
-                                </label>
-                                <div class="control has-icons-left">
-                                    <input class="input is-medium" type="number" name="eventProcessingInterval" 
-                                           value="{{.Config.EventProcessingInterval}}" min="1" max="60" required>
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-clock"></i>
-                                    </span>
-                                </div>
-                                <p class="help">Interval in minutes between event processing runs (1-60)</p>
-                            </div>
+                 <!-- Configuration Tab -->
+         <div id="configuration" class="tab-content">
+             <div class="settings-card">
+                 <div class="settings-card-header">
+                     <h2 class="title is-4">
+                         <span class="icon-text">
+                             <span class="icon">
+                                 <i class="fas fa-cogs"></i>
+                             </span>
+                             <span>Task Configuration</span>
+                         </span>
+                     </h2>
+                 </div>
+                 <div class="settings-card-body">
+                     <!-- Configuration Sub-tabs -->
+                     <div class="tabs is-small is-boxed">
+                         <ul>
+                             <li class="is-active">
+                                 <a data-subtab="intervals">
+                                     <span class="icon">
+                                         <i class="fas fa-clock"></i>
+                                     </span>
+                                     <span>Intervals</span>
+                                 </a>
+                             </li>
+                             <li>
+                                 <a data-subtab="queue">
+                                     <span class="icon">
+                                         <i class="fas fa-database"></i>
+                                     </span>
+                                     <span>Event Queue</span>
+                                 </a>
+                             </li>
+                             <li>
+                                 <a data-subtab="system">
+                                     <span class="icon">
+                                         <i class="fas fa-server"></i>
+                                     </span>
+                                     <span>System</span>
+                                 </a>
+                             </li>
+                         </ul>
+                     </div>
 
-                            <!-- Pending Faces Configuration -->
-                            <div class="form-group">
-                                <label class="label">
-                                    <span class="icon-text">
-                                        <span class="icon">
-                                            <i class="fas fa-users"></i>
-                                        </span>
-                                        <span>Pending Faces Interval</span>
-                                    </span>
-                                </label>
-                                <div class="control has-icons-left">
-                                    <input class="input is-medium" type="number" name="pendingFacesInterval" 
-                                           value="{{.Config.PendingFacesInterval}}" min="1" max="168" required>
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-users"></i>
-                                    </span>
-                                </div>
-                                <p class="help">Interval in hours between pending faces processing (1-168)</p>
-                            </div>
+                     <!-- Configuration Sub-tab Contents -->
+                     <div class="subtab-contents">
+                         <!-- Intervals Sub-tab -->
+                         <div id="intervals" class="subtab-content is-active">
+                             <form hx-post="/api/task_scheduler/config" hx-target="#config-result">
+                                 <div class="form-grid">
+                                     <!-- Event Processing Configuration -->
+                                     <div class="form-group">
+                                         <label class="label">
+                                             <span class="icon-text">
+                                                 <span class="icon">
+                                                     <i class="fas fa-clock"></i>
+                                                 </span>
+                                                 <span>Event Processing Interval</span>
+                                             </span>
+                                         </label>
+                                         <div class="control has-icons-left">
+                                             <input class="input is-medium" type="number" name="eventProcessingInterval" 
+                                                    value="{{.Config.EventProcessingInterval}}" min="1" max="60" required>
+                                             <span class="icon is-small is-left">
+                                                 <i class="fas fa-clock"></i>
+                                             </span>
+                                         </div>
+                                         <p class="help">Interval in minutes between event processing runs (1-60)</p>
+                                     </div>
 
-                            <!-- Log Purge Configuration -->
-                            <div class="form-group">
-                                <label class="label">
-                                    <span class="icon-text">
-                                        <span class="icon">
-                                            <i class="fas fa-trash"></i>
-                                        </span>
-                                        <span>Log Purge Interval</span>
-                                    </span>
-                                </label>
-                                <div class="control has-icons-left">
-                                    <input class="input is-medium" type="number" name="logPurgeInterval" 
-                                           value="{{.Config.LogPurgeInterval}}" min="1" max="168" required>
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-trash"></i>
-                                    </span>
-                                </div>
-                                <p class="help">Interval in hours between log purge runs (1-168)</p>
-                            </div>
+                                     <!-- Pending Faces Configuration -->
+                                     <div class="form-group">
+                                         <label class="label">
+                                             <span class="icon-text">
+                                                 <span class="icon">
+                                                     <i class="fas fa-users"></i>
+                                                 </span>
+                                                 <span>Pending Faces Interval</span>
+                                             </span>
+                                         </label>
+                                         <div class="control has-icons-left">
+                                             <input class="input is-medium" type="number" name="pendingFacesInterval" 
+                                                    value="{{.Config.PendingFacesInterval}}" min="1" max="168" required>
+                                             <span class="icon is-small is-left">
+                                                 <i class="fas fa-users"></i>
+                                             </span>
+                                         </div>
+                                         <p class="help">Interval in hours between pending faces processing (1-168)</p>
+                                     </div>
 
-                            <!-- History Retention -->
-                            <div class="form-group">
-                                <label class="label">
-                                    <span class="icon-text">
-                                        <span class="icon">
-                                            <i class="fas fa-calendar"></i>
-                                        </span>
-                                        <span>History Retention</span>
-                                    </span>
-                                </label>
-                                <div class="control has-icons-left">
-                                    <input class="input is-medium" type="number" name="taskHistoryRetentionDays" 
-                                           value="{{.Config.TaskHistoryRetentionDays}}" min="1" max="365" required>
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-calendar"></i>
-                                    </span>
-                                </div>
-                                <p class="help">Days to retain task execution history (1-365)</p>
-                            </div>
+                                     <!-- Log Purge Configuration -->
+                                     <div class="form-group">
+                                         <label class="label">
+                                             <span class="icon-text">
+                                                 <span class="icon">
+                                                     <i class="fas fa-trash"></i>
+                                                 </span>
+                                                 <span>Log Purge Interval</span>
+                                             </span>
+                                         </label>
+                                         <div class="control has-icons-left">
+                                             <input class="input is-medium" type="number" name="logPurgeInterval" 
+                                                    value="{{.Config.LogPurgeInterval}}" min="1" max="168" required>
+                                             <span class="icon is-small is-left">
+                                                 <i class="fas fa-trash"></i>
+                                             </span>
+                                         </div>
+                                         <p class="help">Interval in hours between log purge runs (1-168)</p>
+                                     </div>
 
-                            <!-- Event Queue Configuration -->
-                            <div class="form-group">
-                                <label class="label">
-                                    <span class="icon-text">
-                                        <span class="icon">
-                                            <i class="fas fa-toggle-on"></i>
-                                        </span>
-                                        <span>Event Queue</span>
-                                    </span>
-                                </label>
-                                <div class="control">
-                                    <label class="checkbox">
-                                        <input type="checkbox" name="enableEventQueue" value="true" 
-                                               {{if .Config.EnableEventQueue}}checked{{end}}>
-                                        Enable event queue processing
-                                    </label>
-                                </div>
-                                <p class="help">Process events in batches instead of real-time</p>
-                            </div>
+                                     <!-- History Retention -->
+                                     <div class="form-group">
+                                         <label class="label">
+                                             <span class="icon-text">
+                                                 <span class="icon">
+                                                     <i class="fas fa-calendar"></i>
+                                                 </span>
+                                                 <span>History Retention</span>
+                                             </span>
+                                         </label>
+                                         <div class="control has-icons-left">
+                                             <input class="input is-medium" type="number" name="taskHistoryRetentionDays" 
+                                                    value="{{.Config.TaskHistoryRetentionDays}}" min="1" max="365" required>
+                                             <span class="icon is-small is-left">
+                                                 <i class="fas fa-calendar"></i>
+                                             </span>
+                                         </div>
+                                         <p class="help">Days to retain task execution history (1-365)</p>
+                                     </div>
+                                 </div>
 
-                            <!-- Max Queue Size -->
-                            <div class="form-group">
-                                <label class="label">
-                                    <span class="icon-text">
-                                        <span class="icon">
-                                            <i class="fas fa-layer-group"></i>
-                                        </span>
-                                        <span>Max Queue Size</span>
-                                    </span>
-                                </label>
-                                <div class="control has-icons-left">
-                                    <input class="input is-medium" type="number" name="maxEventQueueSize" 
-                                           value="{{.Config.MaxEventQueueSize}}" min="100" max="10000" required>
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-layer-group"></i>
-                                    </span>
-                                </div>
-                                <p class="help">Maximum events in queue (100-10000)</p>
-                            </div>
+                                 <div class="form-actions">
+                                     <button class="button is-primary is-medium" type="submit">
+                                         <span class="icon">
+                                             <i class="fas fa-save"></i>
+                                         </span>
+                                         <span>Save Configuration</span>
+                                     </button>
+                                 </div>
+                             </form>
+                         </div>
 
-                            <!-- Max Concurrent Tasks -->
-                            <div class="form-group">
-                                <label class="label">
-                                    <span class="icon-text">
-                                        <span class="icon">
-                                            <i class="fas fa-server"></i>
-                                        </span>
-                                        <span>Max Concurrent Tasks</span>
-                                    </span>
-                                </label>
-                                <div class="control has-icons-left">
-                                    <input class="input is-medium" type="number" name="maxConcurrentTasks" 
-                                           value="{{.Config.MaxConcurrentTasks}}" min="1" max="20" required>
-                                    <span class="icon is-small is-left">
-                                        <i class="fas fa-server"></i>
-                                    </span>
-                                </div>
-                                <p class="help">Maximum concurrent task executions (1-20)</p>
-                            </div>
-                        </div>
+                         <!-- Event Queue Sub-tab -->
+                         <div id="queue" class="subtab-content">
+                             <form hx-post="/api/task_scheduler/config" hx-target="#config-result">
+                                 <div class="form-grid">
+                                     <!-- Event Queue Configuration -->
+                                     <div class="form-group">
+                                         <label class="label">
+                                             <span class="icon-text">
+                                                 <span class="icon">
+                                                     <i class="fas fa-toggle-on"></i>
+                                                 </span>
+                                                 <span>Event Queue</span>
+                                             </span>
+                                         </label>
+                                         <div class="control">
+                                             <label class="checkbox">
+                                                 <input type="checkbox" name="enableEventQueue" value="true" 
+                                                        {{if .Config.EnableEventQueue}}checked{{end}}>
+                                                 Enable event queue processing
+                                             </label>
+                                         </div>
+                                         <p class="help">Process events in batches instead of real-time</p>
+                                     </div>
 
-                        <div class="form-actions">
-                            <button class="button is-primary is-medium" type="submit">
-                                <span class="icon">
-                                    <i class="fas fa-save"></i>
-                                </span>
-                                <span>Save Configuration</span>
-                            </button>
-                        </div>
-                    </form>
+                                     <!-- Max Queue Size -->
+                                     <div class="form-group">
+                                         <label class="label">
+                                             <span class="icon-text">
+                                                 <span class="icon">
+                                                     <i class="fas fa-layer-group"></i>
+                                                 </span>
+                                                 <span>Max Queue Size</span>
+                                             </span>
+                                         </label>
+                                         <div class="control has-icons-left">
+                                             <input class="input is-medium" type="number" name="maxEventQueueSize" 
+                                                    value="{{.Config.MaxEventQueueSize}}" min="100" max="10000" required>
+                                             <span class="icon is-small is-left">
+                                                 <i class="fas fa-layer-group"></i>
+                                             </span>
+                                         </div>
+                                         <p class="help">Maximum events in queue (100-10000)</p>
+                                     </div>
+                                 </div>
 
-                    <div id="config-result" class="mt-3"></div>
-                </div>
-            </div>
-        </div>
+                                 <div class="form-actions">
+                                     <button class="button is-primary is-medium" type="submit">
+                                         <span class="icon">
+                                             <i class="fas fa-save"></i>
+                                         </span>
+                                         <span>Save Configuration</span>
+                                     </button>
+                                 </div>
+                             </form>
+                         </div>
+
+                         <!-- System Sub-tab -->
+                         <div id="system" class="subtab-content">
+                             <form hx-post="/api/task_scheduler/config" hx-target="#config-result">
+                                 <div class="form-grid">
+                                     <!-- Max Concurrent Tasks -->
+                                     <div class="form-group">
+                                         <label class="label">
+                                             <span class="icon-text">
+                                                 <span class="icon">
+                                                     <i class="fas fa-server"></i>
+                                                 </span>
+                                                 <span>Max Concurrent Tasks</span>
+                                             </span>
+                                         </label>
+                                         <div class="control has-icons-left">
+                                             <input class="input is-medium" type="number" name="maxConcurrentTasks" 
+                                                    value="{{.Config.MaxConcurrentTasks}}" min="1" max="20" required>
+                                             <span class="icon is-small is-left">
+                                                 <i class="fas fa-server"></i>
+                                             </span>
+                                         </div>
+                                         <p class="help">Maximum concurrent task executions (1-20)</p>
+                                     </div>
+                                 </div>
+
+                                 <div class="form-actions">
+                                     <button class="button is-primary is-medium" type="submit">
+                                         <span class="icon">
+                                             <i class="fas fa-save"></i>
+                                         </span>
+                                         <span>Save Configuration</span>
+                                     </button>
+                                 </div>
+                             </form>
+                         </div>
+                     </div>
+
+                     <div id="config-result" class="mt-3"></div>
+                 </div>
+             </div>
+         </div>
 
         <!-- History Tab -->
         <div id="history" class="tab-content">
@@ -368,16 +430,73 @@
                         </div>
                     </div>
                 </div>
-                <div class="settings-card-body">
-                    <div id="execution-history">
-                        <div class="notification is-info is-light">
-                            <span class="icon">
-                                <i class="fas fa-info-circle"></i>
-                            </span>
-                            <span>Loading execution history...</span>
-                        </div>
-                    </div>
-                </div>
+                                 <div class="settings-card-body">
+                     <!-- Pagination Controls -->
+                     <div class="columns is-vcentered mb-4">
+                         <div class="column">
+                             <div class="field has-addons">
+                                 <div class="control">
+                                     <button class="button is-small" id="prev-page" disabled>
+                                         <span class="icon">
+                                             <i class="fas fa-chevron-left"></i>
+                                         </span>
+                                         <span>Previous</span>
+                                     </button>
+                                 </div>
+                                 <div class="control">
+                                     <button class="button is-small" id="next-page">
+                                         <span>Next</span>
+                                         <span class="icon">
+                                             <i class="fas fa-chevron-right"></i>
+                                         </span>
+                                     </button>
+                                 </div>
+                             </div>
+                         </div>
+                         <div class="column is-narrow">
+                             <div class="field has-addons">
+                                 <div class="control">
+                                     <span class="button is-small is-static">Page</span>
+                                 </div>
+                                 <div class="control">
+                                     <input class="input is-small" type="number" id="current-page" value="1" min="1" style="width: 80px;">
+                                 </div>
+                                 <div class="control">
+                                     <span class="button is-small is-static" id="total-pages">of 1</span>
+                                 </div>
+                             </div>
+                         </div>
+                         <div class="column is-narrow">
+                             <div class="field has-addons">
+                                 <div class="control">
+                                     <span class="button is-small is-static">Show</span>
+                                 </div>
+                                 <div class="control">
+                                     <div class="select is-small">
+                                         <select id="page-size">
+                                             <option value="10">10</option>
+                                             <option value="25" selected>25</option>
+                                             <option value="50">50</option>
+                                             <option value="100">100</option>
+                                         </select>
+                                     </div>
+                                 </div>
+                                 <div class="control">
+                                     <span class="button is-small is-static">per page</span>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+
+                     <div id="execution-history">
+                         <div class="notification is-info is-light">
+                             <span class="icon">
+                                 <i class="fas fa-info-circle"></i>
+                             </span>
+                             <span>Loading execution history...</span>
+                         </div>
+                     </div>
+                 </div>
             </div>
         </div>
 
@@ -494,43 +613,91 @@
 
 .stat-label {
     font-size: 0.875rem;
-    color: #666;
+    color: #000000;
     margin-top: 0.5rem;
+}
+
+/* Ensure all text in task scheduler is black */
+#task-scheduler-settings {
+    color: #000000;
+}
+
+#task-scheduler-settings .subtitle {
+    color: #000000;
+}
+
+#task-scheduler-settings .help {
+    color: #000000;
+}
+
+#task-scheduler-settings .notification {
+    color: #000000;
+}
+
+/* Sub-tab styles */
+.subtab-content {
+    display: none;
+}
+
+.subtab-content.is-active {
+    display: block;
+}
+
+/* Ensure all text in configuration is black */
+#task-scheduler-settings .label {
+    color: #000000;
+}
+
+#task-scheduler-settings .checkbox {
+    color: #000000;
+}
+
+#task-scheduler-settings .input {
+    color: #000000;
+}
+
+#task-scheduler-settings .input::placeholder {
+    color: #666666;
 }
 </style>
 
 <script>
 // Tab functionality
-document.addEventListener('DOMContentLoaded', function() {
-    initializeTabs();
-    loadTabContent('overview');
-});
-
 function initializeTabs() {
+    console.log('Initializing tabs...');
     const tabLinks = document.querySelectorAll('.tabs a[data-tab]');
-    const tabContents = document.querySelectorAll('.tab-content');
-
+    console.log('Found tab links:', tabLinks.length);
+    
     tabLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            const targetTab = this.getAttribute('data-tab');
-            
-            // Remove active class from all tabs and contents
-            document.querySelectorAll('.tabs li').forEach(li => li.classList.remove('is-active'));
-            tabContents.forEach(content => content.classList.remove('is-active'));
-            
-            // Add active class to clicked tab and corresponding content
-            this.parentElement.classList.add('is-active');
-            const targetContent = document.getElementById(targetTab);
-            if (targetContent) {
-                targetContent.classList.add('is-active');
-            }
-            
-            // Load content based on tab
-            loadTabContent(targetTab);
-        });
+        // Remove any existing event listeners
+        link.removeEventListener('click', handleTabClick);
+        link.addEventListener('click', handleTabClick);
+        console.log('Added event listener to tab:', link.getAttribute('data-tab'));
     });
+}
+
+function handleTabClick(e) {
+    e.preventDefault();
+    console.log('Tab clicked:', this.getAttribute('data-tab'));
+    
+    const targetTab = this.getAttribute('data-tab');
+    
+    // Remove active class from all tabs and contents
+    document.querySelectorAll('.tabs li').forEach(li => li.classList.remove('is-active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('is-active'));
+    
+    // Add active class to clicked tab and corresponding content
+    this.parentElement.classList.add('is-active');
+    const targetContent = document.getElementById(targetTab);
+    if (targetContent) {
+        targetContent.classList.add('is-active');
+        console.log('Activated tab content:', targetTab);
+    } else {
+        console.error('Tab content not found:', targetTab);
+    }
+    
+    // Load content based on tab
+    loadTabContent(targetTab);
 }
 
 function loadTabContent(tabName) {
@@ -541,8 +708,6 @@ function loadTabContent(tabName) {
             // Load queue stats
             if (typeof htmx !== 'undefined') {
                 htmx.ajax('GET', '/api/task_scheduler/queue', {target: '#queue-stats'});
-                // Load recent activity
-                htmx.ajax('GET', '/api/task_scheduler/history?limit=10', {target: '#recent-activity'});
             }
             break;
         case 'history':
@@ -557,7 +722,128 @@ function loadTabContent(tabName) {
                 htmx.ajax('GET', '/api/task_scheduler/queue', {target: '#event-queue-details'});
             }
             break;
+        case 'configuration':
+            // Initialize sub-tabs for configuration
+            initializeSubTabs();
+            break;
     }
+}
+
+// Sub-tab functionality
+function initializeSubTabs() {
+    console.log('Initializing sub-tabs...');
+    const subTabLinks = document.querySelectorAll('.tabs.is-small a[data-subtab]');
+    console.log('Found sub-tab links:', subTabLinks.length);
+    
+    subTabLinks.forEach(link => {
+        // Remove any existing event listeners
+        link.removeEventListener('click', handleSubTabClick);
+        link.addEventListener('click', handleSubTabClick);
+        console.log('Added event listener to sub-tab:', link.getAttribute('data-subtab'));
+    });
+}
+
+function handleSubTabClick(e) {
+    e.preventDefault();
+    console.log('Sub-tab clicked:', this.getAttribute('data-subtab'));
+    
+    const targetSubTab = this.getAttribute('data-subtab');
+    
+    // Remove active class from all sub-tabs and contents
+    document.querySelectorAll('.tabs.is-small li').forEach(li => li.classList.remove('is-active'));
+    document.querySelectorAll('.subtab-content').forEach(content => content.classList.remove('is-active'));
+    
+    // Add active class to clicked sub-tab and corresponding content
+    this.parentElement.classList.add('is-active');
+    const targetContent = document.getElementById(targetSubTab);
+    if (targetContent) {
+        targetContent.classList.add('is-active');
+        console.log('Activated sub-tab content:', targetSubTab);
+    } else {
+        console.error('Sub-tab content not found:', targetSubTab);
+    }
+}
+
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing tabs...');
+    initializeTabs();
+    loadTabContent('overview');
+});
+
+// Also try to initialize immediately if DOM is already loaded
+if (document.readyState !== 'loading') {
+    console.log('DOM already loaded, initializing tabs immediately...');
+    initializeTabs();
+    loadTabContent('overview');
+}
+
+// Pagination variables
+let currentPage = 1;
+let pageSize = 25;
+let totalPages = 1;
+
+// Pagination functionality
+function initializePagination() {
+    console.log('Initializing pagination...');
+    
+    // Previous page button
+    document.getElementById('prev-page').addEventListener('click', function() {
+        if (currentPage > 1) {
+            currentPage--;
+            loadHistoryPage();
+        }
+    });
+    
+    // Next page button
+    document.getElementById('next-page').addEventListener('click', function() {
+        if (currentPage < totalPages) {
+            currentPage++;
+            loadHistoryPage();
+        }
+    });
+    
+    // Page size selector
+    document.getElementById('page-size').addEventListener('change', function() {
+        pageSize = parseInt(this.value);
+        currentPage = 1;
+        loadHistoryPage();
+    });
+    
+    // Current page input
+    document.getElementById('current-page').addEventListener('change', function() {
+        const newPage = parseInt(this.value);
+        if (newPage >= 1 && newPage <= totalPages) {
+            currentPage = newPage;
+            loadHistoryPage();
+        } else {
+            this.value = currentPage;
+        }
+    });
+}
+
+function loadHistoryPage() {
+    console.log('Loading history page:', currentPage, 'size:', pageSize);
+    
+    // Update UI
+    document.getElementById('current-page').value = currentPage;
+    document.getElementById('prev-page').disabled = currentPage <= 1;
+    document.getElementById('next-page').disabled = currentPage >= totalPages;
+    
+    // Load data
+    if (typeof htmx !== 'undefined') {
+        const url = `/api/task_scheduler/history?limit=${pageSize}&offset=${(currentPage - 1) * pageSize}`;
+        htmx.ajax('GET', url, {target: '#execution-history'});
+    }
+}
+
+function updatePaginationInfo(totalItems) {
+    totalPages = Math.ceil(totalItems / pageSize);
+    document.getElementById('total-pages').textContent = `of ${totalPages}`;
+    
+    // Update button states
+    document.getElementById('prev-page').disabled = currentPage <= 1;
+    document.getElementById('next-page').disabled = currentPage >= totalPages;
 }
 
 // Auto-refresh overview every 30 seconds
@@ -566,15 +852,7 @@ setInterval(function() {
     if (activeTab && activeTab.id === 'overview') {
         if (typeof htmx !== 'undefined') {
             htmx.ajax('GET', '/api/task_scheduler/queue', {target: '#queue-stats'});
-            htmx.ajax('GET', '/api/task_scheduler/history?limit=10', {target: '#recent-activity'});
         }
     }
 }, 30000);
-
-// Ensure tabs work on page load
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeTabs);
-} else {
-    initializeTabs();
-}
 </script>

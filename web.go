@@ -28,6 +28,7 @@ type FNDWebServer struct {
 	notifyManager   *FNDNotificationManager
 	translation     *Translation
 	frigateEvent    *FNDFrigateEventManager
+	taskScheduler   *TaskScheduler
 }
 
 type FNDNotificationSinkStatus struct {
@@ -109,7 +110,7 @@ func (web *FNDWebServer) setNotificationManager(notifyManager *FNDNotificationMa
 	web.notifyManager = notifyManager
 }
 
-func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FNDConfiguration, configPath string) *FNDWebServer {
+func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FNDConfiguration, configPath string, taskScheduler *TaskScheduler) *FNDWebServer {
 	r := gin.Default()
 
 	var web FNDWebServer
@@ -125,6 +126,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 	web.globalConf = globalConf
 	web.configPath = configPath
 	web.r = r
+	web.taskScheduler = taskScheduler
 	web.translation = setupTranslation()
 	err := web.translation.setLanguage(web.frigateConf.Language)
 	if err != nil {
@@ -2430,13 +2432,19 @@ func (web *FNDWebServer) handleTaskSchedulerHistory(c *gin.Context) {
 
 	// Get limit parameter (default to 50)
 	limitStr := c.DefaultQuery("limit", "50")
-	_, err := strconv.Atoi(limitStr)
+	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
-		// Use default limit if parsing fails
+		limit = 50 // Use default limit if parsing fails
 	}
 
-	// For now, return empty history until we integrate task scheduler properly
-	history := []TaskExecution{}
+	// Get actual history from task scheduler
+	var history []TaskExecution
+	if web.taskScheduler != nil {
+		history = web.taskScheduler.GetExecutionHistory(limit)
+	} else {
+		LogWarn("WEB", "Task scheduler not available for history", "")
+		history = []TaskExecution{}
+	}
 	
 	// Create HTML response
 	var historyHTML strings.Builder
@@ -2501,13 +2509,19 @@ func (web *FNDWebServer) handleTaskSchedulerHistory(c *gin.Context) {
 func (web *FNDWebServer) handleTaskSchedulerQueue(c *gin.Context) {
 	LogDebug("WEB", "Handling task scheduler queue", "")
 
-	// For now, return empty queue stats until we integrate task scheduler properly
-	stats := map[string]interface{}{
-		"total":     0,
-		"pending":   0,
-		"failed":    0,
-		"completed": 0,
-		"maxSize":   1000,
+	// Get actual queue stats from task scheduler
+	var stats map[string]interface{}
+	if web.taskScheduler != nil {
+		stats = web.taskScheduler.GetEventQueueStats()
+	} else {
+		LogWarn("WEB", "Task scheduler not available for queue stats", "")
+		stats = map[string]interface{}{
+			"total":     0,
+			"pending":   0,
+			"failed":    0,
+			"completed": 0,
+			"maxSize":   1000,
+		}
 	}
 	
 	// Create HTML response for queue stats
@@ -2557,14 +2571,49 @@ func (web *FNDWebServer) handleTaskSchedulerExecute(c *gin.Context) {
 		return
 	}
 
-	// For now, return success until we integrate task scheduler properly
-	executionId := fmt.Sprintf("%s_%d", taskType, time.Now().Unix())
-	successHTML := fmt.Sprintf(`<div class="notification is-success is-light">
-		<span class="icon"><i class="fas fa-check-circle"></i></span>
-		<span>Task execution triggered: %s (ID: %s)</span>
-		<button class="delete" onclick="this.parentElement.remove()"></button>
-	</div>`, taskType, executionId)
-	c.Data(200, "text/html", []byte(successHTML))
+	// Convert string to TaskType
+	var taskTypeEnum TaskType
+	switch taskType {
+	case "event_processing":
+		taskTypeEnum = TaskTypeEventProcessing
+	case "pending_faces":
+		taskTypeEnum = TaskTypePendingFaces
+	case "log_purge":
+		taskTypeEnum = TaskTypeLogPurge
+	default:
+		errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Invalid task type: %s</span>
+		</div>`, taskType)
+		c.Data(400, "text/html", []byte(errorHTML))
+		return
+	}
+
+	// Execute the task using the task scheduler
+	if web.taskScheduler != nil {
+		executionId, err := web.taskScheduler.ForceExecuteTask(taskTypeEnum)
+		if err != nil {
+			errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+				<span class="icon"><i class="fas fa-times-circle"></i></span>
+				<span>Failed to execute task: %s</span>
+			</div>`, err.Error())
+			c.Data(500, "text/html", []byte(errorHTML))
+			return
+		}
+
+		successHTML := fmt.Sprintf(`<div class="notification is-success is-light">
+			<span class="icon"><i class="fas fa-check-circle"></i></span>
+			<span>Task execution triggered: %s (ID: %s)</span>
+			<button class="delete" onclick="this.parentElement.remove()"></button>
+		</div>`, taskType, executionId)
+		c.Data(200, "text/html", []byte(successHTML))
+	} else {
+		errorHTML := `<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Task scheduler not available</span>
+		</div>`
+		c.Data(500, "text/html", []byte(errorHTML))
+	}
 }
 
 func (web *FNDWebServer) handleTaskSchedulerConfig(c *gin.Context) {

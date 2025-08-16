@@ -425,6 +425,14 @@ func (ts *TaskScheduler) purgeOldLogs() (map[string]interface{}, error) {
 	ts.historyMutex.Lock()
 	originalCount := len(ts.executionHistory)
 	
+	// Count old records before purging
+	oldRecords := 0
+	for _, execution := range ts.executionHistory {
+		if execution.StartedAt.Before(cutoffDate) {
+			oldRecords++
+		}
+	}
+	
 	newHistory := make([]TaskExecution, 0)
 	for _, execution := range ts.executionHistory {
 		if execution.StartedAt.After(cutoffDate) {
@@ -441,12 +449,19 @@ func (ts *TaskScheduler) purgeOldLogs() (map[string]interface{}, error) {
 	ts.saveExecutionHistory()
 	
 	result := map[string]interface{}{
-		"purged":   purgedCount,
-		"retained": len(newHistory),
-		"cutoff":   cutoffDate.Format("2006-01-02 15:04:05"),
+		"purged":       purgedCount,
+		"retained":     len(newHistory),
+		"original":     originalCount,
+		"oldRecords":   oldRecords,
+		"cutoff":       cutoffDate.Format("2006-01-02 15:04:05"),
+		"retentionDays": retentionDays,
 	}
 	
-	LogInfo("TASK_SCHEDULER", "Log purge completed", fmt.Sprintf("Purged: %d, Retained: %d", purgedCount, len(newHistory)))
+	if purgedCount > 0 {
+		LogInfo("TASK_SCHEDULER", "Log purge completed", fmt.Sprintf("Purged: %d, Retained: %d, Original: %d", purgedCount, len(newHistory), originalCount))
+	} else {
+		LogInfo("TASK_SCHEDULER", "Log purge completed - no old records found", fmt.Sprintf("Retained: %d, Original: %d, Cutoff: %s", len(newHistory), originalCount, cutoffDate.Format("2006-01-02 15:04:05")))
+	}
 	
 	return result, nil
 }
@@ -455,10 +470,15 @@ func (ts *TaskScheduler) purgeOldLogs() (map[string]interface{}, error) {
 func (ts *TaskScheduler) ForceExecuteTask(taskType TaskType) (string, error) {
 	LogInfo("TASK_SCHEDULER", "Manually triggering task", fmt.Sprintf("Task: %s", taskType))
 	
-	// Execute in a goroutine to avoid blocking
-	go ts.executeTask(taskType, "manual")
-	
+	// Generate execution ID first
 	executionID := fmt.Sprintf("%s_%d", taskType, time.Now().Unix())
+	
+	// Execute in a goroutine to avoid blocking
+	go func() {
+		ts.executeTask(taskType, "manual")
+		LogInfo("TASK_SCHEDULER", "Manual task execution completed", fmt.Sprintf("Task: %s, ID: %s", taskType, executionID))
+	}()
+	
 	return executionID, nil
 }
 
