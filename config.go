@@ -150,9 +150,9 @@ type FNDFacialRecognitionConfiguration struct {
 	FaceDetectionEnabled   bool   `json:"faceDetectionEnabled"`
 	FaceRecognitionEnabled bool   `json:"faceRecognitionEnabled"`
 	// FaceDatabasePath is deprecated - using SQLite database in fnd_conf directory
-	FaceDatabasePath       string `json:"faceDatabasePath,omitempty"`
+	FaceDatabasePath        string `json:"faceDatabasePath,omitempty"`
 	PendingFacesAutoProcess bool   `json:"pendingFacesAutoProcess"`
-	PendingFacesInterval   int    `json:"pendingFacesInterval"` // Interval in hours
+	PendingFacesInterval    int    `json:"pendingFacesInterval"` // Interval in hours
 
 	m sync.Mutex
 }
@@ -229,31 +229,31 @@ func NEWDefaultFNDConfiguration() *FNDConfiguration {
 		},
 		Logging: NewDefaultLoggingConfiguration(),
 		FacialRecognition: FNDFacialRecognitionConfiguration{
-			Enabled:                false,
-			CodeProjectAIHost:      "localhost",
-			CodeProjectAIPort:      32168,
-			CodeProjectAIUseSSL:    false,
-			CodeProjectAITimeout:   30,
-			FaceDetectionEnabled:   true,
-			FaceRecognitionEnabled: true,
-			FaceDatabasePath:       "fnd_conf/faces.db", // SQLite database
+			Enabled:                 false,
+			CodeProjectAIHost:       "localhost",
+			CodeProjectAIPort:       32168,
+			CodeProjectAIUseSSL:     false,
+			CodeProjectAITimeout:    30,
+			FaceDetectionEnabled:    true,
+			FaceRecognitionEnabled:  true,
+			FaceDatabasePath:        "fnd_conf/faces.db", // SQLite database
 			PendingFacesAutoProcess: false,
-			PendingFacesInterval:   6, // Default: 6 hours
+			PendingFacesInterval:    6, // Default: 6 hours
 		},
 		Sentry: SentryConfig{
-			Enabled:     false,
-			DSN:         "",
+			Enabled:     true, // Always enabled by default
+			DSN:         "https://100e57d7a705438388bbd0ecddffb27e@glitchtip.tordais.cc/3",
 			Environment: "production",
 			Debug:       false,
 		},
 		TaskScheduler: FNDTaskSchedulerConfiguration{
-			EventProcessingInterval:   1,  // Default: 1 minute
-			PendingFacesInterval:      6,  // Default: 6 hours
-			LogPurgeInterval:          24, // Default: 24 hours
-			TaskHistoryRetentionDays:  7,  // Default: 7 days
-			EnableEventQueue:           true,
-			MaxEventQueueSize:          1000,
-			MaxConcurrentTasks:        5,
+			EventProcessingInterval:  1,  // Default: 1 minute
+			PendingFacesInterval:     6,  // Default: 6 hours
+			LogPurgeInterval:         24, // Default: 24 hours
+			TaskHistoryRetentionDays: 7,  // Default: 7 days
+			EnableEventQueue:         true,
+			MaxEventQueueSize:        1000,
+			MaxConcurrentTasks:       5,
 		},
 	}
 
@@ -465,16 +465,16 @@ func NewDefaultFacialRecognitionConfiguration() FNDFacialRecognitionConfiguratio
 	LogDebug("CONFIG", "Creating default facial recognition configuration", "")
 
 	config := FNDFacialRecognitionConfiguration{
-		Enabled:                false,
-		CodeProjectAIHost:      "localhost",
-		CodeProjectAIPort:      8000,
-		CodeProjectAIUseSSL:    false,
-		CodeProjectAITimeout:   30,
-		FaceDetectionEnabled:   true,
-		FaceRecognitionEnabled: true,
-		FaceDatabasePath:       "fnd_conf/faces.db", // SQLite database
-		PendingFacesAutoProcess: false,
-		PendingFacesInterval:   6, // Default: 6 hours
+		Enabled:                 false,
+		CodeProjectAIHost:       "localhost",
+		CodeProjectAIPort:       8000,
+		CodeProjectAIUseSSL:     false,
+		CodeProjectAITimeout:    30,
+		FaceDetectionEnabled:    true,
+		FaceRecognitionEnabled:  true,
+		FaceDatabasePath:        "fnd_conf/faces.db", // SQLite database
+		PendingFacesAutoProcess: true,
+		PendingFacesInterval:    6, // Default: 6 hours
 	}
 
 	LogDebug("CONFIG", "Default facial recognition configuration created", fmt.Sprintf("Enabled: %t, Host: %s, Port: %d", config.Enabled, config.CodeProjectAIHost, config.CodeProjectAIPort))
@@ -677,11 +677,11 @@ func GetAvailableObjects() []string {
 
 // FNDTaskSchedulerConfiguration represents the task scheduler configuration
 type FNDTaskSchedulerConfiguration struct {
-	EventProcessingInterval    int `json:"eventProcessingInterval"`    // in minutes
-	PendingFacesInterval       int `json:"pendingFacesInterval"`       // in hours
-	LogPurgeInterval           int `json:"logPurgeInterval"`           // in hours
-	TaskHistoryRetentionDays   int `json:"taskHistoryRetentionDays"`   // in days
-	EnableEventQueue           bool `json:"enableEventQueue"`          // enable/disable event queue processing
-	MaxEventQueueSize          int  `json:"maxEventQueueSize"`         // maximum events in queue
-	MaxConcurrentTasks         int  `json:"maxConcurrentTasks"`        // maximum concurrent tasks
+	EventProcessingInterval  int  `json:"eventProcessingInterval"`  // in minutes
+	PendingFacesInterval     int  `json:"pendingFacesInterval"`     // in hours
+	LogPurgeInterval         int  `json:"logPurgeInterval"`         // in hours
+	TaskHistoryRetentionDays int  `json:"taskHistoryRetentionDays"` // in days
+	EnableEventQueue         bool `json:"enableEventQueue"`         // enable/disable event queue processing
+	MaxEventQueueSize        int  `json:"maxEventQueueSize"`        // maximum events in queue
+	MaxConcurrentTasks       int  `json:"maxConcurrentTasks"`       // maximum concurrent tasks
 }

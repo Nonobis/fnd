@@ -193,11 +193,11 @@
                             </div>
                             <div class="field">
                                 <div class="control">
-                                    <button class="button is-info" onclick="sendTestNotification()">
+                                    <button class="button is-info" onclick="testNotification()">
                                         <span class="icon">
-                                            <i class="fas fa-paper-plane"></i>
+                                            <i class="fas fa-bell"></i>
                                         </span>
-                                        <span>Send Test Notification</span>
+                                        <span>Test Notification</span>
                                     </button>
                                 </div>
                             </div>
@@ -517,7 +517,7 @@ function handleTabClick(e) {
     }
 }
 
-function sendTestNotification() {
+function testNotification() {
     const message = document.getElementById('test-message').value || '🚨 Test notification from FND\n\nThis is a test message to verify your notification configuration is working correctly.';
     const statusDiv = document.getElementById('notification-status');
     

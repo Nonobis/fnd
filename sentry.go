@@ -178,14 +178,23 @@ func AddSentryBreadcrumb(message, category string, level sentry.Level, data map[
 
 // GetSentryDSNFromEnv gets Sentry DSN from environment variable
 func GetSentryDSNFromEnv() string {
-	return os.Getenv("SENTRY_DSN")
+	dsn := os.Getenv("SENTRY_DSN")
+	if dsn != "" {
+		LogInfo("SENTRY", "DSN found in environment variable", "SENTRY_DSN is set")
+	} else {
+		LogDebug("SENTRY", "DSN not found in environment variable", "SENTRY_DSN is not set")
+	}
+	return dsn
 }
 
 // GetSentryEnvironmentFromEnv gets Sentry environment from environment variable
 func GetSentryEnvironmentFromEnv() string {
 	env := os.Getenv("SENTRY_ENVIRONMENT")
-	if env == "" {
+	if env != "" {
+		LogInfo("SENTRY", "Environment found in environment variable", fmt.Sprintf("SENTRY_ENVIRONMENT=%s", env))
+	} else {
 		env = "production"
+		LogDebug("SENTRY", "Environment not found in environment variable, using default", fmt.Sprintf("SENTRY_ENVIRONMENT=%s", env))
 	}
 	return env
 }

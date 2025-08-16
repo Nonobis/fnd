@@ -966,6 +966,23 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		web.sendTestNotificationToSink("Apprise", c)
 	})
 
+	// Get current log configuration for debugging
+	r.GET("/api/logs/current-config", func(c *gin.Context) {
+		logger := GetLogger()
+		if logger == nil {
+			c.JSON(500, gin.H{"error": "Logger not initialized"})
+			return
+		}
+
+		config := logger.GetConfiguration()
+		c.JSON(200, gin.H{
+			"logLevel":      config.LogLevel,
+			"maxEntries":    config.MaxEntries,
+			"enableFile":    config.EnableFile,
+			"enableConsole": config.EnableConsole,
+		})
+	})
+
 	// Notification Templates routes
 	r.GET("/htmx/notification_templates.html", func(c *gin.Context) {
 		web.handleNotificationTemplatesPage(c)

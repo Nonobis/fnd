@@ -323,15 +323,15 @@ func (l *Logger) shouldLog(level string) bool {
 	// Log levels: DEBUG=0, INFO=1, WARN=2, ERROR=3
 	// We want to show logs with level >= configured level
 	// So DEBUG(0) shows all, INFO(1) shows INFO+, WARN(2) shows WARN+, ERROR(3) shows only ERROR
-	
+
 	shouldLog := levelValue >= l.config.LogLevel
-	
+
 	// Debug output for troubleshooting
 	if level == "DEBUG" {
-		fmt.Printf("[DEBUG] shouldLog: level=%s, levelValue=%d, configLevel=%d, shouldLog=%t\n", 
+		fmt.Printf("[DEBUG] shouldLog: level=%s, levelValue=%d, configLevel=%d, shouldLog=%t\n",
 			level, levelValue, l.config.LogLevel, shouldLog)
 	}
-	
+
 	return shouldLog
 }
 
@@ -538,20 +538,37 @@ func (l *Logger) UpdateConfiguration(config *FNDLoggingConfiguration) {
 	defer l.mutex.Unlock()
 
 	oldLevel := l.config.LogLevel
+	oldMaxEntries := l.config.MaxEntries
+
+	fmt.Printf("[%s] %s - %s: %s\n",
+		time.Now().Format("15:04:05"),
+		"INFO",
+		"LOGGER",
+		fmt.Sprintf("Configuration update requested - Old: Level=%d, MaxEntries=%d | New: Level=%d, MaxEntries=%d",
+			oldLevel, oldMaxEntries, config.LogLevel, config.MaxEntries))
+
 	l.config = config
-	
+
 	// Log the configuration change
 	fmt.Printf("[%s] %s - %s: %s\n",
 		time.Now().Format("15:04:05"),
 		"INFO",
 		"LOGGER",
-		fmt.Sprintf("Log level changed from %d to %d", oldLevel, config.LogLevel))
+		fmt.Sprintf("Configuration updated - Level changed from %d to %d, MaxEntries changed from %d to %d",
+			oldLevel, config.LogLevel, oldMaxEntries, config.MaxEntries))
+
+	// Test if the new level is working
+	fmt.Printf("[%s] %s - %s: %s\n",
+		time.Now().Format("15:04:05"),
+		"DEBUG",
+		"LOGGER",
+		"This is a test DEBUG message after configuration update")
 }
 
-// GetConfiguration returns the current logger configuration
+// GetConfiguration returns a copy of the current logger configuration
 func (l *Logger) GetConfiguration() *FNDLoggingConfiguration {
-	l.mutex.RLock()
-	defer l.mutex.RUnlock()
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
 	// Return a copy to prevent external modification
 	configCopy := *l.config

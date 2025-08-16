@@ -49,15 +49,27 @@ func main() {
 	}
 
 	// Initialize Sentry (before other components)
+	// Check for environment variables first
+	sentryDSN := GetSentryDSNFromEnv()
+	sentryEnvironment := GetSentryEnvironmentFromEnv()
+
+	// Enable Sentry if DSN is provided via environment variable, regardless of config
+	if sentryDSN != "" {
+		conf.Sentry.Enabled = true
+		conf.Sentry.DSN = sentryDSN
+		conf.Sentry.Environment = sentryEnvironment
+		LogInfo("MAIN", "Sentry enabled via environment variables", fmt.Sprintf("Environment: %s", sentryEnvironment))
+	}
+
 	if conf.Sentry.Enabled {
 		// Try to get DSN from environment if not set in config
 		if conf.Sentry.DSN == "" {
-			conf.Sentry.DSN = GetSentryDSNFromEnv()
+			conf.Sentry.DSN = sentryDSN
 		}
 
 		// Try to get environment from environment variable
 		if conf.Sentry.Environment == "" {
-			conf.Sentry.Environment = GetSentryEnvironmentFromEnv()
+			conf.Sentry.Environment = sentryEnvironment
 		}
 
 		err := InitializeSentry(conf.Sentry)
@@ -66,6 +78,8 @@ func main() {
 		} else {
 			defer CloseSentry()
 		}
+	} else {
+		LogInfo("MAIN", "Sentry disabled", "No DSN provided in config or environment variables")
 	}
 
 	// Set up panic handler for Sentry
