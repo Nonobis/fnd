@@ -1,3 +1,28 @@
+## Version 0.1.24 - 16.08.2025
+
+### Changes since v0.1.23
+
+- fix : sentry support
+- Add debug logging to troubleshoot log level configuration issues
+
+### 🐳 Docker Image
+
+This release is available as a Docker image:
+
+**Main image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.24
+```
+
+**Latest image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Direct links:**
+- 📦 [GitHub Package](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.24](ghcr.io/Nonobis/fnd:0.1.24)
+
 ## Version 0.1.23 - 16.08.2025
 
 ### Changes since v0.1.22
