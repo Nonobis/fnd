@@ -36,11 +36,11 @@ func RunBackgroundTask(api *FNDFrigateApi,
 func (bg *BackgroundTask) task() {
 	ticker := time.NewTicker(10 * time.Second)
 	tickerLong := time.NewTicker(120 * time.Minute)
-	
+
 	// Initialize pending faces auto-process ticker
 	var pendingFacesTicker *time.Ticker
 	var pendingFacesTickerDuration time.Duration
-	
+
 	// Check if pending faces auto-process is enabled
 	if bg.conf.FacialRecognition.PendingFacesAutoProcess && bg.conf.FacialRecognition.Enabled {
 		intervalHours := bg.conf.FacialRecognition.PendingFacesInterval
@@ -54,7 +54,7 @@ func (bg *BackgroundTask) task() {
 	} else {
 		LogInfo("BACKGROUND", "Pending faces auto-process disabled", fmt.Sprintf("AutoProcess: %t, FacialRecognition: %t", bg.conf.FacialRecognition.PendingFacesAutoProcess, bg.conf.FacialRecognition.Enabled))
 	}
-	
+
 	defer ticker.Stop()
 	defer tickerLong.Stop()
 	if pendingFacesTicker != nil {
@@ -103,48 +103,48 @@ func (bg *BackgroundTask) task() {
 // processPendingFacesAutomatically processes all pending face events automatically
 func (bg *BackgroundTask) processPendingFacesAutomatically() {
 	LogInfo("BACKGROUND", "Starting automatic pending faces processing", "")
-	
+
 	// Check if facial recognition is enabled and pending faces manager is available
 	if !bg.conf.FacialRecognition.Enabled {
 		LogWarn("BACKGROUND", "Facial recognition not enabled, skipping pending faces processing", "")
 		return
 	}
-	
+
 	if bg.notify.pendingFacesManager == nil {
 		LogWarn("BACKGROUND", "Pending faces manager not available, skipping pending faces processing", "")
 		return
 	}
-	
+
 	if bg.notify.facialRecognitionService == nil {
 		LogWarn("BACKGROUND", "Facial recognition service not available, skipping pending faces processing", "")
 		return
 	}
-	
+
 	LogInfo("BACKGROUND", "Processing pending faces automatically", fmt.Sprintf("Interval: %d hours", bg.conf.FacialRecognition.PendingFacesInterval))
-	
+
 	// Get current stats before processing
 	stats := bg.notify.pendingFacesManager.GetPendingEventsStats()
 	pendingCount := stats["pending"].(int)
-	
+
 	if pendingCount == 0 {
 		LogInfo("BACKGROUND", "No pending events to process", "")
 		return
 	}
-	
+
 	LogInfo("BACKGROUND", "Found pending events for automatic processing", fmt.Sprintf("Count: %d", pendingCount))
-	
+
 	// Process all pending events
 	successCount, errorCount, err := bg.notify.pendingFacesManager.ProcessAllPendingEventsWithAI(bg.notify.facialRecognitionService)
-	
+
 	if err != nil {
 		LogError("BACKGROUND", "Automatic pending faces processing failed", err.Error())
 	} else {
 		LogInfo("BACKGROUND", "Automatic pending faces processing completed", fmt.Sprintf("Success: %d, Errors: %d, Total: %d", successCount, errorCount, pendingCount))
-		
+
 		// Get updated stats after processing
 		updatedStats := bg.notify.pendingFacesManager.GetPendingEventsStats()
 		remainingPending := updatedStats["pending"].(int)
-		
+
 		LogInfo("BACKGROUND", "Pending faces processing summary", fmt.Sprintf("Processed: %d, Remaining: %d, Errors: %d", successCount, remainingPending, errorCount))
 	}
 }

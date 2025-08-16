@@ -27,13 +27,13 @@ func NewFNDFrigateEventManager(api *FNDFrigateApi, fConf *FNDFrigateConfiguratio
 		lastNotificationSent: time.Now(),
 		fConf:                fConf,
 	}
-	
+
 	// Initialize pending faces manager if facial recognition config is available
 	if facialRecognitionConfig != nil {
 		manager.pendingFacesManager = NewPendingFacesManager(facialRecognitionConfig)
 		LogInfo("EVENT", "Pending faces manager initialized", "")
 	}
-	
+
 	return manager
 }
 
