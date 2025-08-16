@@ -19,9 +19,11 @@ const (
 	LOG_FILE_NAME   = "fnd.log"
 	LOG_BUFFER_SIZE = 100
 	// New constants for improved performance
-	MEMORY_CACHE_SIZE = 1000 // Keep only last 1000 entries in memory
-	ROTATION_SIZE_MB  = 10   // Rotate log file when it reaches 10MB
-	MAX_LOG_FILES     = 5    // Keep only 5 rotated log files
+	INDEX_CACHE_SIZE = 10000 // Keep index of last 10k entries
+	ROTATION_SIZE_MB = 10    // Rotate log file when it reaches 10MB
+	MAX_LOG_FILES    = 5     // Keep only 5 rotated log files
+	// Cache settings
+	RECENT_LOGS_CACHE_SIZE = 100 // Cache only last 100 entries in memory
 )
 
 // LogEntry represents a single log entry
@@ -34,10 +36,21 @@ type LogEntry struct {
 	ID        string    `json:"id"`
 }
 
+// LogIndex represents a lightweight index entry for efficient searching
+type LogIndex struct {
+	Timestamp  time.Time `json:"timestamp"`
+	FileOffset int64     `json:"fileOffset"`
+	Level      string    `json:"level"`
+	Component  string    `json:"component"`
+	LineLength int       `json:"lineLength"`
+	LineNumber int       `json:"lineNumber"`
+}
+
 // Logger manages application logging with file storage and live updates
 type Logger struct {
 	logFile        *os.File
-	entries        []LogEntry
+	index          []LogIndex // Lightweight index instead of full entries
+	recentCache    []LogEntry // Small cache for recent entries only
 	liveChannel    chan LogEntry
 	subscribers    map[string]chan LogEntry
 	filePath       string
@@ -53,11 +66,15 @@ type Logger struct {
 	cancel       context.CancelFunc
 	shutdownWg   sync.WaitGroup
 	lastRotation time.Time
+	// Index management
+	indexMutex    sync.RWMutex
+	lastIndexSize int64
 }
 
 // LogStats represents logging statistics
 type LogStats struct {
-	EntriesInMemory   int    `json:"entriesInMemory"`
+	IndexEntries      int    `json:"indexEntries"`
+	RecentCacheSize   int    `json:"recentCacheSize"`
 	FileSizeHuman     string `json:"fileSizeHuman"`
 	ActiveSubscribers int    `json:"activeSubscribers"`
 	MemoryUsageHuman  string `json:"memoryUsageHuman"`
@@ -74,7 +91,8 @@ func InitializeLogger(config *FNDLoggingConfiguration) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	logger := &Logger{
-		entries:      make([]LogEntry, 0, MEMORY_CACHE_SIZE),
+		index:        make([]LogIndex, 0, INDEX_CACHE_SIZE),
+		recentCache:  make([]LogEntry, 0, RECENT_LOGS_CACHE_SIZE),
 		liveChannel:  make(chan LogEntry, LOG_BUFFER_SIZE),
 		subscribers:  make(map[string]chan LogEntry),
 		filePath:     logPath,
@@ -101,8 +119,8 @@ func InitializeLogger(config *FNDLoggingConfiguration) error {
 		logger.fileSize = fileInfo.Size()
 	}
 
-	// Load recent logs only (not all)
-	logger.loadRecentLogs()
+	// Build index from existing log file
+	logger.buildIndex()
 
 	// Start background goroutines
 	logger.shutdownWg.Add(2)
@@ -112,17 +130,20 @@ func InitializeLogger(config *FNDLoggingConfiguration) error {
 	appLogger = logger
 
 	// Log initialization
-	LogInfo(COMPONENT_SYSTEM, "Logger initialized", fmt.Sprintf("Log file: %s, Memory cache: %d entries", logPath, MEMORY_CACHE_SIZE))
+	LogInfo(COMPONENT_SYSTEM, "Logger initialized", fmt.Sprintf("Log file: %s, Index entries: %d", logPath, len(logger.index)))
 
 	return nil
 }
 
-// loadRecentLogs reads only recent log entries from file (last 1000)
-func (l *Logger) loadRecentLogs() {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
+// buildIndex creates a lightweight index of log entries from file
+func (l *Logger) buildIndex() {
+	l.indexMutex.Lock()
+	defer l.indexMutex.Unlock()
 
-	// Try to read recent log entries from file
+	// Clear existing index
+	l.index = make([]LogIndex, 0, INDEX_CACHE_SIZE)
+
+	// Try to read log entries from file and build index
 	file, err := os.Open(l.filePath)
 	if err != nil {
 		// File doesn't exist yet, which is normal for new installations
@@ -130,26 +151,74 @@ func (l *Logger) loadRecentLogs() {
 	}
 	defer file.Close()
 
-	var allEntries []LogEntry
+	var offset int64
+	lineNumber := 0
 	scanner := bufio.NewScanner(file)
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line != "" {
 			var entry LogEntry
 			if err := json.Unmarshal([]byte(line), &entry); err == nil {
-				allEntries = append(allEntries, entry)
+				// Create lightweight index entry
+				indexEntry := LogIndex{
+					Timestamp:  entry.Timestamp,
+					FileOffset: offset,
+					Level:      entry.Level,
+					Component:  entry.Component,
+					LineLength: len(line),
+					LineNumber: lineNumber,
+				}
+				l.index = append(l.index, indexEntry)
+
+				// Keep only recent entries in memory cache
+				if len(l.recentCache) < RECENT_LOGS_CACHE_SIZE {
+					l.recentCache = append(l.recentCache, entry)
+				} else {
+					// Replace oldest entry
+					l.recentCache = append(l.recentCache[1:], entry)
+				}
+			}
+		}
+		offset += int64(len(line) + 1) // +1 for newline
+		lineNumber++
+	}
+
+	// Limit index size to prevent memory bloat
+	if len(l.index) > INDEX_CACHE_SIZE {
+		l.index = l.index[len(l.index)-INDEX_CACHE_SIZE:]
+	}
+
+	l.lastIndexSize = l.fileSize
+	LogInfo(COMPONENT_SYSTEM, "Log index built", fmt.Sprintf("Index entries: %d, Recent cache: %d", len(l.index), len(l.recentCache)))
+}
+
+// readLogEntryAtOffset reads a specific log entry from file at given offset
+func (l *Logger) readLogEntryAtOffset(offset int64) (*LogEntry, error) {
+	file, err := os.Open(l.filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	// Seek to offset
+	if _, err := file.Seek(offset, 0); err != nil {
+		return nil, err
+	}
+
+	// Read one line
+	scanner := bufio.NewScanner(file)
+	if scanner.Scan() {
+		line := scanner.Text()
+		if line != "" {
+			var entry LogEntry
+			if err := json.Unmarshal([]byte(line), &entry); err == nil {
+				return &entry, nil
 			}
 		}
 	}
 
-	// Keep only the last MEMORY_CACHE_SIZE entries
-	if len(allEntries) > MEMORY_CACHE_SIZE {
-		l.entries = allEntries[len(allEntries)-MEMORY_CACHE_SIZE:]
-	} else {
-		l.entries = allEntries
-	}
-
-	LogInfo(COMPONENT_SYSTEM, "Recent logs loaded", fmt.Sprintf("Loaded %d entries from file", len(l.entries)))
+	return nil, fmt.Errorf("failed to read log entry at offset %d", offset)
 }
 
 // rotationWorker handles log file rotation in background
@@ -211,6 +280,9 @@ func (l *Logger) rotateLogFile() {
 
 	// Clean old rotated files
 	l.cleanOldLogFiles()
+
+	// Rebuild index for new file
+	l.buildIndex()
 
 	LogInfo(COMPONENT_SYSTEM, "Log file rotated", fmt.Sprintf("New file: %s", l.filePath))
 }
@@ -315,10 +387,10 @@ func (l *Logger) addLogEntry(level, component, message, details string) {
 		ID:        fmt.Sprintf("%d", time.Now().UnixNano()),
 	}
 
-	// Add to memory (limited cache)
-	l.entries = append(l.entries, entry)
-	if len(l.entries) > MEMORY_CACHE_SIZE {
-		l.entries = l.entries[1:]
+	// Add to recent cache (limited size)
+	l.recentCache = append(l.recentCache, entry)
+	if len(l.recentCache) > RECENT_LOGS_CACHE_SIZE {
+		l.recentCache = l.recentCache[1:]
 	}
 
 	// Write to file if enabled
@@ -327,6 +399,24 @@ func (l *Logger) addLogEntry(level, component, message, details string) {
 		written, _ := l.logFile.WriteString(string(jsonData) + "\n")
 		l.logFile.Sync()
 		l.fileSize += int64(written)
+
+		// Add to index
+		l.indexMutex.Lock()
+		indexEntry := LogIndex{
+			Timestamp:  entry.Timestamp,
+			FileOffset: l.fileSize - int64(written+1), // +1 for newline
+			Level:      entry.Level,
+			Component:  entry.Component,
+			LineLength: len(jsonData),
+			LineNumber: len(l.index),
+		}
+		l.index = append(l.index, indexEntry)
+
+		// Limit index size
+		if len(l.index) > INDEX_CACHE_SIZE {
+			l.index = l.index[1:]
+		}
+		l.indexMutex.Unlock()
 	}
 
 	// Write to console if enabled
@@ -375,97 +465,92 @@ func (l *Logger) getLevelValue(level string) int {
 	}
 }
 
-// GetRecentLogs returns recent log entries from memory cache
+// GetRecentLogs returns recent log entries from cache
 func (l *Logger) GetRecentLogs(limit int) []LogEntry {
 	l.mutex.RLock()
 	defer l.mutex.RUnlock()
 
-	if limit <= 0 || limit > len(l.entries) {
-		limit = len(l.entries)
+	if limit <= 0 || limit > len(l.recentCache) {
+		limit = len(l.recentCache)
 	}
 
-	start := len(l.entries) - limit
+	start := len(l.recentCache) - limit
 	if start < 0 {
 		start = 0
 	}
 
 	result := make([]LogEntry, limit)
-	copy(result, l.entries[start:])
+	copy(result, l.recentCache[start:])
 	return result
 }
 
-// GetLogsByLevel returns logs filtered by level (from memory cache only)
+// GetLogsByLevel returns logs filtered by level using index
 func (l *Logger) GetLogsByLevel(level string, limit int) []LogEntry {
-	l.mutex.RLock()
-	defer l.mutex.RUnlock()
+	l.indexMutex.RLock()
+	defer l.indexMutex.RUnlock()
 
-	var filtered []LogEntry
-	for i := len(l.entries) - 1; i >= 0 && len(filtered) < limit; i-- {
-		if l.entries[i].Level == level {
-			filtered = append([]LogEntry{l.entries[i]}, filtered...)
-		}
-	}
-
-	return filtered
-}
-
-// GetLogsByComponent returns logs filtered by component (from memory cache only)
-func (l *Logger) GetLogsByComponent(component string, limit int) []LogEntry {
-	l.mutex.RLock()
-	defer l.mutex.RUnlock()
-
-	var filtered []LogEntry
-	for i := len(l.entries) - 1; i >= 0 && len(filtered) < limit; i-- {
-		if l.entries[i].Component == component {
-			filtered = append([]LogEntry{l.entries[i]}, filtered...)
-		}
-	}
-
-	return filtered
-}
-
-// SearchLogs searches logs in file (for older entries not in memory)
-func (l *Logger) SearchLogs(query string, level string, component string, limit int) []LogEntry {
 	var results []LogEntry
+	count := 0
 
-	// Search in memory first
-	l.mutex.RLock()
-	for i := len(l.entries) - 1; i >= 0 && len(results) < limit; i-- {
-		entry := l.entries[i]
-		if l.matchesSearch(entry, query, level, component) {
-			results = append([]LogEntry{entry}, results...)
+	// Search from most recent to oldest
+	for i := len(l.index) - 1; i >= 0 && count < limit; i-- {
+		if l.index[i].Level == level {
+			if entry, err := l.readLogEntryAtOffset(l.index[i].FileOffset); err == nil {
+				results = append([]LogEntry{*entry}, results...)
+				count++
+			}
 		}
-	}
-	l.mutex.RUnlock()
-
-	// If we need more results, search in file
-	if len(results) < limit {
-		fileResults := l.searchInFile(query, level, component, limit-len(results))
-		results = append(fileResults, results...)
 	}
 
 	return results
 }
 
-// searchInFile searches logs in the log file
-func (l *Logger) searchInFile(query string, level string, component string, limit int) []LogEntry {
+// GetLogsByComponent returns logs filtered by component using index
+func (l *Logger) GetLogsByComponent(component string, limit int) []LogEntry {
+	l.indexMutex.RLock()
+	defer l.indexMutex.RUnlock()
+
 	var results []LogEntry
+	count := 0
 
-	file, err := os.Open(l.filePath)
-	if err != nil {
-		return results
+	// Search from most recent to oldest
+	for i := len(l.index) - 1; i >= 0 && count < limit; i-- {
+		if l.index[i].Component == component {
+			if entry, err := l.readLogEntryAtOffset(l.index[i].FileOffset); err == nil {
+				results = append([]LogEntry{*entry}, results...)
+				count++
+			}
+		}
 	}
-	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() && len(results) < limit {
-		line := scanner.Text()
-		if line != "" {
-			var entry LogEntry
-			if err := json.Unmarshal([]byte(line), &entry); err == nil {
-				if l.matchesSearch(entry, query, level, component) {
-					results = append(results, entry)
-				}
+	return results
+}
+
+// SearchLogs searches logs using index for efficient filtering
+func (l *Logger) SearchLogs(query string, level string, component string, limit int) []LogEntry {
+	l.indexMutex.RLock()
+	defer l.indexMutex.RUnlock()
+
+	var results []LogEntry
+	count := 0
+
+	// Search from most recent to oldest
+	for i := len(l.index) - 1; i >= 0 && count < limit; i-- {
+		indexEntry := l.index[i]
+
+		// Apply filters
+		if level != "" && indexEntry.Level != level {
+			continue
+		}
+		if component != "" && indexEntry.Component != component {
+			continue
+		}
+
+		// Read entry and check query
+		if entry, err := l.readLogEntryAtOffset(indexEntry.FileOffset); err == nil {
+			if query == "" || l.matchesSearch(*entry, query) {
+				results = append([]LogEntry{*entry}, results...)
+				count++
 			}
 		}
 	}
@@ -474,35 +559,26 @@ func (l *Logger) searchInFile(query string, level string, component string, limi
 }
 
 // matchesSearch checks if a log entry matches search criteria
-func (l *Logger) matchesSearch(entry LogEntry, query string, level string, component string) bool {
-	// Check level filter
-	if level != "" && entry.Level != level {
-		return false
+func (l *Logger) matchesSearch(entry LogEntry, query string) bool {
+	if query == "" {
+		return true
 	}
 
-	// Check component filter
-	if component != "" && entry.Component != component {
-		return false
-	}
+	queryLower := strings.ToLower(query)
+	messageLower := strings.ToLower(entry.Message)
+	detailsLower := strings.ToLower(entry.Details)
 
-	// Check query (search in message and details)
-	if query != "" {
-		queryLower := strings.ToLower(query)
-		messageLower := strings.ToLower(entry.Message)
-		detailsLower := strings.ToLower(entry.Details)
-
-		if !strings.Contains(messageLower, queryLower) && !strings.Contains(detailsLower, queryLower) {
-			return false
-		}
-	}
-
-	return true
+	return strings.Contains(messageLower, queryLower) || strings.Contains(detailsLower, queryLower)
 }
 
 // GetLogStats returns comprehensive logging statistics
 func (l *Logger) GetLogStats() LogStats {
+	l.indexMutex.RLock()
+	indexEntries := len(l.index)
+	l.indexMutex.RUnlock()
+
 	l.mutex.RLock()
-	entriesInMemory := len(l.entries)
+	recentCacheSize := len(l.recentCache)
 	l.mutex.RUnlock()
 
 	l.subscribeMutex.RLock()
@@ -524,8 +600,8 @@ func (l *Logger) GetLogStats() LogStats {
 		fileSizeHuman = "N/A"
 	}
 
-	// Estimate memory usage
-	estimatedSize := entriesInMemory * 200 // rough estimate per log entry
+	// Estimate memory usage (much smaller now)
+	estimatedSize := indexEntries*50 + recentCacheSize*200 // Index entries are much smaller
 	var memoryUsageHuman string
 	if estimatedSize < 1024 {
 		memoryUsageHuman = fmt.Sprintf("%d B", estimatedSize)
@@ -547,7 +623,8 @@ func (l *Logger) GetLogStats() LogStats {
 	}
 
 	return LogStats{
-		EntriesInMemory:   entriesInMemory,
+		IndexEntries:      indexEntries,
+		RecentCacheSize:   recentCacheSize,
 		FileSizeHuman:     fileSizeHuman,
 		ActiveSubscribers: activeSubscribers,
 		MemoryUsageHuman:  memoryUsageHuman,

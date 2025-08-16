@@ -783,11 +783,13 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 			return
 		}
 
-		// Clear in-memory logs (we keep the file for safety)
+		// Clear recent cache and rebuild index (we keep the file for safety)
 		logger.mutex.Lock()
-		config := logger.config
-		logger.entries = make([]LogEntry, 0, config.MaxEntries)
+		logger.recentCache = make([]LogEntry, 0, RECENT_LOGS_CACHE_SIZE)
 		logger.mutex.Unlock()
+
+		// Rebuild index to clear old entries
+		logger.buildIndex()
 
 		LogInfo("WEB", "Logs cleared via web interface", "")
 		c.JSON(200, gin.H{"message": "Logs cleared successfully"})
