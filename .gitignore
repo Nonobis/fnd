@@ -13,3 +13,4 @@ fnd*.tar
 **/__debug_bin.*
 ./fnd.exe
 fnd.exe
+task_history.json

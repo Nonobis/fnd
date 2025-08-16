@@ -2474,16 +2474,22 @@ func (web *FNDWebServer) handleTaskSchedulerExecute(c *gin.Context) {
 	}
 
 	if !validTypes[taskType] {
-		c.JSON(400, gin.H{"error": "Invalid task type"})
+		errorHTML := fmt.Sprintf(`<div class="notification is-danger is-light">
+			<span class="icon"><i class="fas fa-times-circle"></i></span>
+			<span>Invalid task type: %s</span>
+		</div>`, taskType)
+		c.Data(400, "text/html", []byte(errorHTML))
 		return
 	}
 
 	// For now, return success until we integrate task scheduler properly
-	c.JSON(200, gin.H{
-		"message": "Task execution triggered",
-		"taskType": taskType,
-		"executionId": fmt.Sprintf("%s_%d", taskType, time.Now().Unix()),
-	})
+	executionId := fmt.Sprintf("%s_%d", taskType, time.Now().Unix())
+	successHTML := fmt.Sprintf(`<div class="notification is-success is-light">
+		<span class="icon"><i class="fas fa-check-circle"></i></span>
+		<span>Task execution triggered: %s (ID: %s)</span>
+		<button class="delete" onclick="this.parentElement.remove()"></button>
+	</div>`, taskType, executionId)
+	c.Data(200, "text/html", []byte(successHTML))
 }
 
 func (web *FNDWebServer) handleTaskSchedulerConfig(c *gin.Context) {
