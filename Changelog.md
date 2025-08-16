@@ -1,3 +1,31 @@
+## Version 0.1.22 - 16.08.2025
+
+### Changes since v0.1.20
+
+- Merge branch 'main' of https://github.com/Nonobis/fnd
+- Fix MQTT test event to use real camera name for snapshot requests
+- chore: bump version to 0.1.21 and update changelog
+- Fix log settings API endpoint missing - add /api/logs/settings endpoint for JavaScript form submission
+- fix: afficher les détails complets de l'événement de test MQTT dans l'interface utilisateur
+
+### 🐳 Docker Image
+
+This release is available as a Docker image:
+
+**Main image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.22
+```
+
+**Latest image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Direct links:**
+- 📦 [GitHub Package](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.22](ghcr.io/Nonobis/fnd:0.1.22)
+
 ## Version 0.1.21 - 16.08.2025
 
 ### Changes since v0.1.20
