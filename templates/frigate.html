@@ -250,6 +250,45 @@
                                 </div>
                             </div>
 
+                            <!-- MQTT Advanced Settings -->
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="label">
+                                        <span class="icon-text">
+                                            <span class="icon">
+                                                <i class="fas fa-tag"></i>
+                                            </span>
+                                            <span>Topic Prefix</span>
+                                        </span>
+                                    </label>
+                                    <div class="control has-icons-left">
+                                        <input class="input is-medium" type="text" name="mqttprefix" placeholder="{{ .Conf.MqttTopicPrefix }}" value="{{ .Conf.MqttTopicPrefix }}">
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-tag"></i>
+                                        </span>
+                                    </div>
+                                    <p class="help">MQTT topic prefix (default: frigate)</p>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="label">
+                                        <span class="icon-text">
+                                            <span class="icon">
+                                                <i class="fas fa-id-card"></i>
+                                            </span>
+                                            <span>Client ID</span>
+                                        </span>
+                                    </label>
+                                    <div class="control has-icons-left">
+                                        <input class="input is-medium" type="text" name="mqttclientid" placeholder="{{ .Conf.MqttClientID }}" value="{{ .Conf.MqttClientID }}">
+                                        <span class="icon is-small is-left">
+                                            <i class="fas fa-id-card"></i>
+                                        </span>
+                                    </div>
+                                    <p class="help">MQTT client identifier (default: fnd)</p>
+                                </div>
+                            </div>
+
                             <div class="form-actions">
                                 <button class="button is-primary is-medium is-rounded">
                                     <span class="icon">

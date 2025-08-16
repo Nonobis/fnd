@@ -430,6 +430,18 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 				}
 				continue
 			}
+			if key == "mqttprefix" {
+				if value[0] != "" {
+					conf.MqttTopicPrefix = value[0]
+				}
+				continue
+			}
+			if key == "mqttclientid" {
+				if value[0] != "" {
+					conf.MqttClientID = value[0]
+				}
+				continue
+			}
 		}
 
 		// Save configuration to disk immediately
