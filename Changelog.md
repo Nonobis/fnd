@@ -1,3 +1,34 @@
+## Version 0.1.26 - 16.08.2025
+
+### Changes since v0.1.24
+
+- Merge branch 'main' of https://github.com/Nonobis/fnd
+- feat: enhance Sentry SDK integration for comprehensive error tracking across UI, code, and services
+- feat : consoliding process
+- Correction des erreurs de compilation et amélioration de la robustesse
+- chore: bump version to 0.1.25 and update changelog
+- remove todo
+- Merge branch 'main' of https://github.com/Nonobis/fnd
+- fix
+
+### 🐳 Docker Image
+
+This release is available as a Docker image:
+
+**Main image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.26
+```
+
+**Latest image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Direct links:**
+- 📦 [GitHub Package](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.26](ghcr.io/Nonobis/fnd:0.1.26)
+
 ## Version 0.1.25 - 16.08.2025
 
 ### Changes since v0.1.24
