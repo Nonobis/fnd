@@ -141,48 +141,34 @@ jobs:
         # Get the previous tag
         PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
         
-        if [ -z "$PREV_TAG" ]; then
-          # First release
-          echo "## Version ${{ steps.new_version.outputs.new_version }} - $(date +'%d.%m.%Y')" > RELEASE_NOTES.md
-          echo "" >> RELEASE_NOTES.md
-          echo "🎉 **Première release de FND (Frigate Notification Daemon)**" >> RELEASE_NOTES.md
-          echo "" >> RELEASE_NOTES.md
-          echo "### Fonctionnalités principales" >> RELEASE_NOTES.md
-          echo "- Daemon de notification pour Frigate" >> RELEASE_NOTES.md
-          echo "- Support des notifications Telegram" >> RELEASE_NOTES.md
-          echo "- Support des notifications Apprise" >> RELEASE_NOTES.md
-          echo "- Interface web de configuration" >> RELEASE_NOTES.md
-          echo "" >> RELEASE_NOTES.md
-        else
-          # Generate changelog from commits
-          echo "## Version ${{ steps.new_version.outputs.new_version }} - $(date +'%d.%m.%Y')" > RELEASE_NOTES.md
-          echo "" >> RELEASE_NOTES.md
-          echo "### Changements depuis $PREV_TAG" >> RELEASE_NOTES.md
-          echo "" >> RELEASE_NOTES.md
-          
-          # Get commits since last tag
-          git log --pretty=format:"- %s" $PREV_TAG..HEAD >> RELEASE_NOTES.md
-          echo "" >> RELEASE_NOTES.md
-        fi
+        # Generate changelog from commits
+        echo "## Version ${{ steps.new_version.outputs.new_version }} - $(date +'%d.%m.%Y')" > RELEASE_NOTES.md
+        echo "" >> RELEASE_NOTES.md
+        echo "### Changes since $PREV_TAG" >> RELEASE_NOTES.md
+        echo "" >> RELEASE_NOTES.md
         
+        # Get commits since last tag
+        git log --pretty=format:"- %s" $PREV_TAG..HEAD >> RELEASE_NOTES.md
+        echo "" >> RELEASE_NOTES.md
+      
         # Add Docker image info
         echo "" >> RELEASE_NOTES.md
-        echo "### 🐳 Image Docker" >> RELEASE_NOTES.md
+        echo "### 🐳 Docker Image" >> RELEASE_NOTES.md
         echo "" >> RELEASE_NOTES.md
-        echo "Cette release est disponible sous forme d'image Docker :" >> RELEASE_NOTES.md
+        echo "This release is available as a Docker image:" >> RELEASE_NOTES.md
         echo "" >> RELEASE_NOTES.md
-        echo "**Image principale :**" >> RELEASE_NOTES.md
+        echo "**Main image:**" >> RELEASE_NOTES.md
         echo '```bash' >> RELEASE_NOTES.md
         echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.new_version.outputs.new_version }}" >> RELEASE_NOTES.md
         echo '```' >> RELEASE_NOTES.md
         echo "" >> RELEASE_NOTES.md
-        echo "**Image latest :**" >> RELEASE_NOTES.md
+        echo "**Latest image:**" >> RELEASE_NOTES.md
         echo '```bash' >> RELEASE_NOTES.md
         echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> RELEASE_NOTES.md
         echo '```' >> RELEASE_NOTES.md
         echo "" >> RELEASE_NOTES.md
-        echo "**Liens directs :**" >> RELEASE_NOTES.md
-        echo "- 📦 [Package GitHub](${{ github.server_url }}/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }})" >> RELEASE_NOTES.md
+        echo "**Direct links:**" >> RELEASE_NOTES.md
+        echo "- 📦 [GitHub Package](${{ github.server_url }}/${{ github.repository }}/pkgs/container/${{ github.event.repository.name }})" >> RELEASE_NOTES.md
         echo "- 🏷️ [Tag ${{ steps.new_version.outputs.new_version }}](${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.new_version.outputs.new_version }})" >> RELEASE_NOTES.md
         
         # Also update the main CHANGELOG
