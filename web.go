@@ -1276,17 +1276,21 @@ func (web *FNDWebServer) handleTemplateTest(c *gin.Context) {
 	title := c.PostForm("title")
 	message := c.PostForm("message")
 
-	// Create test variables
+	// Create test variables with more complete data
 	testVars := TemplateVariables{
-		Camera:      "front_door",
-		Object:      "person",
-		Date:        "15.12.2024",
-		Time:        "14:30:25",
-		VideoURL:    "http://example.com/video.mp4",
-		HasVideo:    true,
-		EventID:     "test_event_123",
-		HasSnapshot: true,
-		SnapshotURL: "[Snapshot attached]",
+		Camera:          "front_door",
+		Object:          "person",
+		Date:            "15.12.2024",
+		Time:            "14:30:25",
+		VideoURL:        "http://example.com/video.mp4",
+		HasVideo:        true,
+		EventID:         "test_event_123",
+		HasSnapshot:     true,
+		SnapshotURL:     "[Snapshot attached]",
+		HasFaces:        true,
+		FaceCount:       2,
+		RecognizedFaces: "John Doe, Jane Smith",
+		UnknownFaces:    "1",
 	}
 
 	// Process templates
