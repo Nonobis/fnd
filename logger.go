@@ -320,7 +320,19 @@ func (l *Logger) addLogEntry(level, component, message, details string) {
 // shouldLog determines if a log entry should be recorded based on the configured log level
 func (l *Logger) shouldLog(level string) bool {
 	levelValue := l.getLevelValue(level)
-	return levelValue >= l.config.LogLevel
+	// Log levels: DEBUG=0, INFO=1, WARN=2, ERROR=3
+	// We want to show logs with level >= configured level
+	// So DEBUG(0) shows all, INFO(1) shows INFO+, WARN(2) shows WARN+, ERROR(3) shows only ERROR
+	
+	shouldLog := levelValue >= l.config.LogLevel
+	
+	// Debug output for troubleshooting
+	if level == "DEBUG" {
+		fmt.Printf("[DEBUG] shouldLog: level=%s, levelValue=%d, configLevel=%d, shouldLog=%t\n", 
+			level, levelValue, l.config.LogLevel, shouldLog)
+	}
+	
+	return shouldLog
 }
 
 // getLevelValue converts string level to numeric value
@@ -525,7 +537,15 @@ func (l *Logger) UpdateConfiguration(config *FNDLoggingConfiguration) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
+	oldLevel := l.config.LogLevel
 	l.config = config
+	
+	// Log the configuration change
+	fmt.Printf("[%s] %s - %s: %s\n",
+		time.Now().Format("15:04:05"),
+		"INFO",
+		"LOGGER",
+		fmt.Sprintf("Log level changed from %d to %d", oldLevel, config.LogLevel))
 }
 
 // GetConfiguration returns the current logger configuration
