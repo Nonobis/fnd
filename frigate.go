@@ -70,6 +70,12 @@ func (o *FNDFrigateConnection) handle(_ mqtt.Client, msg mqtt.Message) {
 
 		if err := json.Unmarshal(msg.Payload(), &o.lastEventMessage); err != nil {
 			LogError("FRIGATE", "Failed to parse event message", fmt.Sprintf("Payload: %s, Error: %s", string(msg.Payload()), err.Error()))
+			CaptureError(err, map[string]interface{}{
+				"component": "frigate",
+				"action":    "parse_event_message",
+				"topic":     msg.Topic(),
+				"payload":   string(msg.Payload()),
+			})
 		} else {
 			LogInfo("FRIGATE", "Event message parsed successfully", fmt.Sprintf("Event ID: %s, Type: %s, Camera: %s, Label: %s, Score: %.2f",
 				o.lastEventMessage.Before.Id,
@@ -81,6 +87,13 @@ func (o *FNDFrigateConnection) handle(_ mqtt.Client, msg mqtt.Message) {
 			err = o.eventManager.addNewEventMessage(o.lastEventMessage)
 			if err != nil {
 				LogError("FRIGATE", "Failed to process event message", err.Error())
+				CaptureError(err, map[string]interface{}{
+					"component":  "frigate",
+					"action":     "process_event_message",
+					"event_id":   o.lastEventMessage.Before.Id,
+					"event_type": o.lastEventMessage.TypeInfo,
+					"camera":     o.lastEventMessage.Before.Camera,
+				})
 			} else {
 				LogDebug("FRIGATE", "Event message processed successfully", fmt.Sprintf("Event ID: %s", o.lastEventMessage.Before.Id))
 			}

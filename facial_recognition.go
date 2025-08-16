@@ -98,6 +98,12 @@ func NewFacialRecognitionService(config *FNDFacialRecognitionConfiguration) *Fac
 	// Load face database
 	if err := service.loadFaceDatabase(); err != nil {
 		LogWarn("FACIAL_RECOGNITION", "Failed to load face database", err.Error())
+		CaptureError(err, map[string]interface{}{
+			"component": "facial_recognition",
+			"action":    "load_face_database",
+			"host":      config.CodeProjectAIHost,
+			"port":      config.CodeProjectAIPort,
+		})
 	}
 
 	LogInfo("FACIAL_RECOGNITION", "Facial recognition service created", fmt.Sprintf("Base URL: %s", baseURL))

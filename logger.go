@@ -83,6 +83,11 @@ func InitializeLogger(config *FNDLoggingConfiguration) error {
 	// Create log file
 	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
+		CaptureError(err, map[string]interface{}{
+			"component": "logger",
+			"action":    "create_log_file",
+			"log_path":  logPath,
+		})
 		return fmt.Errorf("failed to create log file: %w", err)
 	}
 	logger.logFile = file

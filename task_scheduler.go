@@ -226,6 +226,13 @@ func (ts *TaskScheduler) executeTask(taskType TaskType, triggeredBy string) {
 		execution.Status = TaskStatusFailed
 		execution.Error = err.Error()
 		LogError("TASK_SCHEDULER", "Task execution failed", fmt.Sprintf("Task: %s, ID: %s, Error: %s", taskType, executionID, err.Error()))
+		CaptureError(err, map[string]interface{}{
+			"component":    "task_scheduler",
+			"action":       "execute_task",
+			"task_type":    taskType,
+			"task_id":      executionID,
+			"triggered_by": triggeredBy,
+		})
 	} else {
 		execution.Status = TaskStatusCompleted
 		execution.Result = result

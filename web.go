@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -110,8 +111,73 @@ func (web *FNDWebServer) setNotificationManager(notifyManager *FNDNotificationMa
 	web.notifyManager = notifyManager
 }
 
+// sentryMiddleware provides Sentry integration for Gin web server
+func sentryMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Start a Sentry span for the request
+		span := sentry.StartSpan(c.Request.Context(), "http.request", sentry.TransactionName(c.Request.Method+" "+c.Request.URL.Path))
+		defer span.Finish()
+
+		// Set request context
+		c.Request = c.Request.WithContext(span.Context())
+
+		// Add request information to Sentry scope
+		sentry.ConfigureScope(func(scope *sentry.Scope) {
+			scope.SetTag("http.method", c.Request.Method)
+			scope.SetTag("http.url", c.Request.URL.String())
+			scope.SetTag("http.route", c.Request.URL.Path)
+			scope.SetTag("user_agent", c.Request.UserAgent())
+			scope.SetTag("client_ip", c.ClientIP())
+
+			// Set user context if available
+			if userID := c.GetHeader("X-User-ID"); userID != "" {
+				scope.SetUser(sentry.User{ID: userID})
+			}
+		})
+
+		// Process request
+		c.Next()
+
+		// Capture errors and set response information
+		if len(c.Errors) > 0 {
+			for _, err := range c.Errors {
+				CaptureError(err.Err, map[string]interface{}{
+					"http_method": c.Request.Method,
+					"http_url":    c.Request.URL.String(),
+					"http_status": c.Writer.Status(),
+					"error_type":  fmt.Sprintf("%v", err.Type),
+				})
+			}
+		}
+
+		// Set response information
+		span.SetTag("http.status_code", fmt.Sprintf("%d", c.Writer.Status()))
+
+		// Capture 4xx and 5xx errors
+		if c.Writer.Status() >= 400 {
+			CaptureMessage(fmt.Sprintf("HTTP %d: %s %s", c.Writer.Status(), c.Request.Method, c.Request.URL.Path),
+				sentry.LevelError, map[string]interface{}{
+					"http_method": c.Request.Method,
+					"http_url":    c.Request.URL.String(),
+					"http_status": c.Writer.Status(),
+					"client_ip":   c.ClientIP(),
+					"user_agent":  c.Request.UserAgent(),
+				})
+		}
+	}
+}
+
 func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FNDConfiguration, configPath string, taskScheduler *TaskScheduler, frigateConnection *FNDFrigateConnection) *FNDWebServer {
-	r := gin.Default()
+	r := gin.New() // Use gin.New() instead of gin.Default() to have more control over middleware
+
+	// Add Sentry middleware for error tracking
+	r.Use(sentryMiddleware())
+
+	// Add recovery middleware with Sentry integration
+	r.Use(gin.Recovery())
+
+	// Add logging middleware
+	r.Use(gin.Logger())
 
 	var web FNDWebServer
 	web.srv = &http.Server{
@@ -172,6 +238,9 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 	})
 	r.GET("/static/style.css", func(c *gin.Context) {
 		c.FileFromFS("static/style.css", http.FS(staticFS))
+	})
+	r.GET("/static/sentry-client.js", func(c *gin.Context) {
+		c.FileFromFS("static/sentry-client.js", http.FS(staticFS))
 	})
 
 	r.GET("/htmx/overview.html", func(c *gin.Context) {
@@ -1518,6 +1587,10 @@ func (web *FNDWebServer) handleFacialRecognitionPage(c *gin.Context) {
 	tmpl, err := template.ParseFS(templateFS, "templates/facial_recognition.html")
 	if err != nil {
 		LogError("WEB", "Failed to parse facial recognition template", err.Error())
+		CaptureError(err, map[string]interface{}{
+			"template": "facial_recognition.html",
+			"action":   "parse",
+		})
 		c.String(500, "Internal server error")
 		return
 	}
@@ -1531,6 +1604,11 @@ func (web *FNDWebServer) handleFacialRecognitionPage(c *gin.Context) {
 	err = tmpl.Execute(c.Writer, data)
 	if err != nil {
 		LogError("WEB", "Failed to execute facial recognition template", err.Error())
+		CaptureError(err, map[string]interface{}{
+			"template": "facial_recognition.html",
+			"action":   "execute",
+			"data":     fmt.Sprintf("%+v", data),
+		})
 		c.String(500, "Internal server error")
 		return
 	}
@@ -1546,6 +1624,10 @@ func (web *FNDWebServer) handleFacialRecognitionToggle(c *gin.Context) {
 	err := web.saveConfiguration()
 	if err != nil {
 		LogError("WEB", "Failed to save facial recognition configuration", err.Error())
+		CaptureError(err, map[string]interface{}{
+			"component": "facial_recognition",
+			"action":    "save_configuration",
+		})
 		c.String(500, "Failed to save configuration")
 		return
 	}
