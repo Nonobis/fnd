@@ -2421,7 +2421,8 @@ func (web *FNDWebServer) handlePendingFacesConfig(c *gin.Context) {
 func (web *FNDWebServer) handleTaskSchedulerPage(c *gin.Context) {
 	LogDebug("WEB", "Handling task scheduler page", "")
 
-	c.HTML(http.StatusOK, "task_scheduler.html", gin.H{
+	t := template.Must(template.ParseFS(templateFS, "templates/task_scheduler.html"))
+	t.Execute(c.Writer, gin.H{
 		"Config": web.globalConf.TaskScheduler,
 	})
 }
