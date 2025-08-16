@@ -63,6 +63,12 @@ func (bg *BackgroundTask) task() {
 
 	LogInfo("BACKGROUND", "Background task started", fmt.Sprintf("Camera check: 10s, Config save: 120min, Pending faces: %v", pendingFacesTickerDuration))
 
+	// Create a channel for pending faces ticker that can be nil
+	var pendingFacesChan <-chan time.Time
+	if pendingFacesTicker != nil {
+		pendingFacesChan = pendingFacesTicker.C
+	}
+
 	for {
 		select {
 		case <-bg.ctx.Done():
@@ -94,7 +100,7 @@ func (bg *BackgroundTask) task() {
 			} else {
 				LogInfo("BACKGROUND", "Periodic configuration save completed", "Configuration synchronized to disk")
 			}
-		case <-pendingFacesTicker.C:
+		case <-pendingFacesChan:
 			bg.processPendingFacesAutomatically()
 		}
 	}
