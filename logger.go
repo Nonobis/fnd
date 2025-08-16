@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -53,6 +54,11 @@ type Logger struct {
 	fileSize      int64
 	rotationMutex sync.Mutex
 	stats         LogStats
+	// Shutdown management
+	ctx          context.Context
+	cancel       context.CancelFunc
+	shutdownWg   sync.WaitGroup
+	lastRotation time.Time
 }
 
 // LogStats represents logging statistics
@@ -72,12 +78,16 @@ var appLogger *Logger
 func InitializeLogger(config *FNDLoggingConfiguration) error {
 	logPath := filepath.Join(CONFIGURATION_FOLDER, LOG_FILE_NAME)
 
+	ctx, cancel := context.WithCancel(context.Background())
 	logger := &Logger{
-		entries:     make([]LogEntry, 0, MEMORY_CACHE_SIZE),
-		liveChannel: make(chan LogEntry, LOG_BUFFER_SIZE),
-		subscribers: make(map[string]chan LogEntry),
-		filePath:    logPath,
-		config:      config,
+		entries:      make([]LogEntry, 0, MEMORY_CACHE_SIZE),
+		liveChannel:  make(chan LogEntry, LOG_BUFFER_SIZE),
+		subscribers:  make(map[string]chan LogEntry),
+		filePath:     logPath,
+		config:       config,
+		ctx:          ctx,
+		cancel:       cancel,
+		lastRotation: time.Now(),
 	}
 
 	// Create log file
@@ -100,10 +110,9 @@ func InitializeLogger(config *FNDLoggingConfiguration) error {
 	// Load recent logs only (not all)
 	logger.loadRecentLogs()
 
-	// Start background goroutine for handling live updates
+	// Start background goroutines
+	logger.shutdownWg.Add(2)
 	go logger.handleLiveUpdates()
-
-	// Start background goroutine for log rotation
 	go logger.rotationWorker()
 
 	appLogger = logger
@@ -120,34 +129,39 @@ func (l *Logger) loadRecentLogs() {
 	defer l.mutex.Unlock()
 
 	// Try to read recent log entries from file
-	if data, err := os.ReadFile(l.filePath); err == nil && len(data) > 0 {
-		var allEntries []LogEntry
+	file, err := os.Open(l.filePath)
+	if err != nil {
+		// File doesn't exist yet, which is normal for new installations
+		return
+	}
+	defer file.Close()
 
-		// Parse each line as a JSON log entry
-		scanner := bufio.NewScanner(bufio.NewReader(bufio.NewReader(strings.NewReader(string(data)))))
-		for scanner.Scan() {
-			line := scanner.Text()
-			if line != "" {
-				var entry LogEntry
-				if err := json.Unmarshal([]byte(line), &entry); err == nil {
-					allEntries = append(allEntries, entry)
-				}
+	var allEntries []LogEntry
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line != "" {
+			var entry LogEntry
+			if err := json.Unmarshal([]byte(line), &entry); err == nil {
+				allEntries = append(allEntries, entry)
 			}
 		}
-
-		// Keep only the last MEMORY_CACHE_SIZE entries
-		if len(allEntries) > MEMORY_CACHE_SIZE {
-			l.entries = allEntries[len(allEntries)-MEMORY_CACHE_SIZE:]
-		} else {
-			l.entries = allEntries
-		}
-
-		LogInfo("SYSTEM", "Recent logs loaded", fmt.Sprintf("Loaded %d entries from file", len(l.entries)))
 	}
+
+	// Keep only the last MEMORY_CACHE_SIZE entries
+	if len(allEntries) > MEMORY_CACHE_SIZE {
+		l.entries = allEntries[len(allEntries)-MEMORY_CACHE_SIZE:]
+	} else {
+		l.entries = allEntries
+	}
+
+	LogInfo("SYSTEM", "Recent logs loaded", fmt.Sprintf("Loaded %d entries from file", len(l.entries)))
 }
 
 // rotationWorker handles log file rotation in background
 func (l *Logger) rotationWorker() {
+	defer l.shutdownWg.Done()
+
 	ticker := time.NewTicker(5 * time.Minute) // Check every 5 minutes
 	defer ticker.Stop()
 
@@ -155,6 +169,8 @@ func (l *Logger) rotationWorker() {
 		select {
 		case <-ticker.C:
 			l.checkAndRotate()
+		case <-l.ctx.Done():
+			return
 		}
 	}
 }
@@ -176,7 +192,10 @@ func (l *Logger) checkAndRotate() {
 // rotateLogFile rotates the current log file
 func (l *Logger) rotateLogFile() {
 	// Close current file
-	l.logFile.Close()
+	if err := l.logFile.Close(); err != nil {
+		LogError("SYSTEM", "Failed to close log file during rotation", err.Error())
+		return
+	}
 
 	// Rename current file with timestamp
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
@@ -194,6 +213,7 @@ func (l *Logger) rotateLogFile() {
 	}
 	l.logFile = file
 	l.fileSize = 0
+	l.lastRotation = time.Now()
 
 	// Clean old rotated files
 	l.cleanOldLogFiles()
@@ -208,6 +228,7 @@ func (l *Logger) cleanOldLogFiles() {
 
 	files, err := os.ReadDir(dir)
 	if err != nil {
+		LogWarn("SYSTEM", "Failed to read directory for log cleanup", err.Error())
 		return
 	}
 
@@ -228,23 +249,35 @@ func (l *Logger) cleanOldLogFiles() {
 	// Remove oldest files if we have too many
 	if len(rotatedFiles) > MAX_LOG_FILES {
 		for _, file := range rotatedFiles[:len(rotatedFiles)-MAX_LOG_FILES] {
-			os.Remove(file)
+			if err := os.Remove(file); err != nil {
+				LogWarn("SYSTEM", "Failed to remove old log file", fmt.Sprintf("File: %s, Error: %s", file, err.Error()))
+			}
 		}
 	}
 }
 
 // handleLiveUpdates processes live log updates
 func (l *Logger) handleLiveUpdates() {
-	for entry := range l.liveChannel {
-		l.subscribeMutex.RLock()
-		for _, subscriber := range l.subscribers {
-			select {
-			case subscriber <- entry:
-			default:
-				// Skip if subscriber channel is full
+	defer l.shutdownWg.Done()
+
+	for {
+		select {
+		case entry, ok := <-l.liveChannel:
+			if !ok {
+				return // Channel closed
 			}
+			l.subscribeMutex.RLock()
+			for _, subscriber := range l.subscribers {
+				select {
+				case subscriber <- entry:
+				default:
+					// Skip if subscriber channel is full
+				}
+			}
+			l.subscribeMutex.RUnlock()
+		case <-l.ctx.Done():
+			return
 		}
-		l.subscribeMutex.RUnlock()
 	}
 }
 
@@ -329,15 +362,7 @@ func (l *Logger) shouldLog(level string) bool {
 	// We want to show logs with level >= configured level
 	// So DEBUG(0) shows all, INFO(1) shows INFO+, WARN(2) shows WARN+, ERROR(3) shows only ERROR
 
-	shouldLog := levelValue >= l.config.LogLevel
-
-	// Debug output for troubleshooting
-	if level == "DEBUG" {
-		fmt.Printf("[DEBUG] shouldLog: level=%s, levelValue=%d, configLevel=%d, shouldLog=%t\n",
-			level, levelValue, l.config.LogLevel, shouldLog)
-	}
-
-	return shouldLog
+	return levelValue >= l.config.LogLevel
 }
 
 // getLevelValue converts string level to numeric value
@@ -533,7 +558,7 @@ func (l *Logger) GetLogStats() LogStats {
 		ActiveSubscribers: activeSubscribers,
 		MemoryUsageHuman:  memoryUsageHuman,
 		TotalLogFiles:     totalLogFiles,
-		LastRotation:      time.Now().Format("2006-01-02 15:04:05"),
+		LastRotation:      l.lastRotation.Format("2006-01-02 15:04:05"),
 	}
 }
 
@@ -545,29 +570,14 @@ func (l *Logger) UpdateConfiguration(config *FNDLoggingConfiguration) {
 	oldLevel := l.config.LogLevel
 	oldMaxEntries := l.config.MaxEntries
 
-	fmt.Printf("[%s] %s - %s: %s\n",
-		time.Now().Format("15:04:05"),
-		"INFO",
-		"LOGGER",
-		fmt.Sprintf("Configuration update requested - Old: Level=%d, MaxEntries=%d | New: Level=%d, MaxEntries=%d",
-			oldLevel, oldMaxEntries, config.LogLevel, config.MaxEntries))
-
 	l.config = config
 
-	// Log the configuration change
-	fmt.Printf("[%s] %s - %s: %s\n",
-		time.Now().Format("15:04:05"),
-		"INFO",
-		"LOGGER",
-		fmt.Sprintf("Configuration updated - Level changed from %d to %d, MaxEntries changed from %d to %d",
-			oldLevel, config.LogLevel, oldMaxEntries, config.MaxEntries))
+	// Log the configuration change using the logging system
+	LogInfo("LOGGER", "Configuration updated", fmt.Sprintf("Level changed from %d to %d, MaxEntries changed from %d to %d",
+		oldLevel, config.LogLevel, oldMaxEntries, config.MaxEntries))
 
 	// Test if the new level is working
-	fmt.Printf("[%s] %s - %s: %s\n",
-		time.Now().Format("15:04:05"),
-		"DEBUG",
-		"LOGGER",
-		"This is a test DEBUG message after configuration update")
+	LogDebug("LOGGER", "This is a test DEBUG message after configuration update", "")
 }
 
 // GetConfiguration returns a copy of the current logger configuration
@@ -582,6 +592,12 @@ func (l *Logger) GetConfiguration() *FNDLoggingConfiguration {
 
 // Close properly closes the logger
 func (l *Logger) Close() {
+	// Signal shutdown to background goroutines
+	l.cancel()
+
+	// Wait for background goroutines to finish
+	l.shutdownWg.Wait()
+
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
