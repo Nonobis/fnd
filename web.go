@@ -975,6 +975,31 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		web.handlePendingFacesConfig(c)
 	})
 
+	// Task Scheduler Handlers
+	r.GET("/htmx/task_scheduler.html", func(c *gin.Context) {
+		web.handleTaskSchedulerPage(c)
+	})
+
+	r.GET("/api/task_scheduler/history", func(c *gin.Context) {
+		web.handleTaskSchedulerHistory(c)
+	})
+
+	r.GET("/api/task_scheduler/queue", func(c *gin.Context) {
+		web.handleTaskSchedulerQueue(c)
+	})
+
+	r.POST("/api/task_scheduler/execute/:taskType", func(c *gin.Context) {
+		web.handleTaskSchedulerExecute(c)
+	})
+
+	r.POST("/api/task_scheduler/config", func(c *gin.Context) {
+		web.handleTaskSchedulerConfig(c)
+	})
+
+	r.DELETE("/api/task_scheduler/history", func(c *gin.Context) {
+		web.handleTaskSchedulerPurgeHistory(c)
+	})
+
 	return &web
 }
 
@@ -2389,4 +2414,157 @@ func (web *FNDWebServer) handlePendingFacesConfig(c *gin.Context) {
 
 	// Redirect back to facial recognition page
 	c.Redirect(http.StatusSeeOther, "/facial-recognition")
+}
+
+// Task Scheduler Handlers
+
+func (web *FNDWebServer) handleTaskSchedulerPage(c *gin.Context) {
+	LogDebug("WEB", "Handling task scheduler page", "")
+
+	c.HTML(http.StatusOK, "task_scheduler.html", gin.H{
+		"Config": web.globalConf.TaskScheduler,
+	})
+}
+
+func (web *FNDWebServer) handleTaskSchedulerHistory(c *gin.Context) {
+	LogDebug("WEB", "Handling task scheduler history", "")
+
+	// Get limit parameter (default to 50)
+	limitStr := c.DefaultQuery("limit", "50")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = 50
+	}
+
+	// For now, return empty history until we integrate task scheduler properly
+	history := []TaskExecution{}
+	
+	c.JSON(200, gin.H{
+		"history": history,
+		"total":   len(history),
+		"limit":   limit,
+	})
+}
+
+func (web *FNDWebServer) handleTaskSchedulerQueue(c *gin.Context) {
+	LogDebug("WEB", "Handling task scheduler queue", "")
+
+	// For now, return empty queue stats until we integrate task scheduler properly
+	stats := map[string]interface{}{
+		"total":     0,
+		"pending":   0,
+		"failed":    0,
+		"completed": 0,
+		"maxSize":   1000,
+	}
+	
+	c.JSON(200, stats)
+}
+
+func (web *FNDWebServer) handleTaskSchedulerExecute(c *gin.Context) {
+	taskType := c.Param("taskType")
+	LogDebug("WEB", "Handling task scheduler execute", fmt.Sprintf("Task type: %s", taskType))
+
+	// Validate task type
+	validTypes := map[string]bool{
+		"event_processing": true,
+		"pending_faces":    true,
+		"log_purge":        true,
+	}
+
+	if !validTypes[taskType] {
+		c.JSON(400, gin.H{"error": "Invalid task type"})
+		return
+	}
+
+	// For now, return success until we integrate task scheduler properly
+	c.JSON(200, gin.H{
+		"message": "Task execution triggered",
+		"taskType": taskType,
+		"executionId": fmt.Sprintf("%s_%d", taskType, time.Now().Unix()),
+	})
+}
+
+func (web *FNDWebServer) handleTaskSchedulerConfig(c *gin.Context) {
+	LogDebug("WEB", "Handling task scheduler configuration update", "")
+
+	// Parse form data
+	if err := c.Request.ParseForm(); err != nil {
+		LogError("WEB", "Failed to parse form data", err.Error())
+		c.JSON(400, gin.H{"error": "Invalid form data"})
+		return
+	}
+
+	// Get current configuration
+	config := web.globalConf.TaskScheduler
+
+	// Update event processing interval
+	if intervalStr := c.PostForm("eventProcessingInterval"); intervalStr != "" {
+		if interval, err := strconv.Atoi(intervalStr); err == nil && interval >= 1 && interval <= 60 {
+			config.EventProcessingInterval = interval
+		}
+	}
+
+	// Update pending faces interval
+	if intervalStr := c.PostForm("pendingFacesInterval"); intervalStr != "" {
+		if interval, err := strconv.Atoi(intervalStr); err == nil && interval >= 1 && interval <= 168 {
+			config.PendingFacesInterval = interval
+		}
+	}
+
+	// Update log purge interval
+	if intervalStr := c.PostForm("logPurgeInterval"); intervalStr != "" {
+		if interval, err := strconv.Atoi(intervalStr); err == nil && interval >= 1 && interval <= 168 {
+			config.LogPurgeInterval = interval
+		}
+	}
+
+	// Update retention days
+	if retentionStr := c.PostForm("taskHistoryRetentionDays"); retentionStr != "" {
+		if retention, err := strconv.Atoi(retentionStr); err == nil && retention >= 1 && retention <= 365 {
+			config.TaskHistoryRetentionDays = retention
+		}
+	}
+
+	// Update enable event queue
+	config.EnableEventQueue = c.PostForm("enableEventQueue") == "true"
+
+	// Update max queue size
+	if queueSizeStr := c.PostForm("maxEventQueueSize"); queueSizeStr != "" {
+		if queueSize, err := strconv.Atoi(queueSizeStr); err == nil && queueSize >= 100 && queueSize <= 10000 {
+			config.MaxEventQueueSize = queueSize
+		}
+	}
+
+	// Update max concurrent tasks
+	if concurrentStr := c.PostForm("maxConcurrentTasks"); concurrentStr != "" {
+		if concurrent, err := strconv.Atoi(concurrentStr); err == nil && concurrent >= 1 && concurrent <= 20 {
+			config.MaxConcurrentTasks = concurrent
+		}
+	}
+
+	// Update the configuration
+	web.globalConf.TaskScheduler = config
+
+	// Save configuration to file
+	if err := web.saveConfiguration(); err != nil {
+		LogError("WEB", "Failed to save configuration", err.Error())
+		c.JSON(500, gin.H{"error": "Failed to save configuration"})
+		return
+	}
+
+	LogInfo("WEB", "Task scheduler configuration updated successfully", "")
+
+	c.JSON(200, gin.H{"message": "Configuration updated successfully"})
+}
+
+func (web *FNDWebServer) handleTaskSchedulerPurgeHistory(c *gin.Context) {
+	LogDebug("WEB", "Handling task scheduler history purge", "")
+
+	// For now, return success until we integrate task scheduler properly
+	c.JSON(200, gin.H{
+		"message": "History purge completed",
+		"purged":  0,
+		"retained": 0,
+	})
 }

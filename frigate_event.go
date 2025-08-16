@@ -15,17 +15,19 @@ type FNDFrigateEventManager struct {
 	lastNotificationSent time.Time
 	fConf                *FNDFrigateConfiguration
 	pendingFacesManager  *PendingFacesManager
+	taskScheduler        *TaskScheduler
 
 	m sync.Mutex
 }
 
-func NewFNDFrigateEventManager(api *FNDFrigateApi, fConf *FNDFrigateConfiguration, facialRecognitionConfig *FNDFacialRecognitionConfiguration) *FNDFrigateEventManager {
+func NewFNDFrigateEventManager(api *FNDFrigateApi, fConf *FNDFrigateConfiguration, facialRecognitionConfig *FNDFacialRecognitionConfiguration, taskScheduler *TaskScheduler) *FNDFrigateEventManager {
 	manager := &FNDFrigateEventManager{
 		api:                  api,
 		activeEvents:         make(map[string]eventMessage),
 		notificationChannel:  make(chan FNDNotification, 100),
 		lastNotificationSent: time.Now(),
 		fConf:                fConf,
+		taskScheduler:        taskScheduler,
 	}
 
 	// Initialize pending faces manager if facial recognition config is available
@@ -64,15 +66,36 @@ func (e *FNDFrigateEventManager) addNewEventMessage(msg eventMessage) error {
 			}
 		}
 
-		var err error
-		if e.shouldSendNotification(msg) {
-			LogInfo("EVENT", "Notification will be sent", fmt.Sprintf("Event ID: %s", msg.Before.Id))
-			err = e.prepareNotification(msg)
+		// Queue event for processing if task scheduler is available and enabled
+		if e.taskScheduler != nil && e.taskScheduler.config.EnableEventQueue {
+			queuedEvent := QueuedEvent{
+				ID:        fmt.Sprintf("event_%s_%d", msg.Before.Id, time.Now().Unix()),
+				EventID:   msg.Before.Id,
+				Type:      msg.TypeInfo,
+				Camera:    msg.Before.Camera,
+				Label:     msg.Before.Label,
+				Score:     msg.Before.Score,
+				Timestamp: time.Now(),
+				Data:      make(map[string]interface{}),
+			}
+			
+			if err := e.taskScheduler.QueueEvent(queuedEvent); err != nil {
+				LogError("EVENT", "Failed to queue event", fmt.Sprintf("Event ID: %s, Error: %s", msg.Before.Id, err.Error()))
+			} else {
+				LogDebug("EVENT", "Event queued for processing", fmt.Sprintf("Event ID: %s", msg.Before.Id))
+			}
 		} else {
-			LogDebug("EVENT", "Notification skipped", fmt.Sprintf("Event ID: %s - Camera inactive or cooldown active", msg.Before.Id))
-		}
-		if err != nil {
-			return err
+			// Process immediately if task scheduler is not available or disabled
+			var err error
+			if e.shouldSendNotification(msg) {
+				LogInfo("EVENT", "Notification will be sent", fmt.Sprintf("Event ID: %s", msg.Before.Id))
+				err = e.prepareNotification(msg)
+			} else {
+				LogDebug("EVENT", "Notification skipped", fmt.Sprintf("Event ID: %s - Camera inactive or cooldown active", msg.Before.Id))
+			}
+			if err != nil {
+				return err
+			}
 		}
 	case "update":
 		if !avail {

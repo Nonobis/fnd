@@ -72,7 +72,12 @@ func main() {
 
 	// ###################################
 
-	connection, err := setupFNDFrigateConnection(&conf.Frigate, &conf.FacialRecognition)
+	// Initialize task scheduler
+	taskScheduler := NewTaskScheduler(&conf.TaskScheduler, nil, nil, nil)
+	taskScheduler.Start()
+	LogInfo("TASK_SCHEDULER", "Task scheduler initialized", "")
+
+	connection, err := setupFNDFrigateConnection(&conf.Frigate, &conf.FacialRecognition, taskScheduler)
 	if err != nil {
 		LogError("FRIGATE", "Failed to setup Frigate connection", err.Error())
 		fmt.Println(err.Error())
@@ -87,6 +92,11 @@ func main() {
 	notify.setupNotificationSinks(connection.eventManager.notificationChannel, web, connection)
 	web.setNotificationManager(notify)
 	LogInfo("NOTIFY", "Notification manager initialized", "")
+
+	// Update task scheduler with notification manager
+	taskScheduler.notifyManager = notify
+	taskScheduler.eventManager = &connection.eventManager
+	taskScheduler.api = &connection.api
 
 	go web.run(&connection.eventManager)
 	LogInfo("WEB", "Web server started", "")
@@ -103,6 +113,11 @@ func main() {
 	<-sig
 
 	LogInfo("SYSTEM", "Shutdown signal received", "Starting graceful shutdown")
+	
+	// Stop task scheduler
+	taskScheduler.Stop()
+	LogInfo("TASK_SCHEDULER", "Task scheduler stopped", "")
+	
 	bg.cancel()
 	LogInfo("BACKGROUND", "Background tasks stopped", "")
 

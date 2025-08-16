@@ -15,6 +15,7 @@ type FNDConfiguration struct {
 	Logging           FNDLoggingConfiguration
 	FacialRecognition FNDFacialRecognitionConfiguration
 	Sentry            SentryConfig
+	TaskScheduler     FNDTaskSchedulerConfiguration
 }
 
 type FNDFrigateConfiguration struct {
@@ -243,6 +244,15 @@ func NEWDefaultFNDConfiguration() *FNDConfiguration {
 			DSN:         "",
 			Environment: "production",
 			Debug:       false,
+		},
+		TaskScheduler: FNDTaskSchedulerConfiguration{
+			EventProcessingInterval:   1,  // Default: 1 minute
+			PendingFacesInterval:      6,  // Default: 6 hours
+			LogPurgeInterval:          24, // Default: 24 hours
+			TaskHistoryRetentionDays:  7,  // Default: 7 days
+			EnableEventQueue:           true,
+			MaxEventQueueSize:          1000,
+			MaxConcurrentTasks:        5,
 		},
 	}
 
@@ -662,4 +672,15 @@ func GetAvailableObjects() []string {
 		"hair drier",
 		"toothbrush",
 	}
+}
+
+// FNDTaskSchedulerConfiguration represents the task scheduler configuration
+type FNDTaskSchedulerConfiguration struct {
+	EventProcessingInterval    int `json:"eventProcessingInterval"`    // in minutes
+	PendingFacesInterval       int `json:"pendingFacesInterval"`       // in hours
+	LogPurgeInterval           int `json:"logPurgeInterval"`           // in hours
+	TaskHistoryRetentionDays   int `json:"taskHistoryRetentionDays"`   // in days
+	EnableEventQueue           bool `json:"enableEventQueue"`          // enable/disable event queue processing
+	MaxEventQueueSize          int  `json:"maxEventQueueSize"`         // maximum events in queue
+	MaxConcurrentTasks         int  `json:"maxConcurrentTasks"`        // maximum concurrent tasks
 }
