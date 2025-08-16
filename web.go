@@ -897,6 +897,62 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		c.JSON(200, gin.H{"stats": stats})
 	})
 
+	r.POST("/api/logs/settings", func(c *gin.Context) {
+		logger := GetLogger()
+		if logger == nil {
+			c.JSON(500, gin.H{"error": "Logger not initialized"})
+			return
+		}
+
+		var settings struct {
+			LogLevel        string `json:"logLevel"`
+			MaxEntries      string `json:"maxEntries"`
+			RefreshInterval string `json:"refreshInterval"`
+			RetentionDays   string `json:"retentionDays"`
+		}
+
+		if err := c.ShouldBindJSON(&settings); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid request body"})
+			return
+		}
+
+		// Create new configuration
+		newConfig := web.globalConf.Logging
+
+		// Update log level
+		if settings.LogLevel != "" {
+			if logLevel, err := strconv.Atoi(settings.LogLevel); err == nil {
+				if logLevel >= 0 && logLevel <= 3 {
+					newConfig.LogLevel = logLevel
+				}
+			}
+		}
+
+		// Update max entries
+		if settings.MaxEntries != "" {
+			if maxEntries, err := strconv.Atoi(settings.MaxEntries); err == nil {
+				if maxEntries >= 100 && maxEntries <= 10000 {
+					newConfig.MaxEntries = maxEntries
+				}
+			}
+		}
+
+		// Update configuration in memory and logger
+		web.globalConf.Logging = newConfig
+		logger.UpdateConfiguration(&newConfig)
+
+		// Save configuration to disk immediately
+		if err := web.saveConfiguration(); err != nil {
+			c.JSON(500, gin.H{"error": "Failed to save configuration"})
+			return
+		}
+
+		LogInfo("WEB", "Log settings updated via API", fmt.Sprintf("MaxEntries: %d, LogLevel: %d, EnableFile: %t, EnableConsole: %t",
+			newConfig.MaxEntries, newConfig.LogLevel, newConfig.EnableFile, newConfig.EnableConsole))
+
+		c.JSON(200, gin.H{"success": true, "message": "Log settings updated successfully"})
+	})
+
 	// Test notification endpoints
 	r.POST("/api/test/gotify", func(c *gin.Context) {
 		web.sendTestNotificationToSink("Gotify", c)
