@@ -126,9 +126,12 @@ jobs:
       if: github.ref == 'refs/heads/main' && steps.new_version.outputs.should_release == 'true' && github.event_name != 'pull_request'
       run: |
         echo "Tagging image as latest after successful build..."
-        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.new_version.outputs.new_version }}
-        docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.new_version.outputs.new_version }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        # Convert repository name to lowercase for Docker compatibility
+        LOWER_IMAGE_NAME=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+        echo "Using lowercase image name: $LOWER_IMAGE_NAME"
+        docker pull ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:${{ steps.new_version.outputs.new_version }}
+        docker tag ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:${{ steps.new_version.outputs.new_version }} ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:latest
+        docker push ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:latest
         echo "✅ Successfully tagged and pushed as latest"
 
     - name: Generate changelog
