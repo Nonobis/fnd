@@ -1,3 +1,27 @@
+## Version 0.1.23 - 16.08.2025
+
+### Changes since v0.1.22
+
+- Fix MQTT test events to skip snapshot/video retrieval and avoid 404 errors
+
+### 🐳 Docker Image
+
+This release is available as a Docker image:
+
+**Main image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:0.1.23
+```
+
+**Latest image:**
+```bash
+docker pull ghcr.io/Nonobis/fnd:latest
+```
+
+**Direct links:**
+- 📦 [GitHub Package](https://github.com/Nonobis/fnd/pkgs/container/fnd)
+- 🏷️ [Tag 0.1.23](ghcr.io/Nonobis/fnd:0.1.23)
+
 ## Version 0.1.22 - 16.08.2025
 
 ### Changes since v0.1.20
