@@ -1858,3 +1858,96 @@ body {
 .overview-header {
     margin-bottom: 1.5rem;
 }
+
+/* Modal Styling - Align with light theme */
+.modal-background {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(4px);
+}
+
+.modal-card {
+    border-radius: 16px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    overflow: hidden;
+}
+
+.modal-card-head {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    padding: 1.5rem 2rem !important;
+}
+
+.modal-card-title {
+    color: #2c3e50 !important;
+    font-weight: 600 !important;
+    font-size: 1.25rem !important;
+}
+
+.modal-card-body {
+    background: white !important;
+    padding: 2rem !important;
+    max-height: 70vh !important;
+    overflow-y: auto;
+}
+
+.modal-card-foot {
+    background: #f8f9fa !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
+    padding: 1.5rem 2rem !important;
+}
+
+/* Modal close button styling */
+.modal-card-head .delete {
+    background: rgba(0, 0, 0, 0.1) !important;
+    border-radius: 50% !important;
+    transition: all 0.3s ease !important;
+}
+
+.modal-card-head .delete:hover {
+    background: rgba(0, 0, 0, 0.2) !important;
+    transform: scale(1.1) !important;
+}
+
+/* Modal animations */
+.modal.is-active {
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Modal content styling */
+.modal-card-body .settings-container {
+    padding: 0 !important;
+    background: transparent !important;
+    min-height: auto !important;
+}
+
+.modal-card-body .settings-header {
+    display: none !important;
+}
+
+.modal-card-body .settings-card {
+    box-shadow: none !important;
+    border: none !important;
+    margin-bottom: 0 !important;
+}
+
+.modal-card-body .settings-card-header {
+    background: transparent !important;
+    border-bottom: none !important;
+    padding: 0 0 1rem 0 !important;
+}
+
+.modal-card-body .settings-card-body {
+    padding: 0 !important;
+}
