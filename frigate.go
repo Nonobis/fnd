@@ -277,9 +277,9 @@ func (connection *FNDFrigateConnection) isMqttConfigurationValid() bool {
 }
 
 // PublishTestEvent publishes a test event via the real MQTT connection
-func (connection *FNDFrigateConnection) PublishTestEvent() error {
+func (connection *FNDFrigateConnection) PublishTestEvent() (eventMessage, error) {
 	if !connection.client.IsConnected() {
-		return fmt.Errorf("MQTT client not connected")
+		return eventMessage{}, fmt.Errorf("MQTT client not connected")
 	}
 
 	// Generate a test event
@@ -320,7 +320,7 @@ func (connection *FNDFrigateConnection) PublishTestEvent() error {
 	// Convert to JSON
 	payload, err := json.Marshal(testEvent)
 	if err != nil {
-		return fmt.Errorf("failed to marshal test event: %v", err)
+		return eventMessage{}, fmt.Errorf("failed to marshal test event: %v", err)
 	}
 
 	// Get topic prefix for publishing
@@ -333,9 +333,9 @@ func (connection *FNDFrigateConnection) PublishTestEvent() error {
 	// Publish the test event
 	token := connection.client.Publish(eventsTopic, QOS, false, payload)
 	if token.Wait() && token.Error() != nil {
-		return fmt.Errorf("failed to publish test event: %v", token.Error())
+		return eventMessage{}, fmt.Errorf("failed to publish test event: %v", token.Error())
 	}
 
 	LogInfo("MQTT", "Test event published successfully", fmt.Sprintf("Topic: %s, Event ID: %s", eventsTopic, testEvent.Before.Id))
-	return nil
+	return testEvent, nil
 }

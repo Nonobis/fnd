@@ -486,7 +486,7 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		}
 
 		// Publish test event via real MQTT connection
-		err := web.frigateConnection.PublishTestEvent()
+		testEvent, err := web.frigateConnection.PublishTestEvent()
 		if err != nil {
 			LogError("WEB", "Failed to publish MQTT test event", err.Error())
 			t := template.Must(template.ParseFS(templateFS, "templates/mqtt_test_result.html"))
@@ -499,11 +499,12 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 
 		LogInfo("WEB", "MQTT test event published successfully", "")
 
-		// Return success message
+		// Return success message with event details
 		t := template.Must(template.ParseFS(templateFS, "templates/mqtt_test_result.html"))
 		_ = t.Execute(c.Writer, gin.H{
 			"success": true,
 			"message": "Test event published via MQTT successfully! Check logs for event processing.",
+			"event":   testEvent,
 		})
 	})
 
