@@ -97,7 +97,6 @@ jobs:
           type=ref,event=branch
           type=ref,event=pr
           type=raw,value=${{ steps.new_version.outputs.new_version }},enable=${{ steps.new_version.outputs.should_release == 'true' }}
-          type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && steps.new_version.outputs.should_release == 'true' }}
         labels: |
           org.opencontainers.image.title=FND
           org.opencontainers.image.description=Frigate Notification Daemon
@@ -122,6 +121,15 @@ jobs:
           VCS_URL=${{ github.server_url }}/${{ github.repository }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+    - name: Tag as latest (after successful build)
+      if: github.ref == 'refs/heads/main' && steps.new_version.outputs.should_release == 'true' && github.event_name != 'pull_request'
+      run: |
+        echo "Tagging image as latest after successful build..."
+        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.new_version.outputs.new_version }}
+        docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.new_version.outputs.new_version }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        echo "✅ Successfully tagged and pushed as latest"
 
     - name: Generate changelog
       if: steps.new_version.outputs.should_release == 'true'

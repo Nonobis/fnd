@@ -3,6 +3,9 @@ name: Docker Build and Publish
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'Makefile'
+      - 'Changelog.md'
   pull_request:
     branches: [ main ]
     types: [ opened, synchronize, reopened ]
@@ -108,7 +111,6 @@ jobs:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
           type=raw,value=${{ steps.build_version.outputs.build_version }}
-          type=raw,value=latest
           type=raw,value=${{ steps.version.outputs.version }}
         labels: |
           org.opencontainers.image.title=FND
