@@ -16,12 +16,12 @@ type TemplateProcessor struct {
 // NewTemplateProcessor creates a new template processor
 func NewTemplateProcessor(config *NotificationTemplates) *TemplateProcessor {
 	LogDebug("TEMPLATE", "Creating new template processor", "")
-	
+
 	processor := &TemplateProcessor{
 		config: config,
 	}
-	
-	LogDebug("TEMPLATE", "Template processor created", fmt.Sprintf("Global template: %t, Per-service templates: %d", 
+
+	LogDebug("TEMPLATE", "Template processor created", fmt.Sprintf("Global template: %t, Per-service templates: %d",
 		config.Global.Title != "" || config.Global.Message != "", len(config.PerService)))
 	return processor
 }
@@ -29,7 +29,7 @@ func NewTemplateProcessor(config *NotificationTemplates) *TemplateProcessor {
 // ProcessTemplate processes a notification template with variables
 func (tp *TemplateProcessor) ProcessTemplate(serviceName string, variables TemplateVariables) (string, string, error) {
 	LogDebug("TEMPLATE", "Processing template", fmt.Sprintf("Service: %s, Camera: %s, Object: %s", serviceName, variables.Camera, variables.Object))
-	
+
 	var title, message string
 	var err error
 
@@ -64,22 +64,12 @@ func (tp *TemplateProcessor) ProcessTemplate(serviceName string, variables Templ
 	}
 	LogDebug("TEMPLATE", "Global template processed successfully", fmt.Sprintf("Service: %s, Title length: %d, Message length: %d", serviceName, len(title), len(message)))
 	return title, message, nil
-
-	// Fall back to default format
-	LogDebug("TEMPLATE", "Using default template format", fmt.Sprintf("Service: %s", serviceName))
-	title = "FND Notification"
-	message = fmt.Sprintf("Camera: %s, Object: %s, Date: %s", variables.Camera, variables.Object, variables.Date)
-	if variables.HasVideo && variables.VideoURL != "" {
-		message += fmt.Sprintf("\n🎥 Video: %s", variables.VideoURL)
-	}
-	LogDebug("TEMPLATE", "Default template processed", fmt.Sprintf("Service: %s, Title length: %d, Message length: %d", serviceName, len(title), len(message)))
-	return title, message, nil
 }
 
 // processTemplateString processes a single template string
 func (tp *TemplateProcessor) processTemplateString(templateStr string, variables TemplateVariables) (string, error) {
 	LogDebug("TEMPLATE", "Processing template string", fmt.Sprintf("Template length: %d", len(templateStr)))
-	
+
 	if templateStr == "" {
 		LogDebug("TEMPLATE", "Template string is empty", "")
 		return "", nil
@@ -106,23 +96,23 @@ func (tp *TemplateProcessor) processTemplateString(templateStr string, variables
 // GetAvailableVariables returns a list of available template variables
 func GetAvailableVariables() map[string]string {
 	LogDebug("TEMPLATE", "Getting available template variables", "")
-	
+
 	variables := map[string]string{
-		"{{.Camera}}":      "Camera name",
-		"{{.Object}}":      "Detected object",
-		"{{.Date}}":        "Event date (DD.MM.YYYY)",
-		"{{.Time}}":        "Event time (HH:MM:SS)",
-		"{{.VideoURL}}":    "Video URL (if available)",
-		"{{.HasVideo}}":    "Boolean indicating if video is available",
-		"{{.EventID}}":     "Event ID from Frigate",
-		"{{.HasSnapshot}}": "Boolean indicating if snapshot is available",
-		"{{.SnapshotURL}}": "Snapshot attachment indicator",
-		"{{.HasFaces}}":    "Boolean indicating if faces were detected",
+		"{{.Camera}}":          "Camera name",
+		"{{.Object}}":          "Detected object",
+		"{{.Date}}":            "Event date (DD.MM.YYYY)",
+		"{{.Time}}":            "Event time (HH:MM:SS)",
+		"{{.VideoURL}}":        "Video URL (if available)",
+		"{{.HasVideo}}":        "Boolean indicating if video is available",
+		"{{.EventID}}":         "Event ID from Frigate",
+		"{{.HasSnapshot}}":     "Boolean indicating if snapshot is available",
+		"{{.SnapshotURL}}":     "Snapshot attachment indicator",
+		"{{.HasFaces}}":        "Boolean indicating if faces were detected",
 		"{{.RecognizedFaces}}": "List of recognized faces (names)",
-		"{{.UnknownFaces}}": "Number of unknown faces detected",
-		"{{.FaceCount}}":   "Total number of faces detected",
+		"{{.UnknownFaces}}":    "Number of unknown faces detected",
+		"{{.FaceCount}}":       "Total number of faces detected",
 	}
-	
+
 	LogDebug("TEMPLATE", "Available variables retrieved", fmt.Sprintf("Count: %d", len(variables)))
 	return variables
 }
@@ -130,7 +120,7 @@ func GetAvailableVariables() map[string]string {
 // ValidateTemplate validates a template string
 func ValidateTemplate(templateStr string) error {
 	LogDebug("TEMPLATE", "Validating template", fmt.Sprintf("Template length: %d", len(templateStr)))
-	
+
 	if templateStr == "" {
 		LogDebug("TEMPLATE", "Template is empty, validation passed", "")
 		return nil
@@ -138,19 +128,19 @@ func ValidateTemplate(templateStr string) error {
 
 	// Test with sample variables
 	testVars := TemplateVariables{
-		Camera:      "test_camera",
-		Object:      "person",
-		Date:        "01.01.2024",
-		Time:        "12:00:00",
-		VideoURL:    "http://example.com/video.mp4",
-		HasVideo:    true,
-		EventID:     "test_event_123",
-		HasSnapshot: true,
-		SnapshotURL: "[Snapshot attached]",
-		HasFaces:    true,
+		Camera:          "test_camera",
+		Object:          "person",
+		Date:            "01.01.2024",
+		Time:            "12:00:00",
+		VideoURL:        "http://example.com/video.mp4",
+		HasVideo:        true,
+		EventID:         "test_event_123",
+		HasSnapshot:     true,
+		SnapshotURL:     "[Snapshot attached]",
+		HasFaces:        true,
 		RecognizedFaces: "John Doe (95.2%), Jane Smith (87.1%)",
-		UnknownFaces: "2",
-		FaceCount:   4,
+		UnknownFaces:    "2",
+		FaceCount:       4,
 	}
 
 	LogDebug("TEMPLATE", "Testing template syntax", "")
@@ -177,7 +167,7 @@ func ValidateTemplate(templateStr string) error {
 // CreateTemplateVariables creates template variables from a notification
 func CreateTemplateVariables(n FNDNotification, camera, object, eventID string) TemplateVariables {
 	LogDebug("TEMPLATE", "Creating template variables", fmt.Sprintf("Camera: %s, Object: %s, EventID: %s", camera, object, eventID))
-	
+
 	now := time.Now()
 
 	// Determine if snapshot is available
@@ -194,23 +184,23 @@ func CreateTemplateVariables(n FNDNotification, camera, object, eventID string) 
 	recognizedFaces := ""
 	unknownFaces := ""
 	faceCount := 0
-	
+
 	if n.FaceRecognitionResult != nil {
 		faceCount = len(n.FaceRecognitionResult.RecognizedFaces) + len(n.FaceRecognitionResult.UnknownFaces)
 		hasFaces = faceCount > 0
-		
+
 		// Build recognized faces list
 		if len(n.FaceRecognitionResult.RecognizedFaces) > 0 {
 			names := make([]string, 0, len(n.FaceRecognitionResult.RecognizedFaces))
 			for _, face := range n.FaceRecognitionResult.RecognizedFaces {
 				if face.Person != nil {
-					names = append(names, fmt.Sprintf("%s %s (%.1f%%)", 
+					names = append(names, fmt.Sprintf("%s %s (%.1f%%)",
 						face.Person.FirstName, face.Person.LastName, face.Confidence*100))
 				}
 			}
 			recognizedFaces = strings.Join(names, ", ")
 		}
-		
+
 		// Set unknown faces count
 		if len(n.FaceRecognitionResult.UnknownFaces) > 0 {
 			unknownFaces = fmt.Sprintf("%d", len(n.FaceRecognitionResult.UnknownFaces))
@@ -218,22 +208,22 @@ func CreateTemplateVariables(n FNDNotification, camera, object, eventID string) 
 	}
 
 	variables := TemplateVariables{
-		Camera:      camera,
-		Object:      object,
-		Date:        now.Format("02.01.2006"),
-		Time:        now.Format("15:04:05"),
-		VideoURL:    n.VideoURL,
-		HasVideo:    n.HasVideo,
-		EventID:     eventID,
-		HasSnapshot: hasSnapshot,
-		SnapshotURL: snapshotURL,
-		HasFaces:    hasFaces,
+		Camera:          camera,
+		Object:          object,
+		Date:            now.Format("02.01.2006"),
+		Time:            now.Format("15:04:05"),
+		VideoURL:        n.VideoURL,
+		HasVideo:        n.HasVideo,
+		EventID:         eventID,
+		HasSnapshot:     hasSnapshot,
+		SnapshotURL:     snapshotURL,
+		HasFaces:        hasFaces,
 		RecognizedFaces: recognizedFaces,
-		UnknownFaces: unknownFaces,
-		FaceCount:   faceCount,
+		UnknownFaces:    unknownFaces,
+		FaceCount:       faceCount,
 	}
-	
-	LogDebug("TEMPLATE", "Template variables created", fmt.Sprintf("HasVideo: %t, HasSnapshot: %t, HasFaces: %t, FaceCount: %d", 
+
+	LogDebug("TEMPLATE", "Template variables created", fmt.Sprintf("HasVideo: %t, HasSnapshot: %t, HasFaces: %t, FaceCount: %d",
 		variables.HasVideo, variables.HasSnapshot, variables.HasFaces, variables.FaceCount))
 	return variables
 }

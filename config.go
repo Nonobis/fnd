@@ -461,10 +461,10 @@ func (fConf *FNDFrigateConfiguration) activateCameras(activeList []string) {
 }
 
 // NewDefaultFacialRecognitionConfiguration creates a default facial recognition configuration
-func NewDefaultFacialRecognitionConfiguration() FNDFacialRecognitionConfiguration {
+func NewDefaultFacialRecognitionConfiguration() *FNDFacialRecognitionConfiguration {
 	LogDebug("CONFIG", "Creating default facial recognition configuration", "")
 
-	config := FNDFacialRecognitionConfiguration{
+	config := &FNDFacialRecognitionConfiguration{
 		Enabled:                 false,
 		CodeProjectAIHost:       "localhost",
 		CodeProjectAIPort:       8000,

@@ -20,20 +20,23 @@ func main() {
 
 	fmt.Println("Version: ", version)
 
-	//change the working Directory to the Executable Dir
+	// Change the working Directory to the Executable Dir
 	ex, err := os.Executable()
 	if err != nil {
-		panic(err)
+		fmt.Printf("Failed to get executable path: %v\n", err)
+		return
 	}
 	exPath := filepath.Dir(ex)
 	err = os.Chdir(exPath)
 	if err != nil {
-		LogError("SYSTEM", "Failed to change working directory", err.Error())
+		fmt.Printf("Failed to change working directory: %v\n", err)
+		return
 	}
 
-	err = os.MkdirAll(CONFIGURATION_FOLDER, 0755)
+	err = os.MkdirAll(CONFIGURATION_FOLDER, DEFAULT_DIRECTORY_PERMISSIONS)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Failed to create configuration directory: %v\n", err)
+		return
 	}
 
 	conf := LoadFNDConf(configuration_path)
@@ -45,7 +48,7 @@ func main() {
 	err = InitializeLogger(&conf.Logging)
 	if err != nil {
 		fmt.Printf("Failed to initialize logger: %v\n", err)
-		panic(err)
+		return
 	}
 
 	// Initialize Sentry (before other components)

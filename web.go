@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -1195,14 +1194,13 @@ func (web *FNDWebServer) run(frigateEvent *FNDFrigateEventManager) {
 }
 
 func (web *FNDWebServer) stop() {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := web.srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server Shutdown:", err)
+		LogError("WEB", "Server shutdown error", err.Error())
+		return
 	}
-	// catching ctx.Done(). timeout of 1 seconds.
-	<-ctx.Done()
-	log.Println("timeout of 1 seconds.")
+	LogInfo("WEB", "Server shutdown completed", "")
 }
 
 func (web *FNDWebServer) addNotificationSinkStatus(n FNDNotificationSinkStatus) {
@@ -2492,7 +2490,7 @@ func (web *FNDWebServer) handlePendingFacesConfig(c *gin.Context) {
 	}
 
 	// Get current configuration
-	config := web.globalConf.FacialRecognition
+	config := &web.globalConf.FacialRecognition
 
 	// Update pending faces auto-process setting
 	autoProcess := c.PostForm("pendingFacesAutoProcess") == "true"
@@ -2512,8 +2510,7 @@ func (web *FNDWebServer) handlePendingFacesConfig(c *gin.Context) {
 		}
 	}
 
-	// Update the configuration
-	web.globalConf.FacialRecognition = config
+	// Configuration is already updated via pointer
 
 	// Save configuration to file
 	if err := web.saveConfiguration(); err != nil {
