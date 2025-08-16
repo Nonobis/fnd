@@ -7,6 +7,8 @@
     "mqttUsername": "",
     "mqttPassword": "",
     "mqttAnonymous": true,
+    "mqttClientID": "fnd",
+    "mqttTopicPrefix": "frigate",
     "cooldown": 60,
     "cameras": {},
     "language": "en",

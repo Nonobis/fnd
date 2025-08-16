@@ -9,13 +9,13 @@ import (
 )
 
 const (
-	QOS      = 1
-	CLIENTID = "fnd_sub_v1"
+	QOS = 1
 )
 
 type FNDFrigateConnection struct {
 	mqttServerAddress string
 	client            mqtt.Client
+	config            *FNDFrigateConfiguration
 
 	lastEventMessage eventMessage
 	eventManager     FNDFrigateEventManager
@@ -45,6 +45,7 @@ type eventMessage struct {
 func newFrigateConnection(conf *FNDFrigateConfiguration) *FNDFrigateConnection {
 	con := &FNDFrigateConnection{
 		mqttServerAddress: "tcp://" + conf.MqttServer + ":" + conf.MqttPort,
+		config:            conf,
 		api:               *NewFNDFrigateApi("http://"+conf.Host+":"+conf.Port, conf.ExternalURL),
 	}
 	con.eventManager = *NewFNDFrigateEventManager(&con.api, conf)
@@ -55,8 +56,15 @@ func newFrigateConnection(conf *FNDFrigateConfiguration) *FNDFrigateConnection {
 func (o *FNDFrigateConnection) handle(_ mqtt.Client, msg mqtt.Message) {
 	LogDebug("MQTT", "Message received", fmt.Sprintf("Topic: %s, Payload length: %d bytes", msg.Topic(), len(msg.Payload())))
 
+	// Get topic prefix from configuration or use default
+	topicPrefix := o.config.MqttTopicPrefix
+	if topicPrefix == "" {
+		topicPrefix = "frigate"
+	}
+	eventsTopic := topicPrefix + "/events"
+
 	switch msg.Topic() {
-	case "frigate/events":
+	case eventsTopic:
 		LogDebug("FRIGATE", "Processing Frigate event", fmt.Sprintf("Raw payload: %s", string(msg.Payload())))
 		LogInfo("FRIGATE", "Event received", fmt.Sprintf("Topic: %s, Payload length: %d bytes", msg.Topic(), len(msg.Payload())))
 
@@ -88,16 +96,21 @@ func setupFNDFrigateConnection(conf *FNDFrigateConfiguration) (*FNDFrigateConnec
 	connection := newFrigateConnection(conf)
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(connection.mqttServerAddress)
-	opts.SetClientID(CLIENTID)
+	// Use configured client ID or default
+	clientID := connection.config.MqttClientID
+	if clientID == "" {
+		clientID = "fnd"
+	}
+	opts.SetClientID(clientID)
 
 	// Set authentication if not anonymous
-	if !conf.MqttAnonymous && conf.MqttUsername != "" {
-		opts.SetUsername(conf.MqttUsername)
-		if conf.MqttPassword != "" {
-			opts.SetPassword(conf.MqttPassword)
+	if !connection.config.MqttAnonymous && connection.config.MqttUsername != "" {
+		opts.SetUsername(connection.config.MqttUsername)
+		if connection.config.MqttPassword != "" {
+			opts.SetPassword(connection.config.MqttPassword)
 		}
-		LogInfo("MQTT", "Using authentication", fmt.Sprintf("Username: %s", conf.MqttUsername))
-		LogDebug("MQTT", "Authentication details", fmt.Sprintf("Username: %s, Password set: %t", conf.MqttUsername, conf.MqttPassword != ""))
+		LogInfo("MQTT", "Using authentication", fmt.Sprintf("Username: %s", connection.config.MqttUsername))
+		LogDebug("MQTT", "Authentication details", fmt.Sprintf("Username: %s, Password set: %t", connection.config.MqttUsername, connection.config.MqttPassword != ""))
 	} else {
 		LogInfo("MQTT", "Using anonymous connection", "")
 		LogDebug("MQTT", "Anonymous connection", "No authentication required")
@@ -124,17 +137,24 @@ func setupFNDFrigateConnection(conf *FNDFrigateConfiguration) (*FNDFrigateConnec
 
 	opts.OnConnect = func(c mqtt.Client) {
 		LogInfo("MQTT", "Connection established", fmt.Sprintf("Broker: %s", connection.mqttServerAddress))
-		LogDebug("MQTT", "Connection details", fmt.Sprintf("Client ID: %s, QoS: %d", CLIENTID, QOS))
+		LogDebug("MQTT", "Connection details", fmt.Sprintf("Client ID: %s, QoS: %d", clientID, QOS))
 
-		t := c.Subscribe("frigate/events", QOS, connection.handle)
+		// Get topic prefix for subscription
+		topicPrefix := connection.config.MqttTopicPrefix
+		if topicPrefix == "" {
+			topicPrefix = "frigate"
+		}
+		eventsTopic := topicPrefix + "/events"
+
+		t := c.Subscribe(eventsTopic, QOS, connection.handle)
 
 		go func() {
 			_ = t.Wait()
 			if t.Error() != nil {
 				LogError("MQTT", "Failed to subscribe", t.Error().Error())
 			} else {
-				LogInfo("MQTT", "Successfully subscribed", "Topic: frigate/events")
-				LogDebug("MQTT", "Subscription details", fmt.Sprintf("Topic: frigate/events, QoS: %d", QOS))
+				LogInfo("MQTT", "Successfully subscribed", fmt.Sprintf("Topic: %s", eventsTopic))
+				LogDebug("MQTT", "Subscription details", fmt.Sprintf("Topic: %s, QoS: %d", eventsTopic, QOS))
 			}
 		}()
 	}

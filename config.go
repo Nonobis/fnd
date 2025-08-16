@@ -18,20 +18,22 @@ type FNDConfiguration struct {
 }
 
 type FNDFrigateConfiguration struct {
-	Host           string
-	Port           string
-	MqttServer     string
-	MqttPort       string
-	MqttUsername   string
-	MqttPassword   string
-	MqttAnonymous  bool
-	Cooldown       int
-	Cameras        map[string]CameraConfig
-	Language       string
-	VideoEnabled   bool
-	VideoUrlOnly   bool
-	MaxVideoSizeMB int
-	ExternalURL    string
+	Host            string
+	Port            string
+	MqttServer      string
+	MqttPort        string
+	MqttUsername    string
+	MqttPassword    string
+	MqttAnonymous   bool
+	MqttClientID    string
+	MqttTopicPrefix string
+	Cooldown        int
+	Cameras         map[string]CameraConfig
+	Language        string
+	VideoEnabled    bool
+	VideoUrlOnly    bool
+	MaxVideoSizeMB  int
+	ExternalURL     string
 
 	m sync.Mutex
 }
@@ -191,20 +193,22 @@ func NEWDefaultFNDConfiguration() *FNDConfiguration {
 
 	conf := &FNDConfiguration{
 		Frigate: FNDFrigateConfiguration{
-			Host:           "frigate",
-			Port:           "5000",
-			MqttServer:     "mqtt-server",
-			MqttPort:       "1883",
-			MqttUsername:   "",
-			MqttPassword:   "",
-			MqttAnonymous:  true,
-			Cooldown:       60,
-			Cameras:        make(map[string]CameraConfig),
-			Language:       "en",
-			VideoEnabled:   true,
-			VideoUrlOnly:   false,
-			MaxVideoSizeMB: 10,
-			ExternalURL:    "",
+			Host:            "frigate",
+			Port:            "5000",
+			MqttServer:      "mqtt-server",
+			MqttPort:        "1883",
+			MqttUsername:    "",
+			MqttPassword:    "",
+			MqttAnonymous:   true,
+			MqttClientID:    "fnd",
+			MqttTopicPrefix: "frigate",
+			Cooldown:        60,
+			Cameras:         make(map[string]CameraConfig),
+			Language:        "en",
+			VideoEnabled:    true,
+			VideoUrlOnly:    false,
+			MaxVideoSizeMB:  10,
+			ExternalURL:     "",
 		},
 		Notify: FNDNotificationConfiguration{
 			Conf:    make(map[string]FNDNotificationConfigurationMap),
