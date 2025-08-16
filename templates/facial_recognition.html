@@ -15,6 +15,8 @@
         #facial-recognition-settings .tab-content.is-active {
             display: block !important;
         }
+        
+
         #facial-recognition-settings .tabs li.is-active a {
             border-bottom-color: #3273dc !important;
             color: #3273dc !important;
@@ -724,6 +726,29 @@
         // Show the first tab by default
         showTab('server');
     });
+
+    // Initialize tabs immediately and also on DOM ready
+    function initializeTabs() {
+        console.log('Initializing tabs');
+        // Hide all tab contents first
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabContents.forEach(content => {
+            content.style.display = 'none';
+            content.classList.remove('is-active');
+        });
+        
+        // Show the first tab
+        showTab('server');
+    }
+
+    // Initialize immediately if possible
+    if (document.readyState === 'loading') {
+        // DOM is still loading, wait for DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', initializeTabs);
+    } else {
+        // DOM is already loaded, initialize immediately
+        initializeTabs();
+    }
 
     // Auto-refresh status when configuration changes
     document.addEventListener('htmx:afterRequest', function(event) {
