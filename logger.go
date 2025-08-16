@@ -13,13 +13,7 @@ import (
 	"time"
 )
 
-// Log levels constants
-const (
-	LOG_LEVEL_DEBUG = "DEBUG"
-	LOG_LEVEL_INFO  = "INFO"
-	LOG_LEVEL_WARN  = "WARN"
-	LOG_LEVEL_ERROR = "ERROR"
-)
+// Log levels constants are now defined in constants.go
 
 const (
 	LOG_FILE_NAME   = "fnd.log"
@@ -118,7 +112,7 @@ func InitializeLogger(config *FNDLoggingConfiguration) error {
 	appLogger = logger
 
 	// Log initialization
-	LogInfo("SYSTEM", "Logger initialized", fmt.Sprintf("Log file: %s, Memory cache: %d entries", logPath, MEMORY_CACHE_SIZE))
+	LogInfo(COMPONENT_SYSTEM, "Logger initialized", fmt.Sprintf("Log file: %s, Memory cache: %d entries", logPath, MEMORY_CACHE_SIZE))
 
 	return nil
 }
@@ -155,7 +149,7 @@ func (l *Logger) loadRecentLogs() {
 		l.entries = allEntries
 	}
 
-	LogInfo("SYSTEM", "Recent logs loaded", fmt.Sprintf("Loaded %d entries from file", len(l.entries)))
+	LogInfo(COMPONENT_SYSTEM, "Recent logs loaded", fmt.Sprintf("Loaded %d entries from file", len(l.entries)))
 }
 
 // rotationWorker handles log file rotation in background
@@ -193,7 +187,7 @@ func (l *Logger) checkAndRotate() {
 func (l *Logger) rotateLogFile() {
 	// Close current file
 	if err := l.logFile.Close(); err != nil {
-		LogError("SYSTEM", "Failed to close log file during rotation", err.Error())
+		LogError(COMPONENT_SYSTEM, "Failed to close log file during rotation", err.Error())
 		return
 	}
 
@@ -201,14 +195,14 @@ func (l *Logger) rotateLogFile() {
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
 	rotatedPath := l.filePath + "." + timestamp
 	if err := os.Rename(l.filePath, rotatedPath); err != nil {
-		LogError("SYSTEM", "Failed to rotate log file", err.Error())
+		LogError(COMPONENT_SYSTEM, "Failed to rotate log file", err.Error())
 		return
 	}
 
 	// Create new log file
 	file, err := os.OpenFile(l.filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		LogError("SYSTEM", "Failed to create new log file", err.Error())
+		LogError(COMPONENT_SYSTEM, "Failed to create new log file", err.Error())
 		return
 	}
 	l.logFile = file
@@ -218,7 +212,7 @@ func (l *Logger) rotateLogFile() {
 	// Clean old rotated files
 	l.cleanOldLogFiles()
 
-	LogInfo("SYSTEM", "Log file rotated", fmt.Sprintf("New file: %s", l.filePath))
+	LogInfo(COMPONENT_SYSTEM, "Log file rotated", fmt.Sprintf("New file: %s", l.filePath))
 }
 
 // cleanOldLogFiles removes old rotated log files
@@ -228,7 +222,7 @@ func (l *Logger) cleanOldLogFiles() {
 
 	files, err := os.ReadDir(dir)
 	if err != nil {
-		LogWarn("SYSTEM", "Failed to read directory for log cleanup", err.Error())
+		LogWarn(COMPONENT_SYSTEM, "Failed to read directory for log cleanup", err.Error())
 		return
 	}
 
@@ -250,7 +244,7 @@ func (l *Logger) cleanOldLogFiles() {
 	if len(rotatedFiles) > MAX_LOG_FILES {
 		for _, file := range rotatedFiles[:len(rotatedFiles)-MAX_LOG_FILES] {
 			if err := os.Remove(file); err != nil {
-				LogWarn("SYSTEM", "Failed to remove old log file", fmt.Sprintf("File: %s, Error: %s", file, err.Error()))
+				LogWarn(COMPONENT_SYSTEM, "Failed to remove old log file", fmt.Sprintf("File: %s, Error: %s", file, err.Error()))
 			}
 		}
 	}
@@ -573,11 +567,11 @@ func (l *Logger) UpdateConfiguration(config *FNDLoggingConfiguration) {
 	l.config = config
 
 	// Log the configuration change using the logging system
-	LogInfo("LOGGER", "Configuration updated", fmt.Sprintf("Level changed from %d to %d, MaxEntries changed from %d to %d",
+	LogInfo(COMPONENT_LOGGER, "Configuration updated", fmt.Sprintf("Level changed from %d to %d, MaxEntries changed from %d to %d",
 		oldLevel, config.LogLevel, oldMaxEntries, config.MaxEntries))
 
 	// Test if the new level is working
-	LogDebug("LOGGER", "This is a test DEBUG message after configuration update", "")
+	LogDebug(COMPONENT_LOGGER, "This is a test DEBUG message after configuration update", "")
 }
 
 // GetConfiguration returns a copy of the current logger configuration
@@ -664,7 +658,7 @@ func GetLogger() *Logger {
 // CloseLogger properly closes the global logger
 func CloseLogger() {
 	if appLogger != nil {
-		LogInfo("SYSTEM", "Logger shutting down", "")
+		LogInfo(COMPONENT_SYSTEM, "Logger shutting down", "")
 		appLogger.Close()
 		appLogger = nil
 	}

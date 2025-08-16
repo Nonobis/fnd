@@ -55,36 +55,38 @@ const (
 	DEFAULT_NOTIFICATION_MESSAGE = "A new event has occurred: {{.Object}} at {{.Camera}} on {{.Date}} {{.Time}}{{if .HasVideo}}\n🎥 Video: {{.VideoURL}}{{end}}{{if .HasSnapshot}}\n📸 Snapshot attached{{end}}{{if .HasFaces}}\n👤 Faces detected: {{.FaceCount}}{{if .RecognizedFaces}}\n✅ Recognized: {{.RecognizedFaces}}{{end}}{{if .UnknownFaces}}\n❓ Unknown: {{.UnknownFaces}}{{end}}{{end}}"
 
 	// Apprise defaults
-	DEFAULT_APPRISE_TIMEOUT = 30
-	DEFAULT_APPRISE_FORMAT  = "text"
+	DEFAULT_APPRISE_SERVER_URL = "http://apprise:8000"
+	DEFAULT_APPRISE_TIMEOUT    = 30
+	DEFAULT_APPRISE_FORMAT     = "text"
 
 	// Test data
-	TEST_CAMERA_NAME      = "test_camera"
-	TEST_OBJECT_TYPE      = "person"
-	TEST_DATE_FORMAT      = "01.01.2024"
-	TEST_TIME_FORMAT      = "12:00:00"
-	TEST_VIDEO_URL        = "http://example.com/video.mp4"
-	TEST_EVENT_ID         = "test_event_123"
-	TEST_SNAPSHOT_URL     = "[Snapshot attached]"
-	TEST_RECOGNIZED_FACES = "John Doe (95.2%), Jane Smith (87.1%)"
-	TEST_UNKNOWN_FACES    = "2"
-	TEST_FACE_COUNT       = 4
+	TEST_CAMERA_NAME = "test_camera"
+	TEST_OBJECT_TYPE = "person"
 
 	// Date/Time formats
-	DATE_FORMAT = "02.01.2006"
-	TIME_FORMAT = "15:04:05"
+	DATE_FORMAT_DISPLAY = "2006-01-02 15:04:05"
+	DATE_FORMAT_FILE    = "2006-01-02_15-04-05"
 
 	// HTTP status codes
-	HTTP_STATUS_SEE_OTHER = 303
+	HTTP_STATUS_OK             = 200
+	HTTP_STATUS_BAD_REQUEST    = 400
+	HTTP_STATUS_UNAUTHORIZED   = 401
+	HTTP_STATUS_FORBIDDEN      = 403
+	HTTP_STATUS_NOT_FOUND      = 404
+	HTTP_STATUS_INTERNAL_ERROR = 500
 
 	// Common strings
 	EMPTY_STRING = ""
 	TRUE_STRING  = "true"
 	FALSE_STRING = "false"
-)
 
-// Component names for logging
-const (
+	// Log levels
+	LOG_LEVEL_DEBUG = "DEBUG"
+	LOG_LEVEL_INFO  = "INFO"
+	LOG_LEVEL_WARN  = "WARN"
+	LOG_LEVEL_ERROR = "ERROR"
+
+	// Log components - Consolidated categories
 	COMPONENT_SYSTEM         = "SYSTEM"
 	COMPONENT_MAIN           = "MAIN"
 	COMPONENT_CONFIG         = "CONFIG"
@@ -96,94 +98,63 @@ const (
 	COMPONENT_TEMPLATE       = "TEMPLATE"
 	COMPONENT_TRANSLATE      = "TRANSLATE"
 	COMPONENT_MIGRATION      = "MIGRATION"
-)
+	COMPONENT_LOGGER         = "LOGGER"
+	COMPONENT_API            = "API"
+	COMPONENT_EVENT          = "EVENT"
+	COMPONENT_NOTIFICATION   = "NOTIFICATION"
+	COMPONENT_CAMERA         = "CAMERA"
+	COMPONENT_FACIAL_RECOGNITION = "FACIAL_RECOGNITION"
+	COMPONENT_PENDING_FACES  = "PENDING_FACES"
 
-// Notification service names
-const (
+	// Notification service names
 	SERVICE_TELEGRAM = "telegram"
 	SERVICE_GOTIFY   = "gotify"
 	SERVICE_APPRISE  = "apprise"
-)
 
-// File extensions
-const (
+	// File extensions
 	EXTENSION_JSON = ".json"
 	EXTENSION_DB   = ".db"
 	EXTENSION_LOG  = ".log"
-)
 
-// HTTP methods
-const (
+	// HTTP methods
 	HTTP_METHOD_GET  = "GET"
 	HTTP_METHOD_POST = "POST"
-)
+	HTTP_METHOD_PUT  = "PUT"
+	HTTP_METHOD_DELETE = "DELETE"
 
-// Common HTTP headers
-const (
+	// HTTP headers
 	HEADER_CONTENT_TYPE = "Content-Type"
 	HEADER_ACCEPT       = "Accept"
-)
+	HEADER_USER_AGENT   = "User-Agent"
+	HEADER_AUTHORIZATION = "Authorization"
 
-// MIME types
-const (
+	// MIME types
 	MIME_TYPE_JSON = "application/json"
-	MIME_TYPE_HTML = "text/html"
-	MIME_TYPE_TEXT = "text/plain"
-)
+	MIME_TYPE_FORM = "application/x-www-form-urlencoded"
+	MIME_TYPE_MULTIPART = "multipart/form-data"
+	MIME_TYPE_JPEG = "image/jpeg"
+	MIME_TYPE_MP4 = "video/mp4"
 
-// Error messages
-const (
-	ERROR_INVALID_FORM_DATA  = "Invalid form data"
-	ERROR_SAVE_CONFIGURATION = "Failed to save configuration"
-	ERROR_INVALID_INTERVAL   = "Invalid interval value (must be 1-168 hours)"
-	ERROR_INVALID_PORT       = "Port must be between 1 and 65535"
-	ERROR_INVALID_EMAIL      = "Please enter a valid email address"
-	ERROR_INVALID_URL        = "Please enter a valid URL starting with http:// or https://"
-	ERROR_INVALID_TOKEN      = "Token must be at least 10 characters long"
-	ERROR_INVALID_CHAT_ID    = "Chat ID must be a number"
-	ERROR_INVALID_HOST       = "Host must contain only letters, numbers, dots, and hyphens"
-	ERROR_REQUIRED_FIELD     = "This field is required"
-	ERROR_POSITIVE_INTEGER   = "Please enter a positive integer"
-)
+	// Error messages
+	ERROR_MSG_INVALID_CONFIG = "Invalid configuration"
+	ERROR_MSG_FILE_NOT_FOUND = "File not found"
+	ERROR_MSG_PERMISSION_DENIED = "Permission denied"
+	ERROR_MSG_TIMEOUT = "Operation timed out"
+	ERROR_MSG_CONNECTION_FAILED = "Connection failed"
 
-// Success messages
-const (
-	SUCCESS_CONFIGURATION_SAVED   = "Configuration saved successfully"
-	SUCCESS_PENDING_FACES_UPDATED = "Pending faces configuration updated successfully"
-)
+	// Success messages
+	SUCCESS_MSG_CONFIG_SAVED = "Configuration saved successfully"
+	SUCCESS_MSG_OPERATION_COMPLETED = "Operation completed successfully"
 
-// Info messages
-const (
-	INFO_APPLICATION_STARTING     = "Application starting"
-	INFO_APPLICATION_READY        = "Application ready"
-	INFO_SHUTDOWN_SIGNAL_RECEIVED = "Shutdown signal received"
-	INFO_GRACEFUL_SHUTDOWN        = "Starting graceful shutdown"
-	INFO_SENTRY_ENABLED           = "Sentry enabled via environment variables"
-	INFO_SENTRY_DISABLED          = "Sentry disabled"
-)
+	// Info messages
+	INFO_MSG_INITIALIZING = "Initializing"
+	INFO_MSG_SHUTTING_DOWN = "Shutting down"
+	INFO_MSG_OPERATION_STARTED = "Operation started"
 
-// Warning messages
-const (
-	WARN_NO_CONFIGURATION_FOUND     = "No configuration found, using default"
-	WARN_SENTRY_INIT_FAILED         = "Failed to initialize Sentry"
-	WARN_MIGRATION_FAILED           = "Failed to migrate"
-	WARN_TASK_SCHEDULER_UNAVAILABLE = "Task scheduler not available for history"
-)
+	// Warning messages
+	WARN_MSG_DEPRECATED_FEATURE = "This feature is deprecated"
+	WARN_MSG_FALLBACK_USED = "Using fallback method"
 
-// Debug messages
-const (
-	DEBUG_LOADING_CONFIGURATION   = "Loading configuration"
-	DEBUG_CREATING_DEFAULT_CONFIG = "Creating default configuration"
-	DEBUG_CONFIGURATION_LOADED    = "Configuration loaded successfully"
-	DEBUG_SETTING_UP_TRANSLATION  = "Setting up translation system"
-	DEBUG_LOADING_LANGUAGE_CONFIG = "Loading language configuration"
-)
-
-// Migration file names
-const (
-	MIGRATION_TASK_HISTORY_FILE   = "task_history.json"
-	MIGRATION_EVENT_QUEUE_FILE    = "event_queue.json"
-	MIGRATION_PENDING_EVENTS_FILE = "pending_events.json"
-	MIGRATION_FACES_FILE          = "faces.json"
+	// Migration file names
 	MIGRATION_PENDING_FACES_DIR   = "pending_faces"
 )

@@ -180,22 +180,22 @@ type FaceDatabase struct {
 }
 
 func LoadFNDConf(filename string) *FNDConfiguration {
-	LogDebug("CONFIG", "Loading configuration", fmt.Sprintf("File: %s", filename))
+	LogDebug(COMPONENT_CONFIG, "Loading configuration", fmt.Sprintf("File: %s", filename))
 
 	conf, err := NewFNDConfigurationFromFile(filename)
 	if err != nil {
-		LogWarn("CONFIG", "No configuration found, using default", err.Error())
+		LogWarn(COMPONENT_CONFIG, "No configuration found, using default", err.Error())
 		fmt.Println("No Configuration found. Using default.")
 	} else {
-		LogInfo("CONFIG", "Configuration loaded successfully", fmt.Sprintf("File: %s", filename))
+		LogInfo(COMPONENT_CONFIG, "Configuration loaded successfully", fmt.Sprintf("File: %s", filename))
 	}
 
-	LogDebug("CONFIG", "Configuration details", fmt.Sprintf("Frigate host: %s, MQTT server: %s, Language: %s", conf.Frigate.Host, conf.Frigate.MqttServer, conf.Frigate.Language))
+	LogDebug(COMPONENT_CONFIG, "Configuration details", fmt.Sprintf("Frigate host: %s, MQTT server: %s, Language: %s", conf.Frigate.Host, conf.Frigate.MqttServer, conf.Frigate.Language))
 	return conf
 }
 
 func NEWDefaultFNDConfiguration() *FNDConfiguration {
-	LogDebug("CONFIG", "Creating default configuration", "")
+	LogDebug(COMPONENT_CONFIG, "Creating default configuration", "")
 
 	conf := &FNDConfiguration{
 		Frigate: FNDFrigateConfiguration{
@@ -263,7 +263,7 @@ func NEWDefaultFNDConfiguration() *FNDConfiguration {
 
 // NewDefaultLoggingConfiguration creates a default logging configuration
 func NewDefaultLoggingConfiguration() FNDLoggingConfiguration {
-	LogDebug("CONFIG", "Creating default logging configuration", "")
+	LogDebug(COMPONENT_CONFIG, "Creating default logging configuration", "")
 
 	config := FNDLoggingConfiguration{
 		MaxEntries:    DEFAULT_MAX_LOG_ENTRIES,
@@ -272,24 +272,24 @@ func NewDefaultLoggingConfiguration() FNDLoggingConfiguration {
 		EnableConsole: true,
 	}
 
-	LogDebug("CONFIG", "Default logging configuration created", fmt.Sprintf("MaxEntries: %d, LogLevel: %d, EnableFile: %t, EnableConsole: %t", config.MaxEntries, config.LogLevel, config.EnableFile, config.EnableConsole))
+	LogDebug(COMPONENT_CONFIG, "Default logging configuration created", fmt.Sprintf("MaxEntries: %d, LogLevel: %d, EnableFile: %t, EnableConsole: %t", config.MaxEntries, config.LogLevel, config.EnableFile, config.EnableConsole))
 	return config
 }
 
 func NEWDefaultFNDNotificationConfigurationMap() FNDNotificationConfigurationMap {
-	LogDebug("CONFIG", "Creating default notification configuration map", "")
+	LogDebug(COMPONENT_CONFIG, "Creating default notification configuration map", "")
 
 	config := FNDNotificationConfigurationMap{
 		Map: make(map[string]string),
 	}
 
-	LogDebug("CONFIG", "Default notification configuration map created", "")
+	LogDebug(COMPONENT_CONFIG, "Default notification configuration map created", "")
 	return config
 }
 
 // NewDefaultAppriseConfig creates a default Apprise configuration
 func NewDefaultAppriseConfig() AppriseConfig {
-	LogDebug("CONFIG", "Creating default Apprise configuration", "")
+	LogDebug(COMPONENT_CONFIG, "Creating default Apprise configuration", "")
 
 	config := AppriseConfig{
 		Enabled:   false,
@@ -299,13 +299,13 @@ func NewDefaultAppriseConfig() AppriseConfig {
 		Format:    "text",
 	}
 
-	LogDebug("CONFIG", "Default Apprise configuration created", fmt.Sprintf("Enabled: %t, ServerURL: %s, Timeout: %d", config.Enabled, config.ServerURL, config.Timeout))
+	LogDebug(COMPONENT_CONFIG, "Default Apprise configuration created", fmt.Sprintf("Enabled: %t, ServerURL: %s, Timeout: %d", config.Enabled, config.ServerURL, config.Timeout))
 	return config
 }
 
 // ToMap converts AppriseConfig to a map for backward compatibility
 func (ac *AppriseConfig) ToMap() map[string]string {
-	LogDebug("CONFIG", "Converting AppriseConfig to map", fmt.Sprintf("Enabled: %t, ConfigID: %s", ac.Enabled, ac.ConfigID))
+	LogDebug(COMPONENT_CONFIG, "Converting AppriseConfig to map", fmt.Sprintf("Enabled: %t, ConfigID: %s", ac.Enabled, ac.ConfigID))
 
 	configMap := map[string]string{
 		AppriseEnabledKey:   fmt.Sprintf("%t", ac.Enabled),
@@ -315,88 +315,88 @@ func (ac *AppriseConfig) ToMap() map[string]string {
 		AppriseFormatKey:    ac.Format,
 	}
 
-	LogDebug("CONFIG", "AppriseConfig converted to map", fmt.Sprintf("Map size: %d", len(configMap)))
+	LogDebug(COMPONENT_CONFIG, "AppriseConfig converted to map", fmt.Sprintf("Map size: %d", len(configMap)))
 	return configMap
 }
 
 // FromMap populates AppriseConfig from a map for backward compatibility
 func (ac *AppriseConfig) FromMap(m map[string]string) {
-	LogDebug("CONFIG", "Populating AppriseConfig from map", fmt.Sprintf("Map size: %d", len(m)))
+	LogDebug(COMPONENT_CONFIG, "Populating AppriseConfig from map", fmt.Sprintf("Map size: %d", len(m)))
 
 	if enabled, exists := m[AppriseEnabledKey]; exists {
 		ac.Enabled = enabled == "true"
-		LogDebug("CONFIG", "AppriseConfig enabled set", fmt.Sprintf("Value: %t", ac.Enabled))
+		LogDebug(COMPONENT_CONFIG, "AppriseConfig enabled set", fmt.Sprintf("Value: %t", ac.Enabled))
 	}
 	if configID, exists := m[AppriseConfigIDKey]; exists {
 		ac.ConfigID = configID
-		LogDebug("CONFIG", "AppriseConfig ConfigID set", fmt.Sprintf("Value: %s", ac.ConfigID))
+		LogDebug(COMPONENT_CONFIG, "AppriseConfig ConfigID set", fmt.Sprintf("Value: %s", ac.ConfigID))
 	}
 	if serverURL, exists := m[AppriseServerURLKey]; exists {
 		ac.ServerURL = serverURL
-		LogDebug("CONFIG", "AppriseConfig ServerURL set", fmt.Sprintf("Value: %s", ac.ServerURL))
+		LogDebug(COMPONENT_CONFIG, "AppriseConfig ServerURL set", fmt.Sprintf("Value: %s", ac.ServerURL))
 	}
 	if timeout, exists := m[AppriseTimeoutKey]; exists {
 		if t, err := strconv.Atoi(timeout); err == nil {
 			ac.Timeout = t
-			LogDebug("CONFIG", "AppriseConfig Timeout set", fmt.Sprintf("Value: %d", ac.Timeout))
+			LogDebug(COMPONENT_CONFIG, "AppriseConfig Timeout set", fmt.Sprintf("Value: %d", ac.Timeout))
 		} else {
-			LogWarn("CONFIG", "Invalid timeout value in AppriseConfig", fmt.Sprintf("Value: %s, Error: %s", timeout, err.Error()))
+			LogWarn(COMPONENT_CONFIG, "Invalid timeout value in AppriseConfig", fmt.Sprintf("Value: %s, Error: %s", timeout, err.Error()))
 		}
 	}
 	if format, exists := m[AppriseFormatKey]; exists {
 		ac.Format = format
-		LogDebug("CONFIG", "AppriseConfig Format set", fmt.Sprintf("Value: %s", ac.Format))
+		LogDebug(COMPONENT_CONFIG, "AppriseConfig Format set", fmt.Sprintf("Value: %s", ac.Format))
 	}
 
-	LogDebug("CONFIG", "AppriseConfig populated from map", fmt.Sprintf("Enabled: %t, ConfigID: %s, ServerURL: %s", ac.Enabled, ac.ConfigID, ac.ServerURL))
+	LogDebug(COMPONENT_CONFIG, "AppriseConfig populated from map", fmt.Sprintf("Enabled: %t, ConfigID: %s, ServerURL: %s", ac.Enabled, ac.ConfigID, ac.ServerURL))
 }
 
 func NewFNDConfigurationFromFile(filename string) (*FNDConfiguration, error) {
-	LogDebug("CONFIG", "Loading configuration from file", fmt.Sprintf("File: %s", filename))
+	LogDebug(COMPONENT_CONFIG, "Loading configuration from file", fmt.Sprintf("File: %s", filename))
 
 	conf := NEWDefaultFNDConfiguration()
 	_, err := os.Stat(filename)
 	if err != nil {
-		LogDebug("CONFIG", "Configuration file does not exist", fmt.Sprintf("File: %s, Error: %s", filename, err.Error()))
+		LogDebug(COMPONENT_CONFIG, "Configuration file does not exist", fmt.Sprintf("File: %s, Error: %s", filename, err.Error()))
 		return conf, err
 	}
 
-	LogDebug("CONFIG", "Configuration file exists, reading content", fmt.Sprintf("File: %s", filename))
+	LogDebug(COMPONENT_CONFIG, "Configuration file exists, reading content", fmt.Sprintf("File: %s", filename))
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		LogError("CONFIG", "Failed to read configuration file", fmt.Sprintf("File: %s, Error: %s", filename, err.Error()))
+		LogError(COMPONENT_CONFIG, "Failed to read configuration file", fmt.Sprintf("File: %s, Error: %s", filename, err.Error()))
 		return conf, err
 	}
 
-	LogDebug("CONFIG", "Configuration file read successfully", fmt.Sprintf("File: %s, Size: %d bytes", filename, len(data)))
+	LogDebug(COMPONENT_CONFIG, "Configuration file read successfully", fmt.Sprintf("File: %s, Size: %d bytes", filename, len(data)))
 	err = json.Unmarshal(data, &conf)
 	if err != nil {
-		LogError("CONFIG", "Failed to parse configuration JSON", fmt.Sprintf("File: %s, Error: %s", filename, err.Error()))
+		LogError(COMPONENT_CONFIG, "Failed to parse configuration JSON", fmt.Sprintf("File: %s, Error: %s", filename, err.Error()))
 		return conf, err
 	}
 
-	LogInfo("CONFIG", "Configuration loaded from file successfully", fmt.Sprintf("File: %s", filename))
+	LogInfo(COMPONENT_CONFIG, "Configuration loaded from file successfully", fmt.Sprintf("File: %s", filename))
 	return conf, nil
 }
 
 func (conf *FNDConfiguration) WriteToFile(filename string) error {
-	LogDebug("CONFIG", "Writing configuration to file", fmt.Sprintf("File: %s", filename))
+	LogDebug(COMPONENT_CONFIG, "Writing configuration to file", fmt.Sprintf("File: %s", filename))
 
 	file, err := json.MarshalIndent(conf, "", " ")
 	if err != nil {
-		LogError("CONFIG", "Failed to marshal configuration to JSON", fmt.Sprintf("File: %s, Error: %s", filename, err.Error()))
+		LogError(COMPONENT_CONFIG, "Failed to marshal configuration to JSON", fmt.Sprintf("File: %s, Error: %s", filename, err.Error()))
 		return err
 	}
 
-	LogDebug("CONFIG", "Configuration marshaled to JSON", fmt.Sprintf("File: %s, Size: %d bytes", filename, len(file)))
+	LogDebug(COMPONENT_CONFIG, "Configuration marshaled to JSON", fmt.Sprintf("File: %s, Size: %d bytes", filename, len(file)))
 	err = os.WriteFile(filename, file, 0644)
 
 	if err != nil {
-		LogError("CONFIG", "Failed to write configuration file", fmt.Sprintf("File: %s, Error: %s", filename, err.Error()))
+		LogError(COMPONENT_CONFIG, "Failed to write configuration file", fmt.Sprintf("File: %s, Error: %s", filename, err.Error()))
 		return err
 	}
 
-	LogInfo("CONFIG", "Configuration file written successfully", fmt.Sprintf("File: %s, Size: %d bytes", filename, len(file)))
+	LogInfo(COMPONENT_CONFIG, "Configuration file written successfully", fmt.Sprintf("File: %s, Size: %d bytes", filename, len(file)))
 	return nil
 }
 

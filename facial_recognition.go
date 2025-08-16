@@ -71,7 +71,7 @@ type RecognizedFace struct {
 
 // NewFacialRecognitionService creates a new facial recognition service
 func NewFacialRecognitionService(config *FNDFacialRecognitionConfiguration) *FacialRecognitionService {
-	LogDebug("FACIAL_RECOGNITION", "Creating facial recognition service", fmt.Sprintf("Host: %s, Port: %d", config.CodeProjectAIHost, config.CodeProjectAIPort))
+	LogDebug(COMPONENT_FACIAL_RECOGNITION, "Creating facial recognition service", fmt.Sprintf("Host: %s, Port: %d", config.CodeProjectAIHost, config.CodeProjectAIPort))
 
 	protocol := "http"
 	if config.CodeProjectAIUseSSL {
@@ -97,7 +97,7 @@ func NewFacialRecognitionService(config *FNDFacialRecognitionConfiguration) *Fac
 
 	// Load face database
 	if err := service.loadFaceDatabase(); err != nil {
-		LogWarn("FACIAL_RECOGNITION", "Failed to load face database", err.Error())
+		LogWarn(COMPONENT_FACIAL_RECOGNITION, "Failed to load face database", err.Error())
 		CaptureError(err, map[string]interface{}{
 			"component": "facial_recognition",
 			"action":    "load_face_database",
@@ -106,18 +106,18 @@ func NewFacialRecognitionService(config *FNDFacialRecognitionConfiguration) *Fac
 		})
 	}
 
-	LogInfo("FACIAL_RECOGNITION", "Facial recognition service created", fmt.Sprintf("Base URL: %s", baseURL))
+	LogInfo(COMPONENT_FACIAL_RECOGNITION, "Facial recognition service created", fmt.Sprintf("Base URL: %s", baseURL))
 	return service
 }
 
 // DetectFaces detects faces in an image using CodeProject.AI
 func (s *FacialRecognitionService) DetectFaces(imageData []byte) (*FaceDetectionResult, error) {
 	if !s.config.Enabled || !s.config.FaceDetectionEnabled {
-		LogDebug("FACIAL_RECOGNITION", "Face detection disabled", "")
+		LogDebug(COMPONENT_FACIAL_RECOGNITION, "Face detection disabled", "")
 		return &FaceDetectionResult{FacesDetected: 0, Faces: []CodeProjectAIData{}}, nil
 	}
 
-	LogDebug("FACIAL_RECOGNITION", "Detecting faces in image", fmt.Sprintf("Image size: %d bytes", len(imageData)))
+	LogDebug(COMPONENT_FACIAL_RECOGNITION, "Detecting faces in image", fmt.Sprintf("Image size: %d bytes", len(imageData)))
 
 	// Prepare the request
 	url := fmt.Sprintf("%s/v1/vision/face", s.baseURL)
@@ -129,13 +129,13 @@ func (s *FacialRecognitionService) DetectFaces(imageData []byte) (*FaceDetection
 	// Add image file
 	part, err := writer.CreateFormFile("image", "snapshot.jpg")
 	if err != nil {
-		LogError("FACIAL_RECOGNITION", "Failed to create form file", err.Error())
+		LogError(COMPONENT_FACIAL_RECOGNITION, "Failed to create form file", err.Error())
 		return nil, err
 	}
 
 	_, err = part.Write(imageData)
 	if err != nil {
-		LogError("FACIAL_RECOGNITION", "Failed to write image data", err.Error())
+		LogError(COMPONENT_FACIAL_RECOGNITION, "Failed to write image data", err.Error())
 		return nil, err
 	}
 
@@ -144,7 +144,7 @@ func (s *FacialRecognitionService) DetectFaces(imageData []byte) (*FaceDetection
 	// Create request
 	req, err := http.NewRequest("POST", url, &buf)
 	if err != nil {
-		LogError("FACIAL_RECOGNITION", "Failed to create request", err.Error())
+		LogError(COMPONENT_FACIAL_RECOGNITION, "Failed to create request", err.Error())
 		return nil, err
 	}
 
@@ -153,7 +153,7 @@ func (s *FacialRecognitionService) DetectFaces(imageData []byte) (*FaceDetection
 	// Send request
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		LogError("FACIAL_RECOGNITION", "Failed to send face detection request", err.Error())
+		LogError(COMPONENT_FACIAL_RECOGNITION, "Failed to send face detection request", err.Error())
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -161,19 +161,19 @@ func (s *FacialRecognitionService) DetectFaces(imageData []byte) (*FaceDetection
 	// Read response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		LogError("FACIAL_RECOGNITION", "Failed to read response body", err.Error())
+		LogError(COMPONENT_FACIAL_RECOGNITION, "Failed to read response body", err.Error())
 		return nil, err
 	}
 
 	// Parse response
 	var apiResponse CodeProjectAIResponse
 	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		LogError("FACIAL_RECOGNITION", "Failed to parse API response", err.Error())
+		LogError(COMPONENT_FACIAL_RECOGNITION, "Failed to parse API response", err.Error())
 		return nil, err
 	}
 
 	if !apiResponse.Success {
-		LogError("FACIAL_RECOGNITION", "Face detection API error", apiResponse.Error)
+		LogError(COMPONENT_FACIAL_RECOGNITION, "Face detection API error", apiResponse.Error)
 		return nil, fmt.Errorf("face detection failed: %s", apiResponse.Error)
 	}
 
@@ -183,28 +183,28 @@ func (s *FacialRecognitionService) DetectFaces(imageData []byte) (*FaceDetection
 		Timestamp:     time.Now(),
 	}
 
-	LogInfo("FACIAL_RECOGNITION", "Face detection completed", fmt.Sprintf("Faces detected: %d", result.FacesDetected))
+	LogInfo(COMPONENT_FACIAL_RECOGNITION, "Face detection completed", fmt.Sprintf("Faces detected: %d", result.FacesDetected))
 	return result, nil
 }
 
 // RecognizeFaces recognizes faces in an image using CodeProject.AI
 func (s *FacialRecognitionService) RecognizeFaces(imageData []byte) (*FaceRecognitionResult, error) {
 	if !s.config.Enabled || !s.config.FaceRecognitionEnabled {
-		LogDebug("FACIAL_RECOGNITION", "Face recognition disabled", "")
+		LogDebug(COMPONENT_FACIAL_RECOGNITION, "Face recognition disabled", "")
 		return &FaceRecognitionResult{RecognizedFaces: []RecognizedFace{}, UnknownFaces: []CodeProjectAIData{}}, nil
 	}
 
-	LogDebug("FACIAL_RECOGNITION", "Recognizing faces in image", fmt.Sprintf("Image size: %d bytes", len(imageData)))
+	LogDebug(COMPONENT_FACIAL_RECOGNITION, "Recognizing faces in image", fmt.Sprintf("Image size: %d bytes", len(imageData)))
 
 	// First detect faces
 	detectionResult, err := s.DetectFaces(imageData)
 	if err != nil {
-		LogError("FACIAL_RECOGNITION", "Face detection failed during recognition", err.Error())
+		LogError(COMPONENT_FACIAL_RECOGNITION, "Face detection failed during recognition", err.Error())
 		return nil, err
 	}
 
 	if detectionResult.FacesDetected == 0 {
-		LogDebug("FACIAL_RECOGNITION", "No faces detected for recognition", "")
+		LogDebug(COMPONENT_FACIAL_RECOGNITION, "No faces detected for recognition", "")
 		return &FaceRecognitionResult{RecognizedFaces: []RecognizedFace{}, UnknownFaces: []CodeProjectAIData{}}, nil
 	}
 
