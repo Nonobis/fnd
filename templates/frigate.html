@@ -175,90 +175,77 @@
                                 </div>
                             </div>
 
-                            <!-- MQTT Authentication Section -->
-                            <div class="form-section">
-                                <h3 class="form-section-title">
+                            <!-- MQTT Authentication -->
+                            <div class="form-group">
+                                <label class="label">
                                     <span class="icon-text">
                                         <span class="icon">
                                             <i class="fas fa-shield-alt"></i>
                                         </span>
                                         <span>{{index .TranslatedText 8}}</span>
                                     </span>
-                                </h3>
-                                
-                                <div class="form-group">
-                                    <label class="label">
+                                </label>
+                                <div class="control">
+                                    <label class="radio">
+                                        <input type="radio" name="mqttauth" value="anonymous" {{if .Conf.MqttAnonymous}}checked{{end}} onchange="toggleMqttAuth()">
                                         <span class="icon-text">
                                             <span class="icon">
-                                                <i class="fas fa-user-shield"></i>
+                                                <i class="fas fa-user-slash"></i>
                                             </span>
-                                            <span>{{index .TranslatedText 12}}</span>
+                                            <span>{{index .TranslatedText 9}}</span>
                                         </span>
                                     </label>
-                                    <div class="control">
-                                        <label class="radio">
-                                            <input type="radio" name="mqttauth" value="anonymous" {{if .Conf.MqttAnonymous}}checked{{end}} onchange="toggleMqttAuth()">
-                                            <span class="icon-text">
-                                                <span class="icon">
-                                                    <i class="fas fa-user-slash"></i>
-                                                </span>
-                                                <span>{{index .TranslatedText 9}}</span>
+                                    <label class="radio">
+                                        <input type="radio" name="mqttauth" value="credentials" {{if not .Conf.MqttAnonymous}}checked{{end}} onchange="toggleMqttAuth()">
+                                        <span class="icon-text">
+                                            <span class="icon">
+                                                <i class="fas fa-user-lock"></i>
                                             </span>
-                                        </label>
-                                    </div>
-                                    <div class="control">
-                                        <label class="radio">
-                                            <input type="radio" name="mqttauth" value="credentials" {{if not .Conf.MqttAnonymous}}checked{{end}} onchange="toggleMqttAuth()">
-                                            <span class="icon-text">
-                                                <span class="icon">
-                                                    <i class="fas fa-user-lock"></i>
-                                                </span>
-                                                <span>Username/Password</span>
-                                            </span>
-                                        </label>
-                                    </div>
+                                            <span>Username/Password</span>
+                                        </span>
+                                    </label>
                                 </div>
+                            </div>
 
-                                <div id="mqtt-credentials" class="{{if .Conf.MqttAnonymous}}is-hidden{{end}}">
-                                    <div class="form-grid">
-                                        <div class="form-group">
-                                            <label class="label">
-                                                <span class="icon-text">
-                                                    <span class="icon">
-                                                        <i class="fas fa-user"></i>
-                                                    </span>
-                                                    <span>{{index .TranslatedText 10}}</span>
-                                                </span>
-                                            </label>
-                                            <div class="control has-icons-left">
-                                                <input class="input is-medium mqtt-auth-field" type="text" name="mqttusername" placeholder="{{ .Conf.MqttUsername }}" {{if .Conf.MqttAnonymous}}disabled{{end}}>
-                                                <span class="icon is-small is-left">
+                            <div id="mqtt-credentials" class="{{if .Conf.MqttAnonymous}}is-hidden{{end}}">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label class="label">
+                                            <span class="icon-text">
+                                                <span class="icon">
                                                     <i class="fas fa-user"></i>
                                                 </span>
-                                            </div>
-                                            <p class="help">MQTT username for authentication</p>
+                                                <span>{{index .TranslatedText 10}}</span>
+                                            </span>
+                                        </label>
+                                        <div class="control has-icons-left">
+                                            <input class="input is-medium mqtt-auth-field" type="text" name="mqttusername" placeholder="{{ .Conf.MqttUsername }}" {{if .Conf.MqttAnonymous}}disabled{{end}}>
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-user"></i>
+                                            </span>
                                         </div>
+                                        <p class="help">MQTT username for authentication</p>
+                                    </div>
 
-                                        <div class="form-group">
-                                            <label class="label">
-                                                <span class="icon-text">
-                                                    <span class="icon">
-                                                        <i class="fas fa-lock"></i>
-                                                    </span>
-                                                    <span>{{index .TranslatedText 11}}</span>
-                                                </span>
-                                            </label>
-                                            <div class="control has-icons-left has-icons-right">
-                                                <input class="input is-medium mqtt-auth-field" type="password" name="mqttpassword" placeholder="••••••••••••••••••••" {{if .Conf.MqttAnonymous}}disabled{{end}} id="mqtt-password">
-                                                <span class="icon is-small is-left">
+                                    <div class="form-group">
+                                        <label class="label">
+                                            <span class="icon-text">
+                                                <span class="icon">
                                                     <i class="fas fa-lock"></i>
                                                 </span>
-                                                <span class="icon is-small is-right toggle-password" onclick="togglePasswordVisibility('mqtt-password', this)">
-                                                    <i class="fas fa-eye"></i>
-                                                </span>
-                                            </div>
-                                            <p class="help">MQTT password (optional if username is set)</p>
+                                                <span>{{index .TranslatedText 11}}</span>
+                                            </span>
+                                        </label>
+                                        <div class="control has-icons-left has-icons-right">
+                                            <input class="input is-medium mqtt-auth-field" type="password" name="mqttpassword" placeholder="••••••••••••••••••••" {{if .Conf.MqttAnonymous}}disabled{{end}} id="mqtt-password">
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-lock"></i>
+                                            </span>
+                                            <span class="icon is-small is-right toggle-password" onclick="togglePasswordVisibility('mqtt-password', this)">
+                                                <i class="fas fa-eye"></i>
+                                            </span>
                                         </div>
+                                        <p class="help">MQTT password (optional if username is set)</p>
                                     </div>
                                 </div>
                             </div>
