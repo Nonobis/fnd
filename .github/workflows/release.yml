@@ -122,6 +122,47 @@ jobs:
           VCS_URL=${{ github.server_url }}/${{ github.repository }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        platforms: linux/amd64
+        no-cache: true
+
+    - name: Force latest tag update
+      if: github.ref == 'refs/heads/main' && steps.new_version.outputs.should_release == 'true' && github.event_name != 'pull_request'
+      run: |
+        echo "Forcing latest tag update..."
+        # Convert repository name to lowercase for Docker compatibility
+        LOWER_IMAGE_NAME=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+        
+        # Wait for image to be available
+        echo "Waiting for image to be available in registry..."
+        for i in {1..30}; do
+          if docker pull ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:${{ steps.new_version.outputs.new_version }} >/dev/null 2>&1; then
+            echo "✅ Image found in registry after $i attempts"
+            break
+          fi
+          echo "Attempt $i: Image not yet available, waiting 10 seconds..."
+          sleep 10
+        done
+        
+        # Force update latest tag
+        echo "Forcing latest tag to point to version ${{ steps.new_version.outputs.new_version }}"
+        docker pull ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:${{ steps.new_version.outputs.new_version }}
+        docker tag ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:${{ steps.new_version.outputs.new_version }} ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:latest
+        docker push ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:latest --force
+        
+        # Verify the update
+        echo "Verifying latest tag update..."
+        docker pull ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:latest
+        docker pull ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:${{ steps.new_version.outputs.new_version }}
+        
+        LATEST_DIGEST=$(docker inspect ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:latest --format='{{.Id}}')
+        VERSION_DIGEST=$(docker inspect ${{ env.REGISTRY }}/$LOWER_IMAGE_NAME:${{ steps.new_version.outputs.new_version }} --format='{{.Id}}')
+        
+        if [ "$LATEST_DIGEST" = "$VERSION_DIGEST" ]; then
+          echo "✅ Latest tag successfully updated to version ${{ steps.new_version.outputs.new_version }}"
+        else
+          echo "❌ Latest tag update failed!"
+          exit 1
+        fi
 
 
 

@@ -1976,20 +1976,32 @@ func (web *FNDWebServer) handleFacialRecognitionStatus(c *gin.Context) {
 	LogDebug("WEB", "Handling facial recognition status", "")
 
 	enabled := web.globalConf.FacialRecognition.Enabled
-	statusClass := "is-danger"
+	statusClass := "status-error"
 	statusText := "Disabled"
 	icon := "fas fa-times-circle"
+	indicatorClass := "has-background-danger"
 
 	if enabled {
-		statusClass = "is-success"
+		statusClass = "status-success"
 		statusText = "Enabled"
 		icon = "fas fa-check-circle"
+		indicatorClass = "has-background-success"
 	}
 
-	statusHTML := fmt.Sprintf(`<div class="notification %s is-light">
-		<span class="icon"><i class="%s"></i></span>
-		<span><strong>Facial Recognition:</strong> %s</span>
-	</div>`, statusClass, icon, statusText)
+	statusHTML := fmt.Sprintf(`<div class="status-card %s">
+		<div class="status-card-header">
+			<span class="status-name">
+				<span class="icon">
+					<i class="%s"></i>
+				</span>
+				Facial Recognition
+			</span>
+			<span class="status-indicator %s"></span>
+		</div>
+		<div class="status-card-body">
+			<p class="status-message">Status: %s</p>
+		</div>
+	</div>`, statusClass, icon, indicatorClass, statusText)
 
 	c.Data(200, "text/html", []byte(statusHTML))
 }
@@ -2066,7 +2078,7 @@ func (web *FNDWebServer) handleObjectFiltersCameraConfig(c *gin.Context) {
 			return false
 		},
 	}).ParseFS(templateFS, "templates/object_filters_camera.html"))
-	
+
 	t.Execute(c.Writer, gin.H{
 		"Camera":           cameraConfig,
 		"CameraName":       cameraName,
@@ -2091,7 +2103,7 @@ func (web *FNDWebServer) handleObjectFiltersCameraSave(c *gin.Context) {
 	} else {
 		// Create new camera config if it doesn't exist
 		web.frigateConf.Cameras[cameraName] = CameraConfig{
-			Name: cameraName,
+			Name:   cameraName,
 			Active: true,
 			ObjectFilter: ObjectFilter{
 				Enabled: enabled,
