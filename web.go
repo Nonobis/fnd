@@ -926,6 +926,10 @@ func setupBasicRoutes(addr string, conf *FNDFrigateConfiguration, globalConf *FN
 		web.handleObjectFiltersPage(c)
 	})
 
+	r.GET("/object-filters/camera/:camera", func(c *gin.Context) {
+		web.handleObjectFiltersCameraConfig(c)
+	})
+
 	r.GET("/api/object-filters/cameras", func(c *gin.Context) {
 		web.handleObjectFiltersCameras(c)
 	})
@@ -2052,6 +2056,20 @@ func (web *FNDWebServer) handleObjectFiltersPage(c *gin.Context) {
 func (web *FNDWebServer) handleObjectFiltersCameras(c *gin.Context) {
 	LogDebug("WEB", "Handling object filters cameras list", "")
 
+	// Try to get cameras from Frigate API if available
+	if web.frigateEvent != nil && web.frigateEvent.api != nil {
+		cams, err := web.frigateEvent.api.getCameras()
+		if err == nil {
+			// Sync discovered cameras with configuration
+			for cameraName := range cams.Cameras {
+				web.frigateConf.checkOrAddCamera(cameraName)
+			}
+			LogInfo("WEB", "Synced cameras from Frigate", fmt.Sprintf("Total cameras: %d", len(cams.Cameras)))
+		} else {
+			LogWarn("WEB", "Failed to sync cameras from Frigate", err.Error())
+		}
+	}
+
 	cameras := make([]gin.H, 0) // Initialize as empty slice, not nil
 	for cameraName, cameraConfig := range web.frigateConf.Cameras {
 		cameras = append(cameras, gin.H{
@@ -2061,6 +2079,7 @@ func (web *FNDWebServer) handleObjectFiltersCameras(c *gin.Context) {
 		})
 	}
 
+	LogInfo("WEB", "Returning cameras list", fmt.Sprintf("Cameras count: %d", len(cameras)))
 	c.JSON(200, cameras)
 }
 
@@ -2072,7 +2091,7 @@ func (web *FNDWebServer) handleObjectFiltersCameraConfig(c *gin.Context) {
 	availableObjects := GetAvailableObjects()
 
 	// Create template with custom functions
-	t := template.Must(template.New("object_filters_camera.html").Funcs(template.FuncMap{
+	t := template.Must(template.New("object_filters_camera_modal.html").Funcs(template.FuncMap{
 		"contains": func(slice []string, item string) bool {
 			for _, s := range slice {
 				if s == item {
@@ -2081,7 +2100,7 @@ func (web *FNDWebServer) handleObjectFiltersCameraConfig(c *gin.Context) {
 			}
 			return false
 		},
-	}).ParseFS(templateFS, "templates/object_filters_camera.html"))
+	}).ParseFS(templateFS, "templates/object_filters_camera_modal.html"))
 
 	t.Execute(c.Writer, gin.H{
 		"Camera":           cameraConfig,
@@ -2127,10 +2146,16 @@ func (web *FNDWebServer) handleObjectFiltersCameraSave(c *gin.Context) {
 
 	LogInfo("WEB", "Object filter configuration saved", fmt.Sprintf("Camera: %s, Enabled: %t, Objects: %v", cameraName, enabled, objects))
 
-	// Return success response
+	// Return success response with script to close modal and reload
 	successHTML := fmt.Sprintf(`<div class="notification is-success is-light">
 		<span class="icon"><i class="fas fa-check-circle"></i></span>
 		<span>Object filter configuration saved for camera: %s</span>
+		<script>
+			setTimeout(function() {
+				closeCameraModal();
+				loadCamerasList();
+			}, 1500);
+		</script>
 	</div>`, cameraName)
 	c.Data(200, "text/html", []byte(successHTML))
 }

@@ -62,7 +62,13 @@
         </div>
         <div class="settings-card-body">
             <div id="cameras-list">
-                <!-- Cameras will be loaded here -->
+                <!-- Loading indicator -->
+                <div id="loading-indicator" class="has-text-centered py-6">
+                    <span class="icon is-large">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    </span>
+                    <p class="mt-3">Loading cameras...</p>
+                </div>
             </div>
         </div>
     </div>
@@ -75,10 +81,26 @@
     });
 
     function loadCamerasList() {
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const camerasList = document.getElementById('cameras-list');
+        
+        // Show loading indicator
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'block';
+        }
+        
         fetch('/api/object-filters/cameras')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(cameras => {
-                const camerasList = document.getElementById('cameras-list');
+                // Hide loading indicator
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'none';
+                }
                 
                 // Handle null or undefined cameras
                 if (!cameras || cameras.length === 0) {
@@ -87,8 +109,14 @@
                             <span class="icon is-large">
                                 <i class="fas fa-video fa-3x"></i>
                             </span>
-                            <p class="mt-3">No cameras configured yet</p>
-                            <p class="is-size-7">Cameras will appear here once they are detected from Frigate</p>
+                            <p class="mt-3">No cameras found</p>
+                            <p class="is-size-7">Make sure Frigate is running and accessible. Cameras will appear here once detected.</p>
+                            <button class="button is-info mt-3" onclick="loadCamerasList()">
+                                <span class="icon">
+                                    <i class="fas fa-sync-alt"></i>
+                                </span>
+                                <span>Refresh</span>
+                            </button>
                         </div>
                     `;
                     return;
@@ -139,20 +167,84 @@
             })
             .catch(error => {
                 console.error('Error loading cameras:', error);
-                document.getElementById('cameras-list').innerHTML = `
+                
+                // Hide loading indicator
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'none';
+                }
+                
+                camerasList.innerHTML = `
                     <div class="notification is-danger is-light">
                         <span class="icon">
                             <i class="fas fa-exclamation-triangle"></i>
                         </span>
                         <span>Failed to load cameras: ${error.message}</span>
+                        <button class="button is-danger is-small ml-3" onclick="loadCamerasList()">
+                            <span class="icon">
+                                <i class="fas fa-sync-alt"></i>
+                            </span>
+                            <span>Retry</span>
+                        </button>
                     </div>
                 `;
             });
     }
 
     function configureCamera(cameraName) {
-        // Open camera configuration in a modal or new page
-        window.location.href = `/object-filters/camera/${cameraName}`;
+        // Open camera configuration in a modal
+        const modal = document.createElement('div');
+        modal.className = 'modal is-active';
+        modal.innerHTML = `
+            <div class="modal-background" onclick="closeCameraModal()"></div>
+            <div class="modal-card" style="width: 95%; max-width: 1200px;">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">
+                        <span class="icon-text">
+                            <span class="icon">
+                                <i class="fas fa-filter"></i>
+                            </span>
+                            <span>Object Filters - ${cameraName}</span>
+                        </span>
+                    </p>
+                    <button class="delete" aria-label="close" onclick="closeCameraModal()"></button>
+                </header>
+                <section class="modal-card-body" id="camera-config-content">
+                    <div class="has-text-centered py-6">
+                        <span class="icon is-large">
+                            <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        </span>
+                        <p class="mt-3">Loading configuration...</p>
+                    </div>
+                </section>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Load camera configuration
+        fetch(`/api/object-filters/camera/${cameraName}`)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('camera-config-content').innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error loading camera config:', error);
+                document.getElementById('camera-config-content').innerHTML = `
+                    <div class="notification is-danger is-light">
+                        <span class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </span>
+                        <span>Failed to load camera configuration: ${error.message}</span>
+                    </div>
+                `;
+            });
+    }
+    
+    function closeCameraModal() {
+        const modal = document.querySelector('.modal.is-active');
+        if (modal) {
+            modal.remove();
+        }
     }
 
     // Auto-refresh cameras list every 30 seconds
