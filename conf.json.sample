@@ -1,0 +1,38 @@
+{
+  "Frigate": {
+    "Host": "frigate",
+    "Port": "5000",
+    "MqttServer": "mqtt-server",
+    "MqttPort": "1883",
+    "Cooldown": 60,
+    "Language": "en",
+    "Cameras": {
+      "camera_name": {
+        "Name": "camera_name",
+        "Active": false
+      }
+    }
+  },
+  "Notify": {
+    "Conf": {
+      "Web": {
+        "Map": {
+          "enabled": "true"
+        }
+      },
+      "Telegram": {
+        "Map": {
+          "enabled": "false",
+          "token": "",
+          "chatid": ""
+        }
+      },
+      "Apprise": {
+        "Map": {
+          "enabled": "false",
+          "configID": ""
+        }
+      }
+    }
+  }
+}
