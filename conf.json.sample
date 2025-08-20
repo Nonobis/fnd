@@ -1,9 +1,9 @@
 {
   "Frigate": {
     "Host": "frigate",
-    "Port": "5000",
+    "Port": 5000,
     "MqttServer": "mqtt-server",
-    "MqttPort": "1883",
+    "MqttPort": 1883,
     "Cooldown": 60,
     "Language": "en",
     "Cameras": {
@@ -17,19 +17,19 @@
     "Conf": {
       "Web": {
         "Map": {
-          "enabled": "true"
+          "enabled": true
         }
       },
       "Telegram": {
         "Map": {
-          "enabled": "false",
+          "enabled": false,
           "token": "",
           "chatid": ""
         }
       },
       "Apprise": {
         "Map": {
-          "enabled": "false",
+          "enabled": false,
           "configID": ""
         }
       }

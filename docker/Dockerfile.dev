@@ -1,0 +1,28 @@
+# Development Dockerfile for FND
+FROM alpine:latest
+
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates
+
+# Create non-root user
+RUN addgroup -g 1001 -S fnd && \
+    adduser -u 1001 -S fnd -G fnd
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary
+COPY ./bin/fnd .
+
+# Create necessary directories
+RUN mkdir -p /app/fnd_conf /app/logs && \
+    chown -R fnd:fnd /app
+
+# Switch to non-root user
+USER fnd
+
+# Expose port
+EXPOSE 7777
+
+# Run the application
+CMD ["./fnd"]

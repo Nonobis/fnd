@@ -1,0 +1,21 @@
+services:
+  # FND Application
+  fnd:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: fnd-local
+    ports:
+      - "7777:7777"
+    volumes:
+      # Mount the configuration directory
+      - ./fnd_conf:/app/fnd_conf
+      # Mount the logs directory
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - fnd-network
+
+networks:
+  fnd-network:
+    driver: bridge

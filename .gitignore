@@ -1,7 +1,7 @@
 bin
 test
 *.mp4
-*.webp
+*.webm
 *.db-shm
 *.db-wal
 ap_attach
@@ -9,3 +9,4 @@ ap_config
 ap_plugin
 fnd*.tar
 fnd_conf/**
+logs/
